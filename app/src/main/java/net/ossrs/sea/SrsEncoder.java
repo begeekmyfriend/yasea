@@ -19,7 +19,7 @@ public class SrsEncoder {
 
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
-    public static String rtmpUrl = "rtmp://10.10.10.135/ivp/test";//"ossrs.net:1935/live/sea"
+    public static String rtmpUrl = "rtmp://ossrs.net:1935/live/sea"
 
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;

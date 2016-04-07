@@ -464,7 +464,7 @@ public class SrsEncoder {
             String[] types = mci.getSupportedTypes();
             for (int j = 0; j < types.length; j++) {
                 if (types[j].equalsIgnoreCase(VCODEC)) {
-                    //Log.i(TAG, String.format("vencoder %s types: %s", mci.getName(), types[j]));
+                    Log.i(TAG, String.format("vencoder %s types: %s", mci.getName(), types[j]));
                     if (name == null) {
                         return mci;
                     }
@@ -482,9 +482,9 @@ public class SrsEncoder {
     // choose the right supported color format. @see below:
     private int chooseVideoEncoder() {
         // choose the encoder "video/avc":
-        //      1. select one when type matched.
-        //      2. perfer google avc.
-        //      3. perfer qcom avc.
+        //      1. select default one when type matched.
+        //      2. google avc is unusable.
+        //      3. choose qcom avc.
         vmci = chooseVideoEncoder(null);
         //vmci = chooseVideoEncoder("google");
         //vmci = chooseVideoEncoder("qcom");

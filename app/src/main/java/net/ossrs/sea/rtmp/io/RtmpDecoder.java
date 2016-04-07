@@ -39,10 +39,10 @@ public class RtmpDecoder {
 
         chunkStreamInfo.setPrevHeaderRx(header);
 
-        if (header.getPacketLength() > rtmpSessionInfo.getChunkSize()) {
+        if (header.getPacketLength() > rtmpSessionInfo.getRxChunkSize()) {
             //Log.d(TAG, "readPacket(): packet size (" + header.getPacketLength() + ") is bigger than chunk size (" + rtmpSessionInfo.getChunkSize() + "); storing chunk data");
             // This packet consists of more than one chunk; store the chunks in the chunk stream until everything is read
-            if (!chunkStreamInfo.storePacketChunk(in, rtmpSessionInfo.getChunkSize())) {
+            if (!chunkStreamInfo.storePacketChunk(in, rtmpSessionInfo.getRxChunkSize())) {
                 Log.d(TAG, " readPacket(): returning null because of incomplete packet");
                 return null; // packet is not yet complete
             } else {
@@ -59,7 +59,7 @@ public class RtmpDecoder {
                 SetChunkSize setChunkSize = new SetChunkSize(header);
                 setChunkSize.readBody(in);
                 Log.d(TAG, "readPacket(): Setting chunk size to: " + setChunkSize.getChunkSize());
-                rtmpSessionInfo.setChunkSize(setChunkSize.getChunkSize());                
+                rtmpSessionInfo.setRxChunkSize(setChunkSize.getChunkSize());
                 return null;
             }
             case ABORT:

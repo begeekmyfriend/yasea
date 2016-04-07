@@ -79,12 +79,15 @@ public class RtmpDecoder {
                 break;
             case VIDEO:
                 rtmpPacket = new Video(header);
-				break;
+                break;
             case COMMAND_AMF0:
                 rtmpPacket = new Command(header);
                 break;
             case DATA_AMF0:
                 rtmpPacket = new Data(header);
+                break;
+            case ACKNOWLEDGEMENT:
+                rtmpPacket = new Acknowledgement(header);
                 break;
             default:
                 throw new IOException("No packet body implementation for message type: " + header.getMessageType());

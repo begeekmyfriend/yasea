@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class MainActivity extends Activity implements SurfaceHolder.Callback, Camera.PreviewCallback {
-    private static final String TAG = "SrsPublisher";
+    private static final String TAG = "Yasea";
 
     private AudioRecord mic = null;
     private boolean aloop = false;
@@ -61,53 +61,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         // initialize url.
         final EditText efu = (EditText) findViewById(R.id.url);
         efu.setText(SrsEncoder.rtmpUrl);
-        efu.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                String fu = efu.getText().toString();
-                if (fu == SrsEncoder.rtmpUrl || fu.isEmpty()) {
-                    return;
-                }
-
-                SrsEncoder.rtmpUrl = fu;
-                Log.i(TAG, String.format("flv url changed to %s", SrsEncoder.rtmpUrl));
-
-                SharedPreferences.Editor editor = sp.edit();
-                editor.putString("SrsEncoder.rtmpUrl", SrsEncoder.rtmpUrl);
-                editor.commit();
-            }
-        });
-
+        // initialize video bitrate.
         final EditText evb = (EditText) findViewById(R.id.vbitrate);
         evb.setText(String.format("%dkbps", SrsEncoder.vbitrate / 1000));
-        evb.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                int vb = Integer.parseInt(evb.getText().toString().replaceAll("kbps", ""));
-                if (vb * 1000 != SrsEncoder.vbitrate) {
-                    SrsEncoder.vbitrate = vb * 1000;
-                    SharedPreferences.Editor editor = sp.edit();
-                    editor.putInt("VBITRATE", SrsEncoder.vbitrate);
-                    editor.commit();
-                }
-            }
-        });
 
         // for camera, @see https://developer.android.com/reference/android/hardware/Camera.html
         final Button btnPublish = (Button) findViewById(R.id.publish);
@@ -123,9 +80,18 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startPublish();
+                int vb = Integer.parseInt(evb.getText().toString().replaceAll("kbps", ""));
+                SrsEncoder.vbitrate = vb * 1000;
+                SrsEncoder.rtmpUrl = efu.getText().toString();
+                Log.i(TAG, String.format("RTMP URL changed to %s", SrsEncoder.rtmpUrl));
+                Log.i(TAG, String.format("Video bitrate changed to %skbps", SrsEncoder.vbitrate / 1000));
+                SharedPreferences.Editor editor = sp.edit();
+                editor.putInt("VBITRATE", SrsEncoder.vbitrate);
+                editor.putString("SrsEncoder.rtmpUrl", SrsEncoder.rtmpUrl);
+                editor.commit();
                 btnPublish.setEnabled(false);
                 btnStop.setEnabled(true);
+                startPublish();
             }
         });
 
@@ -227,17 +193,17 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 //            Log.i("Cam", "\tRange [" + rn++ + "]: " + r[0] + "~" + r[1]);
 //        }
 //		/* preview size  */
-        List<Size> sizes = params.getSupportedPreviewSizes();
-        Log.i("Cam", "! Supported Preview Size:");
-        for (int i = 0; i < sizes.size(); i++) {
-            Log.i("Cam", "\tSize [" + i + "]: " + sizes.get(i).width + "x" + sizes.get(i).height);
-        }
-        /* picture size  */
-        sizes = params.getSupportedPictureSizes();
-        Log.i("Cam", "! Supported Picture Size:");
-        for (int i = 0; i < sizes.size(); i++) {
-            Log.i("Cam", "\tSize [" + i + "]: " + sizes.get(i).width + "x" + sizes.get(i).height);
-        }
+//        List<Size> sizes = params.getSupportedPreviewSizes();
+//        Log.i("Cam", "! Supported Preview Size:");
+//        for (int i = 0; i < sizes.size(); i++) {
+//            Log.i("Cam", "\tSize [" + i + "]: " + sizes.get(i).width + "x" + sizes.get(i).height);
+//        }
+//        /* picture size  */
+//        sizes = params.getSupportedPictureSizes();
+//        Log.i("Cam", "! Supported Picture Size:");
+//        for (int i = 0; i < sizes.size(); i++) {
+//            Log.i("Cam", "\tSize [" + i + "]: " + sizes.get(i).width + "x" + sizes.get(i).height);
+//        }
 
         /***** set parameters *****/
         //params.set("orientation", "portrait");

@@ -342,21 +342,21 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
                     fmlePublish();
                 }
             } else if ("releaseStream".contains(method)) {
-                // Do nothing
+                Log.d(TAG, "handleRxInvoke(): 'releaseStream'");
             } else if ("FCPublish".contains(method)) {
-                // Do nothing
+                Log.d(TAG, "handleRxInvoke(): 'FCPublish'");
             } else {
                 Log.w(TAG, "handleRxInvoke(): '_result' message received for unknown method: " + method);
             }
         } else if (commandName.equals("onBWDone")) {
-            // Do nothing
+            Log.d(TAG, "handleRxInvoke(): 'onBWDone'");
         } else if (commandName.equals("onFCPublish")) {
             Log.d(TAG, "handleRxInvoke(): 'onFCPublish'");
+        } else if (commandName.equals("onStatus")) {
+            // NetStream.Publish.Start
             synchronized (publishLock) {
                 publishLock.notifyAll();
             }
-        } else if (commandName.equals("onStatus")) {
-            // Do nothing
         } else {
             Log.e(TAG, "handleRxInvoke(): Uknown/unhandled server invoke: " + invoke);
         }

@@ -24,7 +24,7 @@ public class SrsEncoder {
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
     public static int vbitrate = 800 * 1000;  // 800kbps
-    public static final int VENC_WIDTH = 368;
+    public static final int VENC_WIDTH = 480;
     public static final int VENC_HEIGHT = 640;
     public static final int VFPS = 24;
     public static final int VGOP = 60;
@@ -46,7 +46,7 @@ public class SrsEncoder {
     private byte[] mFlippedFrameBuffer;
     private byte[] mCroppedFrameBuffer;
     private boolean mCameraFaceFront = true;
-    private long mPresentTimeMs;
+    private long mPresentTimeUs;
     private int vtrack;
     private int vcolor;
     private int atrack;
@@ -69,7 +69,7 @@ public class SrsEncoder {
         }
 
         // the referent PTS for video and audio encoder.
-        mPresentTimeMs = System.currentTimeMillis();
+        mPresentTimeUs = System.nanoTime() / 1000;
 
         // aencoder yuv to aac raw stream.
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
@@ -108,7 +108,7 @@ public class SrsEncoder {
         MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VENC_WIDTH, VENC_HEIGHT);
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vcolor);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, 300000);
+        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vbitrate);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
         videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP);
         vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -116,14 +116,9 @@ public class SrsEncoder {
         vtrack = muxer.addTrack(videoFormat);
 
         // start device and encoder.
-        try {
-            Log.i(TAG, "start avc vencoder");
-            vencoder.start();
-            Log.i(TAG, "start aac aencoder");
-            aencoder.start();
-        } catch (Exception e) {
-            Log.e(TAG, "Encoder start failed!");
-        }
+        vencoder.start();
+        aencoder.start();
+
         return 0;
     }
 
@@ -226,7 +221,7 @@ public class SrsEncoder {
                 ByteBuffer bb = inBuffers[inBufferIndex];
                 bb.clear();
                 bb.put(mCroppedFrameBuffer, 0, mCroppedFrameBuffer.length);
-                long pts = System.currentTimeMillis() - mPresentTimeMs;
+                long pts = System.nanoTime() / 1000 - mPresentTimeUs;
                 vencoder.queueInputBuffer(inBufferIndex, 0, mCroppedFrameBuffer.length, pts, 0);
             }
 
@@ -262,7 +257,7 @@ public class SrsEncoder {
             ByteBuffer bb = inBuffers[inBufferIndex];
             bb.clear();
             bb.put(data, 0, size);
-            long pts = System.currentTimeMillis() - mPresentTimeMs;
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
         }
 

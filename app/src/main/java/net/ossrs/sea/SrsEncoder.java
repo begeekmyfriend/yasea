@@ -327,14 +327,14 @@ public class SrsEncoder {
         i = 0;
         for (int row = (ih - oh) / 4; row < oh / 2 + (ih - oh) / 4; row++) {
             for (int col = (iw - ow) / 4; col < ow / 2 + (iw - ow) / 4; col++) {
-                output[oFrameSize + i++] = input[iFrameSize + iw * row + col];  // U
+                output[oFrameSize + i++] = input[iFrameSize + iw / 2 * row + col];  // U
             }
         }
 
         i = 0;
         for (int row = (ih - oh) / 4; row < oh / 2 + (ih - oh) / 4; row++) {
             for (int col = (iw - ow) / 4; col < ow / 2 + (iw - ow) / 4; col++) {
-                output[oFrameSize + oQFrameSize + i++] = input[iFrameSize + iQFrameSize + iw * row + col];  // V
+                output[oFrameSize + oQFrameSize + i++] = input[iFrameSize + iQFrameSize + iw / 2 * row + col];  // V
             }
         }
 
@@ -381,14 +381,14 @@ public class SrsEncoder {
         i = 0;
         for (int col = width / 2 - 1; col >= 0; col--) {
             for (int row = 0; row < height / 2; row++) {
-                output[frameSize + i++] = input[frameSize + width * row + col];
+                output[frameSize + i++] = input[frameSize + width / 2 * row + col];
             }
         }
 
         i = 0;
         for (int col = width / 2 - 1; col >= 0; col--) {
             for (int row = 0; row < height / 2; row++) {
-                output[frameSize + qFrameSize + i++] = input[frameSize + qFrameSize + width * row + col];
+                output[frameSize + qFrameSize + i++] = input[frameSize + qFrameSize + width / 2 * row + col];
             }
         }
 
@@ -431,7 +431,7 @@ public class SrsEncoder {
         i = 0;
         for (int row = 0; row < height / 2; row++) {
             for (int col = width / 2 - 1; col >= 0; col--) {
-                output[frameSize + i] = input[frameSize + width * row + col]; // Cb (U)
+                output[frameSize + i] = input[frameSize + width / 2 * row + col]; // Cb (U)
                 i++;
             }
         }
@@ -439,7 +439,7 @@ public class SrsEncoder {
         i = 0;
         for (int row = 0; row < height / 2; row++) {
             for (int col = width / 2 - 1; col >= 0; col--) {
-                output[frameSize + qFrameSize + i] = input[frameSize + qFrameSize + width * row + col]; // Cr (V)
+                output[frameSize + qFrameSize + i] = input[frameSize + qFrameSize + width / 2 * row + col]; // Cr (V)
                 i++;
             }
         }

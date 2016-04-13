@@ -10,7 +10,6 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.IllegalFormatException;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -25,8 +24,8 @@ public class SrsEncoder {
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
     public static int vbitrate = 800 * 1000;  // 800kbps
-    public static final int VENC_WIDTH = 480;
-    public static final int VENC_HEIGHT = 640;
+    public static final int VENC_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+    public static final int VENC_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static final int VFPS = 24;
     public static final int VGOP = 60;
     public static int VFORMAT = ImageFormat.YV12;//NV21;
@@ -271,8 +270,8 @@ public class SrsEncoder {
 
     // Y, U (Cb) and V (Cr)
     // yuv420                     yuv yuv yuv yuv
-    // yuv420p (平面模式 planar)   yyyy*2 uu vv
-    // yuv420sp(打包模式 packed)   yyyy*2 uv uv   SP(Semi-Planar)指的是YUV不是分成3个平面而是分成2个平面。Y数据一个平面，UV数据合用一个平面，数据格式UVUVUV
+    // yuv420p (planar)   yyyy*2 uu vv
+    // yuv420sp(semi-planner)   yyyy*2 uv uv
     // I420 -> YUV420P   yyyy*2 uu vv
     // YV12 -> YUV420P   yyyy*2 vv uu
     // NV21 -> YUV420SP  yyyy*2 vu vu
@@ -282,11 +281,14 @@ public class SrsEncoder {
 
     private byte[] cropYUV420SemiPlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
         assert(iw >= ow && ih >= oh);
+        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+        assert(ow % 32 == 0 && oh % 32 == 0);
 
-        int i = 0;
         int iFrameSize = iw * ih;
         int oFrameSize = ow * oh;
 
+        int i = 0;
         for (int row = (ih - oh) / 2; row < oh + (ih - oh) / 2; row++) {
             for (int col = (iw - ow) / 2; col < ow + (iw - ow) / 2; col++) {
                 output[i++] = input[iw * row + col];  // Y
@@ -307,13 +309,16 @@ public class SrsEncoder {
 
     private byte[] cropYUV420PlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
         assert(iw >= ow && ih >= oh);
+        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+        assert(ow % 32 == 0 && oh % 32 == 0);
 
-        int i = 0;
         int iFrameSize = iw * ih;
         int iQFrameSize = iFrameSize / 4;
         int oFrameSize = ow * oh;
         int oQFrameSize = oFrameSize / 4;
 
+        int i = 0;
         for (int row = (ih - oh) / 2; row < oh + (ih - oh) / 2; row++) {
             for (int col = (iw - ow) / 2; col < ow + (iw - ow) / 2; col++) {
                 output[i++] = input[iw * row + col];  // Y
@@ -323,14 +328,16 @@ public class SrsEncoder {
         i = 0;
         for (int row = (ih - oh) / 4; row < oh / 2 + (ih - oh) / 4; row++) {
             for (int col = (iw - ow) / 4; col < ow / 2 + (iw - ow) / 4; col++) {
-                output[oFrameSize + i++] = input[iFrameSize + iw / 2 * row + col];  // U
+                output[oFrameSize + i] = input[iFrameSize + iw / 2 * row + col];  // U
+                i++;
             }
         }
 
         i = 0;
         for (int row = (ih - oh) / 4; row < oh / 2 + (ih - oh) / 4; row++) {
             for (int col = (iw - ow) / 4; col < ow / 2 + (iw - ow) / 4; col++) {
-                output[oFrameSize + oQFrameSize + i++] = input[iFrameSize + iQFrameSize + iw / 2 * row + col];  // V
+                output[oFrameSize + oQFrameSize + i] = input[iFrameSize + iQFrameSize + iw / 2 * row + col];  // V
+                i++;
             }
         }
 

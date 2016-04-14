@@ -49,16 +49,17 @@ public class WriteThread extends Thread {
                 }
                 out.flush();
             } catch (SocketException se) {
-                Log.e(TAG, "Caught SocketException during write loop, shutting down", se);
+                Log.e(TAG, "WriteThread: Caught SocketException during write loop, shutting down", se);
                 active = false;
                 continue;
             } catch (IOException ex) {
-                Log.e(TAG, "Caught IOException during write loop, shutting down", ex);
+                Log.e(TAG, "WriteThread: Caught IOException during write loop, shutting down", ex);
                 active = false;
                 continue;  // Exit this thread
             }
 
             // Waiting for next packet
+            Log.d(TAG, "WriteThread: waiting...");
             synchronized (txPacketLock) {
                 try {
                     txPacketLock.wait();
@@ -72,7 +73,7 @@ public class WriteThread extends Thread {
         try {
             out.close();
         } catch (Exception ex) {
-            Log.w(TAG, "Failed to close outputstream", ex);
+            Log.w(TAG, "WriteThread: Failed to close outputstream", ex);
         }
         Log.d(TAG, "exiting");
         if (threadController != null) {

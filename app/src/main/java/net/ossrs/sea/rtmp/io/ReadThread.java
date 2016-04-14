@@ -1,6 +1,7 @@
 package net.ossrs.sea.rtmp.io;
 
 import java.io.EOFException;
+import java.io.IOException;
 import java.io.InputStream;
 import android.util.Log;
 import net.ossrs.sea.rtmp.packets.RtmpPacket;
@@ -29,13 +30,18 @@ public class ReadThread extends Thread {
 
     @Override
     public void run() {
+        boolean isEof = false;
+
         while (!Thread.interrupted()) {
             try {
                 RtmpPacket rtmpPacket = rtmpDecoder.readPacket(in);
                 packetRxHandler.handleRxPacket(rtmpPacket);
+                if (isEof) {
+                    isEof = false;
+                    Thread.sleep(500);
+                }
             } catch (EOFException eof) {
-                // The handler thread will wait until be invoked.
-                packetRxHandler.handleRxPacket(null);
+                isEof = true;
 //            } catch (WindowAckRequired war) {
 //                Log.i(TAG, "Window Acknowledgment required, notifying packet handler...");
 //                packetRxHandler.notifyWindowAckRequired(war.getBytesRead());
@@ -43,11 +49,13 @@ public class ReadThread extends Thread {
 //                    // Pass to handler
 //                    packetRxHandler.handleRxPacket(war.getRtmpPacket());
 //                }
-            } catch (Exception ex) {
+            } catch (IOException ex) {
                 if (!this.isInterrupted()) {
                     Log.e(TAG, "Caught exception while reading/decoding packet, shutting down...", ex);
                     this.interrupt();
                 }
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
             }
         }
         // Close inputstream

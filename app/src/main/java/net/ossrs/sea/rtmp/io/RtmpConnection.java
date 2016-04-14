@@ -289,8 +289,11 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
                     }
                     case WINDOW_ACKNOWLEDGEMENT_SIZE:
                         WindowAckSize windowAckSize = (WindowAckSize) rtmpPacket;
-                        Log.d(TAG, "handleRxPacketLoop(): Setting acknowledgement window size to: " + windowAckSize.getAcknowledgementWindowSize());
-                        rtmpSessionInfo.setAcknowledgmentWindowSize(windowAckSize.getAcknowledgementWindowSize());
+                        int size = windowAckSize.getAcknowledgementWindowSize();
+                        Log.d(TAG, "handleRxPacketLoop(): Setting acknowledgement window size: " + size);
+                        rtmpSessionInfo.setAcknowledgmentWindowSize(size);
+                        // Set socket option
+                        socket.setSendBufferSize(size);
                         break;
                     case SET_PEER_BANDWIDTH:
                         int acknowledgementWindowsize = rtmpSessionInfo.getAcknowledgementWindowSize();

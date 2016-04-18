@@ -7,8 +7,7 @@ import android.hardware.Camera.Size;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,6 +17,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     private byte[] mYuvFrameBuffer;
 
     private SrsEncoder mEncoder;
-
+    private String mErrMsg;
     // settings storage
     private SharedPreferences sp;
 
@@ -123,6 +124,31 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                     mPreviewRotation = (mPreviewRotation + 90) % 360;
                     mCamera.setDisplayOrientation(mPreviewRotation);
                 }
+            }
+        });
+
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread thread, Throwable ex) {
+                Toast.makeText(getApplicationContext(), ex.getLocalizedMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread thread, Throwable ex) {
+                mErrMsg = ex.getMessage();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Looper.prepare();
+                        Toast.makeText(getApplicationContext(), mErrMsg, Toast.LENGTH_SHORT).show();
+                        Looper.loop();
+                    }
+                }).start();
+                stopPublish();
+                btnPublish.setEnabled(true);
+                btnStop.setEnabled(false);
             }
         });
     }

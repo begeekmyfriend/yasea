@@ -143,8 +143,7 @@ public class SrsRtmp {
             public void run() {
                 try {
                     cycle();
-                } catch (InterruptedException ie) {
-                } catch (Exception e) {
+                } catch (IOException e) {
                     Log.i(TAG, "worker: thread exception.");
                     e.printStackTrace();
                 }
@@ -245,22 +244,20 @@ public class SrsRtmp {
         sequenceHeaderOk = false;
     }
 
-    private void reconnect() throws IllegalStateException, IOException {
+    private void connect() throws IllegalStateException, IOException {
         if (!connected) {
-            //disconnect();
-
-            Log.i(TAG, String.format("worker: connecting to SRS by url=%s\n", url));
+            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
             publisher = new SrsRtmpPublisher(url);
             publisher.connect();
             publisher.publish("live");
-            Log.i(TAG, String.format("worker: connect to SRS by url=%s\n", url));
+            Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
             connected = true;
         }
 
         clearCache();
     }
 
-    private void cycle() throws Exception {
+    private void cycle() throws IOException {
         // create the handler.
         Looper.prepare();
         looper = Looper.myLooper();
@@ -272,14 +269,14 @@ public class SrsRtmp {
                     return;
                 }
                 SrsFlvFrame frame = (SrsFlvFrame)msg.obj;
+                // only reconnect when got keyframe.
                 try {
-                    // only reconnect when got keyframe.
+                    // only connect when got keyframe.
                     if (frame.is_keyframe()) {
-                        reconnect();
+                        connect();
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, String.format("worker: reconnect failed. e=%s", e.getMessage()));
-                    disconnect();
+                } catch (IOException e) {
+                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(worker, e);
                 }
 
                 try {
@@ -309,7 +306,7 @@ public class SrsRtmp {
                     } else if (frame.type == SrsCodecFlvTag.Audio && frame.avc_aac_type == 0) {
                         audioSequenceHeader = frame;
                     }
-                } catch (Exception e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                     Log.e(TAG, String.format("worker: send flv tag failed, e=%s", e.getMessage()));
                     disconnect();
@@ -317,7 +314,6 @@ public class SrsRtmp {
             }
         };
         flv.setHandler(handler);
-
         Looper.loop();
     }
 

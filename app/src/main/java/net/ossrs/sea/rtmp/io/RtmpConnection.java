@@ -390,6 +390,11 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
                 } else if (thread instanceof WriteThread && thread.isAlive()) {
                     ((WriteThread) thread).shutdown();
                 }
+                try {
+                    thread.join();
+                } catch (InterruptedException ie) {
+                    ie.printStackTrace();
+                }
             }
         }
         if (socket != null) {

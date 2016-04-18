@@ -3,8 +3,9 @@ package net.ossrs.sea.rtmp.io;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketException;
-import java.util.Arrays;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import net.ossrs.sea.rtmp.packets.Command;
 import net.ossrs.sea.rtmp.packets.RtmpPacket;
@@ -20,10 +21,9 @@ public class WriteThread extends Thread {
 
     private RtmpSessionInfo rtmpSessionInfo;
     private OutputStream out;
-    private ConcurrentLinkedQueue<RtmpPacket> writeQueue = new ConcurrentLinkedQueue<RtmpPacket>();
-    private final Object txPacketLock = new Object();
-    private volatile boolean active = true;
+    private Handler handler;
     private ThreadController threadController;
+    private Thread t;
 
     public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, ThreadController threadController) {
         super("RtmpWriteThread");
@@ -34,40 +34,31 @@ public class WriteThread extends Thread {
 
     @Override
     public void run() {
-
-        while (active) {
-            try {
-                while (!writeQueue.isEmpty()) {
-                    RtmpPacket rtmpPacket = writeQueue.poll();
-                    final ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(rtmpPacket.getHeader().getChunkStreamId());
+        t = this;
+        Looper.prepare();
+        handler = new Handler(Looper.myLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                try {
+                    RtmpPacket rtmpPacket = (RtmpPacket) msg.obj;
+                    ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(rtmpPacket.getHeader().getChunkStreamId());
                     chunkStreamInfo.setPrevHeaderTx(rtmpPacket.getHeader());
                     rtmpPacket.writeTo(out, rtmpSessionInfo.getTxChunkSize(), chunkStreamInfo);
+                    out.flush();
                     Log.d(TAG, "WriteThread: wrote packet: " + rtmpPacket + ", size: " + rtmpPacket.getHeader().getPacketLength());
                     if (rtmpPacket instanceof Command) {
                         rtmpSessionInfo.addInvokedCommand(((Command) rtmpPacket).getTransactionId(), ((Command) rtmpPacket).getCommandName());
                     }
-                }
-                out.flush();
-            } catch (SocketException se) {
-                Log.e(TAG, "WriteThread: Caught SocketException during write loop, shutting down", se);
-                active = false;
-                continue;
-            } catch (IOException ex) {
-                Log.e(TAG, "WriteThread: Caught IOException during write loop, shutting down", ex);
-                active = false;
-                continue;  // Exit this thread
-            }
-
-            // Waiting for next packet
-            Log.d(TAG, "WriteThread: waiting...");
-            synchronized (txPacketLock) {
-                try {
-                    txPacketLock.wait();
-                } catch (InterruptedException ex) {
-                    Log.w(TAG, "Interrupted", ex);
+                } catch (SocketException se) {
+                    Log.e(TAG, "WriteThread: Caught SocketException during write loop, shutting down", se);
+                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(t, se);
+                } catch (IOException ex) {
+                    Log.e(TAG, "WriteThread: Caught IOException during write loop, shutting down", ex);
+                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(t, ex);
                 }
             }
-        }
+        };
+        Looper.loop();
 
         // Close outputstream
         try {
@@ -84,26 +75,14 @@ public class WriteThread extends Thread {
     /** Transmit the specified RTMP packet (thread-safe) */
     public void send(RtmpPacket rtmpPacket) {
         if (rtmpPacket != null) {
-            writeQueue.offer(rtmpPacket);
-        }
-        synchronized (txPacketLock) {
-            txPacketLock.notify();
-        }
-    }
-    
-    /** Transmit the specified RTMP packet (thread-safe) */
-    public void send(RtmpPacket... rtmpPackets) {
-        writeQueue.addAll(Arrays.asList(rtmpPackets));
-        synchronized (txPacketLock) {
-            txPacketLock.notify();
+            Message msg = Message.obtain();
+            msg.obj = rtmpPacket;
+            handler.sendMessage(msg);
         }
     }
 
     public void shutdown() {
         Log.d(TAG, "Stopping write thread...");
-        active = false;
-        synchronized (txPacketLock) {
-            txPacketLock.notify();
-        }
+        Looper.myLooper().quit();
     }
 }

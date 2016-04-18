@@ -3,6 +3,7 @@ package net.ossrs.sea.rtmp.io;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import android.util.Log;
 import net.ossrs.sea.rtmp.packets.RtmpPacket;
 
@@ -49,11 +50,18 @@ public class ReadThread extends Thread {
 //                    // Pass to handler
 //                    packetRxHandler.handleRxPacket(war.getRtmpPacket());
 //                }
-            } catch (IOException ex) {
+            } catch (SocketException se) {
                 if (!this.isInterrupted()) {
-                    Log.e(TAG, "Caught exception while reading/decoding packet, shutting down...", ex);
+                    Log.e(TAG, "ReadThread: Caught SocketException while reading/decoding packet, shutting down...", se);
                     this.interrupt();
                 }
+                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, se);
+            } catch (IOException ioe) {
+                if (!this.isInterrupted()) {
+                    Log.e(TAG, "ReadThread: Caught exception while reading/decoding packet, shutting down...", ioe);
+                    this.interrupt();
+                }
+                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, ioe);
             } catch (InterruptedException ie) {
                 ie.printStackTrace();
             }

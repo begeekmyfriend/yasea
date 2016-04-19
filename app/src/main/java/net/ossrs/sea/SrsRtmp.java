@@ -191,9 +191,8 @@ public class SrsRtmp {
             try {
                 worker.join();
             } catch (InterruptedException e) {
-                Log.i(TAG, "worker: join thread failed.");
                 e.printStackTrace();
-                worker.stop();
+                worker.interrupt();
             }
             worker = null;
             publisher = null;

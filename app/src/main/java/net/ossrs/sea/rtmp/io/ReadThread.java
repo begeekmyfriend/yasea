@@ -64,6 +64,7 @@ public class ReadThread extends Thread {
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, ioe);
             } catch (InterruptedException ie) {
                 ie.printStackTrace();
+                this.interrupt();
             }
         }
         // Close inputstream

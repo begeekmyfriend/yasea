@@ -394,6 +394,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
                     thread.join();
                 } catch (InterruptedException ie) {
                     ie.printStackTrace();
+                    thread.interrupt();
                 }
             }
         }

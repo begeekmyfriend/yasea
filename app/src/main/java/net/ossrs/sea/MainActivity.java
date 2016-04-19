@@ -7,7 +7,6 @@ import android.hardware.Camera.Size;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -38,8 +37,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     private byte[] mYuvFrameBuffer;
 
     private SrsEncoder mEncoder;
-    private String mErrMsg;
-    // settings storage
+    private String mIoErrMsg;
     private SharedPreferences sp;
 
     @Override
@@ -130,25 +128,16 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread thread, Throwable ex) {
-                Toast.makeText(getApplicationContext(), ex.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-            }
-        });
-
-        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread thread, Throwable ex) {
-                mErrMsg = ex.getMessage();
-                new Thread(new Runnable() {
+                mIoErrMsg = ex.getMessage();
+                runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Looper.prepare();
-                        Toast.makeText(getApplicationContext(), mErrMsg, Toast.LENGTH_SHORT).show();
-                        Looper.loop();
+                        Toast.makeText(getApplicationContext(), mIoErrMsg, Toast.LENGTH_SHORT).show();
+                        btnPublish.setEnabled(true);
+                        btnStop.setEnabled(false);
+                        stopPublish();
                     }
-                }).start();
-                stopPublish();
-                btnPublish.setEnabled(true);
-                btnStop.setEnabled(false);
+                });
             }
         });
     }
@@ -310,6 +299,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                 aworker.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
+                aworker.interrupt();
             }
             aworker = null;
         }

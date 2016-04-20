@@ -405,7 +405,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
         if (socket != null) {
             try {
                 socket.close();
-            } catch (Exception ex) {
+            } catch (IOException ex) {
                 Log.w(TAG, "shutdown(): failed to close socket", ex);
             }
         }

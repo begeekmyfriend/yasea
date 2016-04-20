@@ -83,7 +83,7 @@ public class WriteThread extends Thread {
         // Close outputstream
         try {
             out.close();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Log.w(TAG, "WriteThread: Failed to close outputstream", ex);
         }
         Log.d(TAG, "exiting");

@@ -367,4 +367,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     public void surfaceDestroyed(SurfaceHolder arg0) {
         Log.d(TAG, "surfaceDestroyed");
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopPublish();
+    }
 }

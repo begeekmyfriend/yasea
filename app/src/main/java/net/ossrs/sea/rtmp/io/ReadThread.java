@@ -70,7 +70,7 @@ public class ReadThread extends Thread {
         // Close inputstream
         try {
             in.close();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Log.w(TAG, "Failed to close inputstream", ex);
         }
         Log.i(TAG, "exiting");

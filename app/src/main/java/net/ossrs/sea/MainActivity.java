@@ -151,11 +151,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -366,6 +361,12 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
         Log.d(TAG, "surfaceDestroyed");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopPublish();
     }
 
     @Override

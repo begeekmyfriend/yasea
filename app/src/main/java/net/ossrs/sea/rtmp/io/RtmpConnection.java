@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 import android.util.Log;
 import net.ossrs.sea.rtmp.RtmpPublisher;
 import net.ossrs.sea.rtmp.amf.AmfNull;
@@ -42,6 +43,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
     private String host;
     private String streamName;
     private String publishType;
+    private String rtmpUrl = "";
     private String swfUrl = "";
     private String tcUrl = "";
     private String pageUrl = "";
@@ -58,10 +60,12 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
     private final Object connectingLock = new Object();
     private final Object publishLock = new Object();
     private volatile boolean connecting = false;
+    private AtomicInteger videoFrameCacheNumber = new AtomicInteger(0);
     private int currentStreamId = -1;
 
     public RtmpConnection(String url) {
-        this.tcUrl = url.substring(0, url.lastIndexOf('/'));
+        rtmpUrl = url;
+        this.tcUrl = rtmpUrl.substring(0, url.lastIndexOf('/'));
         Matcher matcher = rtmpUrlPattern.matcher(url);
         if (matcher.matches()) {
             this.host = matcher.group(1);
@@ -89,7 +93,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
         active = true;
         Log.d(TAG, "connect(): handshake done");
         ReadThread readThread = new ReadThread(rtmpSessionInfo, in, this, this);
-        writeThread = new WriteThread(rtmpSessionInfo, out, this);
+        writeThread = new WriteThread(rtmpSessionInfo, out, videoFrameCacheNumber, this);
         readThread.start();
         writeThread.start();
 
@@ -427,6 +431,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
         video.getHeader().setMessageStreamId(currentStreamId);
         video.getHeader().setAbsoluteTimestamp(dts);
         writeThread.send(video);
+        videoFrameCacheNumber.getAndIncrement();
     }
 
     @Override
@@ -442,5 +447,13 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
         audio.getHeader().setMessageStreamId(currentStreamId);
         audio.getHeader().setAbsoluteTimestamp(dts);
         writeThread.send(audio);
+    }
+
+    public final int getVideoFrameCacheNumber() {
+        return videoFrameCacheNumber.get();
+    }
+
+    public final String getRtmpUrl() {
+        return rtmpUrl;
     }
 }

@@ -46,7 +46,6 @@ import java.util.Comparator;
  *      muxer.release();
  */
 public class SrsRtmp {
-    private String url;
     private boolean connected;
     private SrsRtmpPublisher publisher;
 
@@ -72,14 +71,14 @@ public class SrsRtmp {
      * constructor.
      * @param path the rtmp url to post to.
      */
-    public SrsRtmp(String path) {
+    public SrsRtmp(SrsRtmpPublisher p) {
         nb_videos = 0;
         nb_audios = 0;
         sequenceHeaderOk = false;
         connected = false;
-        url = path;
         flv = new SrsFlv();
         cache = new ArrayList<SrsFlvFrame>();
+        publisher = p;
     }
 
     /**
@@ -162,7 +161,6 @@ public class SrsRtmp {
             stop();
         } catch (IllegalStateException e) {
             // Ignore illegal state.
-            //Log.e(TAG, String.format("worker: stop failed. e=%s", e.getMessage()));
         }
     }
 
@@ -198,7 +196,7 @@ public class SrsRtmp {
             publisher = null;
         }
 
-        Log.i(TAG, String.format("worker: muxer closed, url=%s", url));
+        Log.i(TAG, String.format("worker: muxer closed, url=%s", publisher.getRtmpUrl()));
     }
 
     /**
@@ -245,11 +243,10 @@ public class SrsRtmp {
 
     private void connect() throws IllegalStateException, IOException {
         if (!connected) {
-            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
-            publisher = new SrsRtmpPublisher(url);
+            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", publisher.getRtmpUrl()));
             publisher.connect();
             publisher.publish("live");
-            Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
+            Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", publisher.getRtmpUrl()));
             connected = true;
         }
 

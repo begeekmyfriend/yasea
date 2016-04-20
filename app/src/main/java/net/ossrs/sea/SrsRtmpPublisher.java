@@ -66,4 +66,12 @@ public class SrsRtmpPublisher implements RtmpPublisher {
         }
         rtmpConnection.publishAudioData(data, dts);
     }
+
+    public final int getVideoFrameCacheNumber() {
+        return ((RtmpConnection) rtmpConnection).getVideoFrameCacheNumber();
+    }
+
+    public final String getRtmpUrl() {
+        return ((RtmpConnection) rtmpConnection).getRtmpUrl();
+    }
 }

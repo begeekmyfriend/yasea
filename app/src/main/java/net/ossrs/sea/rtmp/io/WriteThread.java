@@ -5,9 +5,12 @@ import java.io.OutputStream;
 import java.net.SocketException;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import android.util.Log;
 import net.ossrs.sea.rtmp.packets.Command;
 import net.ossrs.sea.rtmp.packets.RtmpPacket;
+import net.ossrs.sea.rtmp.packets.Video;
 
 /**
  * RTMPConnection's write thread
@@ -23,12 +26,14 @@ public class WriteThread extends Thread {
     private ConcurrentLinkedQueue<RtmpPacket> writeQueue = new ConcurrentLinkedQueue<RtmpPacket>();
     private final Object txPacketLock = new Object();
     private volatile boolean active = true;
+    private AtomicInteger videoFrameCacheNumber;
     private ThreadController threadController;
 
-    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, ThreadController threadController) {
+    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, AtomicInteger i, ThreadController threadController) {
         super("RtmpWriteThread");
         this.rtmpSessionInfo = rtmpSessionInfo;
         this.out = out;
+        this.videoFrameCacheNumber = i;
         this.threadController = threadController;
     }
 
@@ -39,12 +44,15 @@ public class WriteThread extends Thread {
             try {
                 while (!writeQueue.isEmpty()) {
                     RtmpPacket rtmpPacket = writeQueue.poll();
-                    final ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(rtmpPacket.getHeader().getChunkStreamId());
+                    ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(rtmpPacket.getHeader().getChunkStreamId());
                     chunkStreamInfo.setPrevHeaderTx(rtmpPacket.getHeader());
                     rtmpPacket.writeTo(out, rtmpSessionInfo.getTxChunkSize(), chunkStreamInfo);
                     Log.d(TAG, "WriteThread: wrote packet: " + rtmpPacket + ", size: " + rtmpPacket.getHeader().getPacketLength());
                     if (rtmpPacket instanceof Command) {
                         rtmpSessionInfo.addInvokedCommand(((Command) rtmpPacket).getTransactionId(), ((Command) rtmpPacket).getCommandName());
+                    }
+                    if (rtmpPacket instanceof Video) {
+                        videoFrameCacheNumber.getAndDecrement();
                     }
                 }
                 out.flush();

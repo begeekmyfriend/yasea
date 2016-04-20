@@ -35,6 +35,7 @@ public class SrsEncoder {
     public static final int ABITRATE = 128 * 1000;  // 128kbps
     
     private SrsRtmp muxer;
+    private SrsRtmpPublisher publisher;
 
     private MediaCodec vencoder;
     private MediaCodecInfo vmci;
@@ -47,15 +48,15 @@ public class SrsEncoder {
     private byte[] mCroppedFrameBuffer;
     private boolean mCameraFaceFront = true;
     private long mPresentTimeUs;
+    private int vfmt_color;
     private int vtrack;
-    private int vcolor;
     private int atrack;
 
     public SrsEncoder() {
-        vcolor = chooseVideoEncoder();
-        if (vcolor == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
+        vfmt_color = chooseVideoEncoder();
+        if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
             VFORMAT = ImageFormat.YV12;
-        } else if (vcolor == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar) {
+        } else if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar) {
             VFORMAT = ImageFormat.NV21;
         } else {
             throw new IllegalStateException("Unsupported color format!");
@@ -66,7 +67,8 @@ public class SrsEncoder {
     }
 
     public int start() {
-        muxer = new SrsRtmp(rtmpUrl);
+        publisher = new SrsRtmpPublisher(rtmpUrl);
+        muxer = new SrsRtmp(publisher);
         try {
             muxer.start();
         } catch (IOException e) {
@@ -113,7 +115,7 @@ public class SrsEncoder {
         // setup the vencoder.
         // Note: landscape to portrait, 90 degree rotation, so we need to switch VWIDTH and VHEIGHT in configuration
         MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VENC_WIDTH, VENC_HEIGHT);
-        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vcolor);
+        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vfmt_color);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vbitrate);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
@@ -171,7 +173,7 @@ public class SrsEncoder {
 
     private int preProcessYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
-            switch (vcolor) {
+            switch (vfmt_color) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 flipYUV420PlannerFrame(data, mFlippedFrameBuffer, VWIDTH, VHEIGHT);
                 rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VWIDTH, VHEIGHT);
@@ -188,7 +190,7 @@ public class SrsEncoder {
                 throw new IllegalStateException("Unsupported color format!");
             }
         } else {
-            switch (vcolor) {
+            switch (vfmt_color) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 rotateYUV420PlannerFrame(data, mRotatedFrameBuffer, VWIDTH, VHEIGHT);
                 cropYUV420PlannerFrame(mRotatedFrameBuffer, VHEIGHT, VWIDTH,
@@ -208,27 +210,30 @@ public class SrsEncoder {
     }
 
     public void onGetYuvFrame(byte[] data) {
-        preProcessYuvFrame(data);
-        ByteBuffer[] inBuffers = vencoder.getInputBuffers();
-        ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
+        // Check if the networking is good enough.
+        if (publisher.getVideoFrameCacheNumber() < 128) {
+            preProcessYuvFrame(data);
+            ByteBuffer[] inBuffers = vencoder.getInputBuffers();
+            ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
 
-        int inBufferIndex = vencoder.dequeueInputBuffer(-1);
-        if (inBufferIndex >= 0) {
-            ByteBuffer bb = inBuffers[inBufferIndex];
-            bb.clear();
-            bb.put(mCroppedFrameBuffer, 0, mCroppedFrameBuffer.length);
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            vencoder.queueInputBuffer(inBufferIndex, 0, mCroppedFrameBuffer.length, pts, 0);
-        }
+            int inBufferIndex = vencoder.dequeueInputBuffer(-1);
+            if (inBufferIndex >= 0) {
+                ByteBuffer bb = inBuffers[inBufferIndex];
+                bb.clear();
+                bb.put(mCroppedFrameBuffer, 0, mCroppedFrameBuffer.length);
+                long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+                vencoder.queueInputBuffer(inBufferIndex, 0, mCroppedFrameBuffer.length, pts, 0);
+            }
 
-        for (; ; ) {
-            int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
-            if (outBufferIndex >= 0) {
-                ByteBuffer bb = outBuffers[outBufferIndex];
-                onEncodedAnnexbFrame(bb, vebi);
-                vencoder.releaseOutputBuffer(outBufferIndex, false);
-            } else {
-                break;
+            for (; ; ) {
+                int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
+                if (outBufferIndex >= 0) {
+                    ByteBuffer bb = outBuffers[outBufferIndex];
+                    onEncodedAnnexbFrame(bb, vebi);
+                    vencoder.releaseOutputBuffer(outBufferIndex, false);
+                } else {
+                    break;
+                }
             }
         }
     }
@@ -278,12 +283,15 @@ public class SrsEncoder {
     // NV12 -> YUV420SP  yyyy*2 uv uv
     // NV16 -> YUV422SP  yyyy uv uv
     // YUY2 -> YUV422SP  yuyv yuyv
-
     private byte[] cropYUV420SemiPlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
-        assert(iw >= ow && ih >= oh);
-        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
-        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-        assert(ow % 32 == 0 && oh % 32 == 0);
+        if (iw < ow || ih < oh) {
+            throw new AssertionError();
+        }
+        if (ow % 32 != 0 || oh % 32 != 0) {
+            // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+            // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+            throw new AssertionError();
+        }
 
         int iFrameSize = iw * ih;
         int oFrameSize = ow * oh;
@@ -308,10 +316,14 @@ public class SrsEncoder {
     }
 
     private byte[] cropYUV420PlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
-        assert(iw >= ow && ih >= oh);
-        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
-        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-        assert(ow % 32 == 0 && oh % 32 == 0);
+        if (iw < ow || ih < oh) {
+            throw new AssertionError();
+        }
+        if (ow % 32 != 0 || oh % 32 != 0) {
+            // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+            // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+            throw new AssertionError();
+        }
 
         int iFrameSize = iw * ih;
         int iQFrameSize = iFrameSize / 4;

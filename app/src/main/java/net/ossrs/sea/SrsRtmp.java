@@ -223,7 +223,7 @@ public class SrsRtmp {
             publisher = null;
         }
 
-        Log.i(TAG, String.format("worker: muxer closed, url=%s", publisher.getRtmpUrl()));
+        Log.i(TAG, String.format("SrsMuxer closed"));
     }
 
     /**

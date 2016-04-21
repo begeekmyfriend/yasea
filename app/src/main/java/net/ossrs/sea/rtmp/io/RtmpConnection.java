@@ -393,6 +393,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         }
 
         // shutdown handleRxPacketLoop
+        rxPacketQueue.clear();
         active = false;
         synchronized (rxPacketLock) {
             rxPacketLock.notify();

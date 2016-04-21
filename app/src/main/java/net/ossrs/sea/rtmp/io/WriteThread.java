@@ -84,7 +84,7 @@ public class WriteThread extends Thread {
     /** Transmit the specified RTMP packet (thread-safe) */
     public void send(RtmpPacket rtmpPacket) {
         if (rtmpPacket != null) {
-            writeQueue.offer(rtmpPacket);
+            writeQueue.add(rtmpPacket);
         }
         synchronized (txPacketLock) {
             txPacketLock.notify();
@@ -93,6 +93,7 @@ public class WriteThread extends Thread {
 
     public void shutdown() {
         Log.d(TAG, "Stopping");
+        writeQueue.clear();
         active = false;
         synchronized (txPacketLock) {
             txPacketLock.notify();

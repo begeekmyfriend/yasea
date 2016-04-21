@@ -52,9 +52,6 @@ public class SrsRtmp {
     private boolean sequenceHeaderOk;
     private SrsFlvFrame videoSequenceHeader;
     private SrsFlvFrame audioSequenceHeader;
-
-    private int nb_videos;
-    private int nb_audios;
     private ConcurrentLinkedQueue<SrsFlvFrame> frameCache = new ConcurrentLinkedQueue<SrsFlvFrame>();
 
     private static final int VIDEO_TRACK = 100;
@@ -66,8 +63,6 @@ public class SrsRtmp {
      * @param p the rtmp publisher.
      */
     public SrsRtmp(SrsRtmpPublisher p) {
-        nb_videos = 0;
-        nb_audios = 0;
         sequenceHeaderOk = false;
         connected = false;
         flv = new SrsFlv();
@@ -135,7 +130,7 @@ public class SrsRtmp {
             public void run() {
                 while (!Thread.interrupted()) {
                     // Keep at least one audio and video frame in cache to ensure monotonically increasing.
-                    while (!frameCache.isEmpty() && nb_videos > 1 && nb_audios > 1) {
+                    while (!frameCache.isEmpty()) {
                         SrsFlvFrame frame = frameCache.poll();
                         try {
                             // only connect when got keyframe.
@@ -177,7 +172,7 @@ public class SrsRtmp {
                     synchronized (txFrameLock) {
                         try {
                             // isEmpty() may take some time, so we set timeout to detect next frame
-                            txFrameLock.wait(1000);
+                            txFrameLock.wait(500);
                         } catch (InterruptedException ie) {
                             worker.interrupt();
                         }
@@ -250,20 +245,13 @@ public class SrsRtmp {
     }
 
     private void disconnect() throws IllegalStateException {
-        clearCache();
-
         if (publisher != null) {
             publisher.closeStream();
             publisher.shutdown();
             connected = false;
+            sequenceHeaderOk = false;
         }
         Log.i(TAG, "worker: disconnect SRS ok.");
-    }
-
-    private void clearCache() {
-        nb_videos = 0;
-        nb_audios = 0;
-        sequenceHeaderOk = false;
     }
 
     private void connect() throws IllegalStateException, IOException {
@@ -273,9 +261,8 @@ public class SrsRtmp {
             publisher.publish("live");
             Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", publisher.getRtmpUrl()));
             connected = true;
+            sequenceHeaderOk = false;
         }
-
-        clearCache();
     }
     
     private void sendFlvTag(SrsFlvFrame frame) throws IllegalStateException, IOException {
@@ -284,12 +271,10 @@ public class SrsRtmp {
         }
 
         if (frame.is_video()) {
-            nb_videos--;
             if (publisher != null) {
                 publisher.publishVideoData(frame.tag.frame.array(), frame.dts);
             }
         } else if (frame.is_audio()) {
-            nb_audios--;
             if (publisher != null) {
                 publisher.publishAudioData(frame.tag.frame.array(), frame.dts);
             }
@@ -1110,11 +1095,6 @@ public class SrsRtmp {
             frame.avc_aac_type = avc_aac_type;
 
             frameCache.add(frame);
-            if (frame.is_video()) {
-                nb_videos++;
-            } else if (frame.is_audio()) {
-                nb_audios++;
-            }
             synchronized (txFrameLock) {
                 txFrameLock.notifyAll();
             }

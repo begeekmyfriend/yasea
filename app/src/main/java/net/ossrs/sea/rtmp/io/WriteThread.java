@@ -3,7 +3,6 @@ package net.ossrs.sea.rtmp.io;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketException;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -27,14 +26,12 @@ public class WriteThread extends Thread {
     private final Object txPacketLock = new Object();
     private volatile boolean active = true;
     private AtomicInteger videoFrameCacheNumber;
-    private ThreadController threadController;
 
-    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, AtomicInteger i, ThreadController threadController) {
+    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, AtomicInteger count) {
         super("RtmpWriteThread");
         this.rtmpSessionInfo = rtmpSessionInfo;
         this.out = out;
-        this.videoFrameCacheNumber = i;
-        this.threadController = threadController;
+        this.videoFrameCacheNumber = count;
     }
 
     @Override
@@ -73,23 +70,15 @@ public class WriteThread extends Thread {
             synchronized (txPacketLock) {
                 try {
                     // isEmpty() may take some time, so time out should be set to wait next offer
-                    txPacketLock.wait(1000);
+                    txPacketLock.wait(500);
                 } catch (InterruptedException ex) {
                     Log.w(TAG, "Interrupted", ex);
+                    this.interrupt();
                 }
             }
         }
 
-        // Close outputstream
-        try {
-            out.close();
-        } catch (IOException ex) {
-            Log.w(TAG, "WriteThread: Failed to close outputstream", ex);
-        }
-        Log.d(TAG, "exiting");
-        if (threadController != null) {
-            threadController.threadHasExited(this);
-        }
+        Log.d(TAG, "exit");
     }
 
     /** Transmit the specified RTMP packet (thread-safe) */
@@ -101,17 +90,9 @@ public class WriteThread extends Thread {
             txPacketLock.notify();
         }
     }
-    
-    /** Transmit the specified RTMP packet (thread-safe) */
-    public void send(RtmpPacket... rtmpPackets) {
-        writeQueue.addAll(Arrays.asList(rtmpPackets));
-        synchronized (txPacketLock) {
-            txPacketLock.notify();
-        }
-    }
 
     public void shutdown() {
-        Log.d(TAG, "Stopping write thread...");
+        Log.d(TAG, "Stopping");
         active = false;
         synchronized (txPacketLock) {
             txPacketLock.notify();

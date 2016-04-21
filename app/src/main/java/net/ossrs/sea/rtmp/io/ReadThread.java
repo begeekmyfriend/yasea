@@ -19,30 +19,24 @@ public class ReadThread extends Thread {
     private RtmpDecoder rtmpDecoder;
     private InputStream in;
     private PacketRxHandler packetRxHandler;
-    private ThreadController threadController;
 
-    public ReadThread(RtmpSessionInfo rtmpSessionInfo, InputStream in, PacketRxHandler packetRxHandler, ThreadController threadController) {
+    public ReadThread(RtmpSessionInfo rtmpSessionInfo, InputStream in, PacketRxHandler packetRxHandler) {
         super("RtmpReadThread");
         this.in = in;
         this.packetRxHandler = packetRxHandler;
         this.rtmpDecoder = new RtmpDecoder(rtmpSessionInfo);
-        this.threadController = threadController;
     }
 
     @Override
     public void run() {
-        boolean isEof = false;
 
         while (!Thread.interrupted()) {
             try {
+                // It will be blocked when no data in input stream buffer
                 RtmpPacket rtmpPacket = rtmpDecoder.readPacket(in);
                 packetRxHandler.handleRxPacket(rtmpPacket);
-                if (isEof) {
-                    isEof = false;
-                    Thread.sleep(500);
-                }
             } catch (EOFException eof) {
-                isEof = true;
+                this.interrupt();
 //            } catch (WindowAckRequired war) {
 //                Log.i(TAG, "Window Acknowledgment required, notifying packet handler...");
 //                packetRxHandler.notifyWindowAckRequired(war.getBytesRead());
@@ -51,36 +45,18 @@ public class ReadThread extends Thread {
 //                    packetRxHandler.handleRxPacket(war.getRtmpPacket());
 //                }
             } catch (SocketException se) {
-                if (!this.isInterrupted()) {
-                    Log.e(TAG, "ReadThread: Caught SocketException while reading/decoding packet, shutting down...", se);
-                    this.interrupt();
-                }
+                Log.e(TAG, "ReadThread: Caught SocketException while reading/decoding packet, shutting down...", se);
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, se);
             } catch (IOException ioe) {
-                if (!this.isInterrupted()) {
-                    Log.e(TAG, "ReadThread: Caught exception while reading/decoding packet, shutting down...", ioe);
-                    this.interrupt();
-                }
+                Log.e(TAG, "ReadThread: Caught exception while reading/decoding packet, shutting down...", ioe);
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, ioe);
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-                this.interrupt();
             }
         }
-        // Close inputstream
-        try {
-            in.close();
-        } catch (IOException ex) {
-            Log.w(TAG, "Failed to close inputstream", ex);
-        }
-        Log.i(TAG, "exiting");
-        if (threadController != null) {
-            threadController.threadHasExited(this);
-        }
+
+        Log.i(TAG, "exit");
     }
 
     public void shutdown() {
-        Log.d(TAG, "Stopping read thread...");
-        this.interrupt();
+        Log.d(TAG, "Stopping");
     }
 }

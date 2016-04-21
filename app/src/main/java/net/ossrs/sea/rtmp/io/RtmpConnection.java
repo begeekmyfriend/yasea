@@ -34,7 +34,7 @@ import net.ossrs.sea.rtmp.packets.WindowAckSize;
  * 
  * @author francois, leoma
  */
-public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadController {
+public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
 
     private static final String TAG = "RtmpConnection";
     private static final Pattern rtmpUrlPattern = Pattern.compile("^rtmp://([^/:]+)(:(\\d+))*/([^/]+)(/(.*))*$");
@@ -52,6 +52,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
     private RtmpSessionInfo rtmpSessionInfo;
     private int transactionIdCounter = 0;
     private static final int SOCKET_CONNECT_TIMEOUT_MS = 3000;
+    private ReadThread readThread;
     private WriteThread writeThread;
     private final ConcurrentLinkedQueue<RtmpPacket> rxPacketQueue;
     private final Object rxPacketLock = new Object();
@@ -92,8 +93,8 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
         handshake(in, out);
         active = true;
         Log.d(TAG, "connect(): handshake done");
-        ReadThread readThread = new ReadThread(rtmpSessionInfo, in, this, this);
-        writeThread = new WriteThread(rtmpSessionInfo, out, videoFrameCacheNumber, this);
+        readThread = new ReadThread(rtmpSessionInfo, in, this);
+        writeThread = new WriteThread(rtmpSessionInfo, out, videoFrameCacheNumber);
         readThread.start();
         writeThread.start();
 
@@ -176,7 +177,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
         if (!fullyConnected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
-
         if (currentStreamId == -1) {
             throw new IllegalStateException("No current stream object exists");
         }
@@ -190,7 +190,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
         publish.addData(streamName);
         publish.addData(publishType);
         writeThread.send(publish);
-
     }
 
     @Override
@@ -322,8 +321,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
                 }
             }
         }
-
-        shutdownImpl();
     }
 
     private void handleRxInvoke(Command invoke) throws IOException {
@@ -370,43 +367,44 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler, ThreadCon
     }
 
     @Override
-    public void threadHasExited(Thread thread) {
-        shutdown();
-    }
-
-    @Override
     public void shutdown() {
+        // shutdown read thread
+        try {
+            // It will invoke EOFException in read thread
+            socket.shutdownInput();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+        readThread.shutdown();
+        try {
+            readThread.join();
+        } catch (InterruptedException ie) {
+            ie.printStackTrace();
+            readThread.interrupt();
+        }
+
+        // shutdown write thread
+        writeThread.shutdown();
+        try {
+            writeThread.join();
+        } catch (InterruptedException ie) {
+            ie.printStackTrace();
+            writeThread.interrupt();
+        }
+
+        // shutdown handleRxPacketLoop
         active = false;
         synchronized (rxPacketLock) {
             rxPacketLock.notify();
         }
-    }
 
-    private void shutdownImpl() {
-        // Shut down read/write threads, if necessary
-        if (Thread.activeCount() > 1) {
-            Log.i(TAG, "shutdown(): Shutting down read/write threads");
-            Thread[] threads = new Thread[Thread.activeCount()];
-            Thread.enumerate(threads);
-            for (Thread thread : threads) {
-                if (thread instanceof ReadThread && thread.isAlive()) {
-                    ((ReadThread) thread).shutdown();
-                } else if (thread instanceof WriteThread && thread.isAlive()) {
-                    ((WriteThread) thread).shutdown();
-                }
-                try {
-                    thread.join();
-                } catch (InterruptedException ie) {
-                    ie.printStackTrace();
-                    thread.interrupt();
-                }
-            }
-        }
+        // shutdown socket as well as its input and output stream
         if (socket != null) {
             try {
                 socket.close();
+                Log.d(TAG, "socket closed");
             } catch (IOException ex) {
-                Log.w(TAG, "shutdown(): failed to close socket", ex);
+                Log.e(TAG, "shutdown(): failed to close socket", ex);
             }
         }
     }

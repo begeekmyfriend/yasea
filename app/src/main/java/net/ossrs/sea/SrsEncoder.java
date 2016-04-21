@@ -23,16 +23,16 @@ public class SrsEncoder {
 
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
-    public static int vbitrate = 800 * 1000;  // 800kbps
+    public static int vbitrate = 500 * 1000;  // 500kbps
     public static final int VENC_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static final int VENC_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static final int VFPS = 24;
-    public static final int VGOP = 60;
-    public static int VFORMAT = ImageFormat.YV12;//NV21;
+    public static final int VFPS = 20;
+    public static final int VGOP = 10;
+    public static int VFORMAT = ImageFormat.YV12;
     public static final int ASAMPLERATE = 44100;
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
-    public static final int ABITRATE = 128 * 1000;  // 128kbps
+    public static final int ABITRATE = 32 * 1000;  // 32kbps
     
     private SrsRtmp muxer;
     private SrsRtmpPublisher publisher;
@@ -211,7 +211,7 @@ public class SrsEncoder {
 
     public void onGetYuvFrame(byte[] data) {
         // Check if the networking is good enough.
-        if (publisher.getVideoFrameCacheNumber() < 128) {
+        if (publisher.getVideoFrameCacheNumber() < 64) {
             preProcessYuvFrame(data);
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
@@ -235,6 +235,9 @@ public class SrsEncoder {
                     break;
                 }
             }
+        } else {
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                    new IOException("Network is weak"));
         }
     }
 

@@ -26,7 +26,7 @@ public class SrsEncoder {
     public static int vbitrate = 500 * 1000;  // 500kbps
     public static final int VENC_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static final int VENC_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static final int VFPS = 10;
+    public static final int VFPS = 25;
     public static final int VGOP = 10;
     public static int VFORMAT = ImageFormat.YV12;
     public static final int ASAMPLERATE = 44100;
@@ -61,8 +61,8 @@ public class SrsEncoder {
         } else {
             throw new IllegalStateException("Unsupported color format!");
         }
-        mRotatedFrameBuffer = new byte[VWIDTH * VHEIGHT * 3 / 2];
-        mFlippedFrameBuffer = new byte[VWIDTH * VHEIGHT * 3 / 2];
+        mRotatedFrameBuffer = new byte[VENC_WIDTH * VENC_HEIGHT * 3 / 2];
+        mFlippedFrameBuffer = new byte[VENC_WIDTH * VENC_HEIGHT * 3 / 2];
         mCroppedFrameBuffer = new byte[VENC_WIDTH * VENC_HEIGHT * 3 / 2];
     }
 
@@ -175,16 +175,14 @@ public class SrsEncoder {
         if (mCameraFaceFront) {
             switch (vfmt_color) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                flipYUV420PlannerFrame(data, mFlippedFrameBuffer, VWIDTH, VHEIGHT);
-                rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VWIDTH, VHEIGHT);
-                cropYUV420PlannerFrame(mRotatedFrameBuffer, VHEIGHT, VWIDTH,
-                                        mCroppedFrameBuffer, VENC_WIDTH, VENC_HEIGHT);
+                cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
                 break;
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                flipYUV420SemiPlannerFrame(data, mFlippedFrameBuffer, VWIDTH, VHEIGHT);
-                rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VWIDTH, VHEIGHT);
-                cropYUV420SemiPlannerFrame(mRotatedFrameBuffer, VHEIGHT, VWIDTH,
-                                            mCroppedFrameBuffer, VENC_WIDTH, VENC_HEIGHT);
+                cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
                 break;
             default:
                 throw new IllegalStateException("Unsupported color format!");
@@ -192,14 +190,12 @@ public class SrsEncoder {
         } else {
             switch (vfmt_color) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                rotateYUV420PlannerFrame(data, mRotatedFrameBuffer, VWIDTH, VHEIGHT);
-                cropYUV420PlannerFrame(mRotatedFrameBuffer, VHEIGHT, VWIDTH,
-                                        mCroppedFrameBuffer, VENC_WIDTH, VENC_HEIGHT);
+                cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
                 break;
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                rotateYUV420SemiPlannerFrame(data, mRotatedFrameBuffer, VWIDTH, VHEIGHT);
-                cropYUV420SemiPlannerFrame(mRotatedFrameBuffer, VHEIGHT, VWIDTH,
-                                            mCroppedFrameBuffer, VENC_WIDTH, VENC_HEIGHT);
+                cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
                 break;
             default:
                 throw new IllegalStateException("Unsupported color format!");
@@ -220,9 +216,9 @@ public class SrsEncoder {
             if (inBufferIndex >= 0) {
                 ByteBuffer bb = inBuffers[inBufferIndex];
                 bb.clear();
-                bb.put(mCroppedFrameBuffer, 0, mCroppedFrameBuffer.length);
+                bb.put(mRotatedFrameBuffer, 0, mRotatedFrameBuffer.length);
                 long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-                vencoder.queueInputBuffer(inBufferIndex, 0, mCroppedFrameBuffer.length, pts, 0);
+                vencoder.queueInputBuffer(inBufferIndex, 0, mRotatedFrameBuffer.length, pts, 0);
             }
 
             for (; ; ) {

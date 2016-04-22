@@ -194,26 +194,18 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         }
 
         Camera.Parameters params = mCamera.getParameters();
+		/* preview size  */
+        Size size = mCamera.new Size(SrsEncoder.VWIDTH, SrsEncoder.VHEIGHT);
+        if (!params.getSupportedPreviewSizes().contains(size)) {
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                    new IllegalArgumentException(String.format("Unsupported preview size %dx%d", size.width, size.height)));
+        }
 
-		/* supported preview fps range */
-//        List<int[]> spfr = params.getSupportedPreviewFpsRange();
-//        Log.i("Cam", "! Supported Preview Fps Range:");
-//        int rn = 0;
-//        for (int[] r : spfr) {
-//            Log.i("Cam", "\tRange [" + rn++ + "]: " + r[0] + "~" + r[1]);
-//        }
-//		/* preview size  */
-//        List<Size> sizes = params.getSupportedPreviewSizes();
-//        Log.i("Cam", "! Supported Preview Size:");
-//        for (int i = 0; i < sizes.size(); i++) {
-//            Log.i("Cam", "\tSize [" + i + "]: " + sizes.get(i).width + "x" + sizes.get(i).height);
-//        }
-//        /* picture size  */
-//        sizes = params.getSupportedPictureSizes();
-//        Log.i("Cam", "! Supported Picture Size:");
-//        for (int i = 0; i < sizes.size(); i++) {
-//            Log.i("Cam", "\tSize [" + i + "]: " + sizes.get(i).width + "x" + sizes.get(i).height);
-//        }
+        /* picture size  */
+        if (!params.getSupportedPictureSizes().contains(size)) {
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                    new IllegalArgumentException(String.format("Unsupported picture size %dx%d", size.width, size.height)));
+        }
 
         /***** set parameters *****/
         //params.set("orientation", "portrait");

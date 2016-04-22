@@ -26,7 +26,7 @@ public class SrsEncoder {
     public static int vbitrate = 500 * 1000;  // 500kbps
     public static final int VENC_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static final int VENC_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static final int VFPS = 20;
+    public static final int VFPS = 10;
     public static final int VGOP = 10;
     public static int VFORMAT = ImageFormat.YV12;
     public static final int ASAMPLERATE = 44100;
@@ -288,12 +288,12 @@ public class SrsEncoder {
     // YUY2 -> YUV422SP  yuyv yuyv
     private byte[] cropYUV420SemiPlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
         if (iw < ow || ih < oh) {
-            throw new AssertionError();
+            throw new AssertionError("Crop revolution size must be less than original one");
         }
         if (ow % 32 != 0 || oh % 32 != 0) {
             // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
             // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-            throw new AssertionError();
+            throw new AssertionError("Crop revolution length must be 32x");
         }
 
         int iFrameSize = iw * ih;
@@ -320,12 +320,12 @@ public class SrsEncoder {
 
     private byte[] cropYUV420PlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
         if (iw < ow || ih < oh) {
-            throw new AssertionError();
+            throw new AssertionError("Crop revolution size must be less than original one");
         }
         if (ow % 32 != 0 || oh % 32 != 0) {
             // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
             // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-            throw new AssertionError();
+            throw new AssertionError("Crop revolution length must be 32x");
         }
 
         int iFrameSize = iw * ih;

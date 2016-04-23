@@ -26,8 +26,8 @@ public class SrsEncoder {
     public static int vbitrate = 500 * 1000;  // 500kbps
     public static final int VENC_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static final int VENC_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static final int VFPS = 25;
-    public static final int VGOP = 10;
+    public static final int VFPS = 15;
+    public static final int VGOP = 60;
     public static int VFORMAT = ImageFormat.YV12;
     public static final int ASAMPLERATE = 44100;
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;

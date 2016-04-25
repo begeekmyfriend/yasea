@@ -10,6 +10,7 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Random;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -19,7 +20,7 @@ public class SrsEncoder {
 
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
-    public static String rtmpUrl = "rtmp://ossrs.net:1935/live/sea";
+    public static String rtmpUrl = "";
 
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
@@ -27,13 +28,13 @@ public class SrsEncoder {
     public static final int VENC_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static final int VENC_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static final int VFPS = 15;
-    public static final int VGOP = 60;
+    public static final int VGOP = 30;
     public static int VFORMAT = ImageFormat.YV12;
     public static final int ASAMPLERATE = 44100;
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
-    
+
     private SrsRtmp muxer;
     private SrsRtmpPublisher publisher;
 
@@ -53,6 +54,7 @@ public class SrsEncoder {
     private int atrack;
 
     public SrsEncoder() {
+        rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomString(2) + '/' + getRandomString(5);
         vfmt_color = chooseVideoEncoder();
         if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
             VFORMAT = ImageFormat.YV12;
@@ -174,31 +176,31 @@ public class SrsEncoder {
     private int preProcessYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
             switch (vfmt_color) {
-            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                break;
-            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                break;
-            default:
-                throw new IllegalStateException("Unsupported color format!");
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    break;
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported color format!");
             }
         } else {
             switch (vfmt_color) {
-            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                break;
-            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                break;
-            default:
-                throw new IllegalStateException("Unsupported color format!");
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    break;
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported color format!");
             }
         }
 
@@ -260,7 +262,7 @@ public class SrsEncoder {
             aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
         }
 
-        for (; ;) {
+        for (; ; ) {
             int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
             if (outBufferIndex >= 0) {
                 ByteBuffer bb = outBuffers[outBufferIndex];
@@ -522,5 +524,16 @@ public class SrsEncoder {
 
         Log.i(TAG, String.format("vencoder %s choose color format 0x%x(%d)", vmci.getName(), matchedColorFormat, matchedColorFormat));
         return matchedColorFormat;
+    }
+
+    private static String getRandomString(int length) {
+        String base = "abcdefghijklmnopqrstuvwxyz0123456789";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            int number = random.nextInt(base.length());
+            sb.append(base.charAt(number));
+        }
+        return sb.toString();
     }
 }

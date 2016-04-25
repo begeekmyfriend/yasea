@@ -53,8 +53,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         mYuvFrameBuffer = new byte[SrsEncoder.VWIDTH * SrsEncoder.VHEIGHT * 3 / 2];
 
         // restore data.
-        SrsEncoder.rtmpUrl = sp.getString("SrsEncoder.rtmpUrl", SrsEncoder.rtmpUrl);
-        SrsEncoder.vbitrate = sp.getInt("VBITRATE", SrsEncoder.vbitrate);
+        SrsEncoder.rtmpUrl = sp.getString("rtmpUrl", SrsEncoder.rtmpUrl);
+        SrsEncoder.vbitrate = sp.getInt("vbitrate", SrsEncoder.vbitrate);
         Log.i(TAG, String.format("initialize rtmp url to %s, vbitrate=%dkbps", SrsEncoder.rtmpUrl, SrsEncoder.vbitrate));
 
         // initialize url.
@@ -85,8 +85,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                 Log.i(TAG, String.format("RTMP URL changed to %s", SrsEncoder.rtmpUrl));
                 Log.i(TAG, String.format("Video bitrate changed to %skbps", SrsEncoder.vbitrate / 1000));
                 SharedPreferences.Editor editor = sp.edit();
-                editor.putInt("VBITRATE", SrsEncoder.vbitrate);
-                editor.putString("SrsEncoder.rtmpUrl", SrsEncoder.rtmpUrl);
+                editor.putInt("vbitrate", SrsEncoder.vbitrate);
+                editor.putString("rtmpUrl", SrsEncoder.rtmpUrl);
                 editor.commit();
                 btnPublish.setEnabled(false);
                 btnStop.setEnabled(true);

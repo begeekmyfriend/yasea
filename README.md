@@ -10,4 +10,7 @@ H.264 frome camera and audio from phone in AAC and upload packets to server over
 RTMP. Moreover, hard encoding produces less CPU overhead than software does. And
 the code does not depend on any native library.
 
-You may watch the live broadcast at [srs.net](http://www.ossrs.net/players/srs_player.html). Note to change the URL yourself. Have fun!
+You may watch the live broadcast at [srs.net](http://www.ossrs.net/players/srs_player.html). Remember to modify the URL by yourself. Have fun!
+
+**Note**, if you feel high lantancy, it might be the frame cache of the player.
+So you need to open the player first and then publish to see the effect.

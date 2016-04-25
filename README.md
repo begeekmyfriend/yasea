@@ -1,6 +1,8 @@
 Yet Another Stream Encoder for Android
 ======================================
 
+[![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-yasea-green.svg?style=true)](https://android-arsenal.com/details/1/3481)
+
 **yasea** is an RTMP streaming client in pure Java for Android for those who
 hate JNI development. It is based on the source code of both [srs-sea](https://github.com/ossrs/srs-sea)
 and [SimpleRtmp](https://github.com/faucamp/SimpleRtmp) to hard encode video in

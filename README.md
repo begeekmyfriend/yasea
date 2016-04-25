@@ -12,5 +12,10 @@ the code does not depend on any native library.
 
 You may watch the live broadcast at [srs.net](http://www.ossrs.net/players/srs_player.html). Remember to modify the URL by yourself. Have fun!
 
-**Note**, if you feel high lantancy, it might be the frame cache of the player.
+**NOTE** if you feel high lantancy, it might be the frame cache of the player.
 So you need to open the player first and then publish to see the effect.
+
+**NOTE2** since this project has been a bit popular, you would better not use
+default provided public URL such as `rtmp://ossrs.net:1935/live/sea`, try something
+different like `rtmp://ossrs.net:1935/begeekmyfriend/puppydog` to avoid conflict.
+Otherwise the server may well cut off the connection.

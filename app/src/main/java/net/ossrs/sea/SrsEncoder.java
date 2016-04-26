@@ -25,10 +25,10 @@ public class SrsEncoder {
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
     public static int vbitrate = 500 * 1000;  // 500kbps
-    public static final int VENC_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
-    public static final int VENC_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+    public static final int VCROP_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+    public static final int VCROP_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static final int VFPS = 15;
-    public static final int VGOP = 30;
+    public static final int VGOP = 15;
     public static int VFORMAT = ImageFormat.YV12;
     public static final int ASAMPLERATE = 44100;
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
@@ -54,7 +54,7 @@ public class SrsEncoder {
     private int atrack;
 
     public SrsEncoder() {
-        rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomString(2) + '/' + getRandomString(5);
+        rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
         vfmt_color = chooseVideoEncoder();
         if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
             VFORMAT = ImageFormat.YV12;
@@ -63,9 +63,9 @@ public class SrsEncoder {
         } else {
             throw new IllegalStateException("Unsupported color format!");
         }
-        mRotatedFrameBuffer = new byte[VENC_WIDTH * VENC_HEIGHT * 3 / 2];
-        mFlippedFrameBuffer = new byte[VENC_WIDTH * VENC_HEIGHT * 3 / 2];
-        mCroppedFrameBuffer = new byte[VENC_WIDTH * VENC_HEIGHT * 3 / 2];
+        mRotatedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+        mFlippedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+        mCroppedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
     }
 
     public int start() {
@@ -116,7 +116,7 @@ public class SrsEncoder {
 
         // setup the vencoder.
         // Note: landscape to portrait, 90 degree rotation, so we need to switch VWIDTH and VHEIGHT in configuration
-        MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VENC_WIDTH, VENC_HEIGHT);
+        MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VCROP_WIDTH, VCROP_HEIGHT);
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vfmt_color);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vbitrate);
@@ -177,14 +177,14 @@ public class SrsEncoder {
         if (mCameraFaceFront) {
             switch (vfmt_color) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                    flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                    rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                    flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                    rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
                     break;
                 default:
                     throw new IllegalStateException("Unsupported color format!");
@@ -192,12 +192,12 @@ public class SrsEncoder {
         } else {
             switch (vfmt_color) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                    rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
-                    rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VENC_HEIGHT, VENC_WIDTH);
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
                     break;
                 default:
                     throw new IllegalStateException("Unsupported color format!");
@@ -209,7 +209,7 @@ public class SrsEncoder {
 
     public void onGetYuvFrame(byte[] data) {
         // Check if the networking is good enough.
-        if (publisher.getVideoFrameCacheNumber() < 64) {
+        if (publisher.getVideoFrameCacheNumber() < VGOP * 3) {
             preProcessYuvFrame(data);
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
@@ -291,7 +291,9 @@ public class SrsEncoder {
         if (ow % 32 != 0 || oh % 32 != 0) {
             // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
             // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-            throw new AssertionError("Crop revolution length must be 32x");
+            if (vmci.getName().contains("MTK")) {
+                throw new AssertionError("MTK encoding revolution stride must be 32x");
+            }
         }
 
         int iFrameSize = iw * ih;
@@ -323,7 +325,9 @@ public class SrsEncoder {
         if (ow % 32 != 0 || oh % 32 != 0) {
             // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
             // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-            throw new AssertionError("Crop revolution length must be 32x");
+            if (vmci.getName().contains("MTK")) {
+                throw new AssertionError("MTK encoding revolution stride must be 32x");
+            }
         }
 
         int iFrameSize = iw * ih;
@@ -526,7 +530,18 @@ public class SrsEncoder {
         return matchedColorFormat;
     }
 
-    private static String getRandomString(int length) {
+    private static String getRandomAlphaString(int length) {
+        String base = "abcdefghijklmnopqrstuvwxyz";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            int number = random.nextInt(base.length());
+            sb.append(base.charAt(number));
+        }
+        return sb.toString();
+    }
+
+    private static String getRandomAlphaDigitString(int length) {
         String base = "abcdefghijklmnopqrstuvwxyz0123456789";
         Random random = new Random();
         StringBuffer sb = new StringBuffer();

@@ -209,7 +209,7 @@ public class SrsEncoder {
 
     public void onGetYuvFrame(byte[] data) {
         // Check if the networking is good enough.
-        if (publisher.getVideoFrameCacheNumber() < VGOP * 3) {
+        if (publisher.getVideoFrameCacheNumber() < VGOP * 2) {
             preProcessYuvFrame(data);
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();

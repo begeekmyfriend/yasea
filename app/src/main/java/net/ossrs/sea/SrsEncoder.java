@@ -27,15 +27,15 @@ public class SrsEncoder {
     public static int vbitrate = 500 * 1000;  // 500kbps
     public static final int VCROP_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static final int VCROP_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static final int VFPS = 15;
-    public static final int VGOP = 15;
+    public static final int VFPS = 24;
+    public static final int VGOP = 48;
     public static int VFORMAT = ImageFormat.YV12;
     public static final int ASAMPLERATE = 44100;
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
-    private SrsRtmp muxer;
+    private SrsRtmpFlv muxer;
     private SrsRtmpPublisher publisher;
 
     private MediaCodec vencoder;
@@ -70,7 +70,7 @@ public class SrsEncoder {
 
     public int start() {
         publisher = new SrsRtmpPublisher(rtmpUrl);
-        muxer = new SrsRtmp(publisher);
+        muxer = new SrsRtmpFlv(publisher);
         try {
             muxer.start();
         } catch (IOException e) {

@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *      muxer.stop();
  *      muxer.release();
  */
-public class SrsRtmp {
+public class SrsRtmpFlv {
     private volatile boolean connected;
     private SrsRtmpPublisher publisher;
 
@@ -62,7 +62,7 @@ public class SrsRtmp {
      * constructor.
      * @param p the rtmp publisher.
      */
-    public SrsRtmp(SrsRtmpPublisher p) {
+    public SrsRtmpFlv(SrsRtmpPublisher p) {
         sequenceHeaderOk = false;
         connected = false;
         flv = new SrsFlv();
@@ -201,7 +201,7 @@ public class SrsRtmp {
      */
     public void stop() throws IllegalStateException {
         if (worker == null || publisher == null) {
-            throw new IllegalStateException("SrsRtmp Not init!");
+            throw new IllegalStateException("SrsRtmpFlv Not init!");
         }
 
         disconnect();
@@ -793,7 +793,7 @@ public class SrsRtmp {
                 SrsAnnexbSearch tbbsc = utils.srs_avc_startswith_annexb(bb, bi);
                 if (!tbbsc.match || tbbsc.nb_start_code < 3) {
                     Log.e(TAG, "annexb not match.");
-                    SrsRtmp.srs_print_bytes(TAG, bb, 16);
+                    SrsRtmpFlv.srs_print_bytes(TAG, bb, 16);
                     throw new Exception(String.format("annexb not match for %dB, pos=%d", bi.size, bb.position()));
                 }
 
@@ -817,8 +817,8 @@ public class SrsRtmp {
                 tbb.size = bb.position() - pos;
                 if (bb.position() < bi.size) {
                     Log.i(TAG, String.format("annexb multiple match ok, pts=%d", bi.presentationTimeUs / 1000));
-                    SrsRtmp.srs_print_bytes(TAG, tbbs, 16);
-                    SrsRtmp.srs_print_bytes(TAG, bb.slice(), 16);
+                    SrsRtmpFlv.srs_print_bytes(TAG, tbbs, 16);
+                    SrsRtmpFlv.srs_print_bytes(TAG, bb.slice(), 16);
                 }
                 //Log.i(TAG, String.format("annexb match %d bytes", tbb.size));
                 break;

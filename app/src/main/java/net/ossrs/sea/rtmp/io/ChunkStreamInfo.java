@@ -50,7 +50,7 @@ public class ChunkStreamInfo {
     
     /** Utility method for calculating & synchronizing transmitted timestamps & timestamp deltas */
     public long markRealAbsoluteTimestampTx() {
-        realLastTimestamp = System.currentTimeMillis() - realLastTimestamp;
+        realLastTimestamp = System.nanoTime() / 1000 - realLastTimestamp;
         return realLastTimestamp;
     }
 

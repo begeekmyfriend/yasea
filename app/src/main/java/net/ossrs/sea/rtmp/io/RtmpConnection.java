@@ -250,7 +250,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         connecting = true;
 
         Log.d(TAG, "rtmpConnect(): Writing 'connect' invoke packet");
-        invoke.getHeader().setAbsoluteTimestamp(0);
+        invoke.getHeader().setAbsoluteTimestamp((int) (System.nanoTime() / 1000));
         writeThread.send(invoke);
     }
 

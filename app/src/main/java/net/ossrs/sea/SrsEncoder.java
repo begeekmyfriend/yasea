@@ -208,8 +208,9 @@ public class SrsEncoder {
     }
 
     public void onGetYuvFrame(byte[] data) {
-        // Check if the networking is good enough.
-        if (publisher.getVideoFrameCacheNumber() < VGOP * 2) {
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        if (publisher.getVideoFrameCacheNumber() < VGOP) {
             preProcessYuvFrame(data);
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();

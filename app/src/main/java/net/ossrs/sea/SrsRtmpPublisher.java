@@ -11,7 +11,7 @@ import net.ossrs.sea.rtmp.io.RtmpConnection;
  */
 public class SrsRtmpPublisher implements RtmpPublisher {
 
-    private RtmpPublisher rtmpConnection;
+    private RtmpConnection rtmpConnection;
 
     /** 
      * Constructor for URLs in the format: rtmp://host[:port]/application[?streamName]
@@ -68,10 +68,10 @@ public class SrsRtmpPublisher implements RtmpPublisher {
     }
 
     public final int getVideoFrameCacheNumber() {
-        return ((RtmpConnection) rtmpConnection).getVideoFrameCacheNumber();
+        return rtmpConnection.getVideoFrameCacheNumber();
     }
 
     public final String getRtmpUrl() {
-        return ((RtmpConnection) rtmpConnection).getRtmpUrl();
+        return rtmpConnection.getRtmpUrl();
     }
 }

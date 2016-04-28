@@ -56,11 +56,12 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private WriteThread writeThread;
     private final ConcurrentLinkedQueue<RtmpPacket> rxPacketQueue;
     private final Object rxPacketLock = new Object();
-    private boolean active = false;
+    private volatile boolean active = false;
+    private volatile boolean connecting = false;
     private volatile boolean fullyConnected = false;
+    private volatile boolean publishPermitted = false;
     private final Object connectingLock = new Object();
     private final Object publishLock = new Object();
-    private volatile boolean connecting = false;
     private AtomicInteger videoFrameCacheNumber = new AtomicInteger(0);
     private int currentStreamId = -1;
 
@@ -135,7 +136,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         if (!fullyConnected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
-
         if (currentStreamId != -1) {
             throw new IllegalStateException("Current stream object has existed");
         }
@@ -163,10 +163,10 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         createStream.addData(new AmfNull());  // command object: null for "createStream"
         writeThread.send(createStream);
 
-        // Waiting for "publish" command response.
+        // Waiting for "NetStream.Publish.Start" response.
         synchronized (publishLock) {
             try {
-                publishLock.wait();
+                publishLock.wait(5000);
             } catch (InterruptedException ex) {
                 // do nothing
             }
@@ -200,6 +200,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         if (currentStreamId == -1) {
             throw new IllegalStateException("No current stream object exists");
         }
+        if (!publishPermitted) {
+            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+        }
         streamName = null;
         Log.d(TAG, "closeStream(): setting current stream ID to -1");
         currentStreamId = -1;
@@ -226,10 +229,12 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
 
     private void rtmpConnect() throws IOException, IllegalStateException {
         if (fullyConnected || connecting) {
-            throw new IllegalStateException("Already connecting, or connected to RTMP server");
+            throw new IllegalStateException("Already connected or connecting to RTMP server");
         }
         Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
-        Command invoke = new Command("connect", ++transactionIdCounter, rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL));
+        // Create the first command chunk infomation.
+        final ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
+        Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
         invoke.getHeader().setMessageStreamId(0);
 
         AmfObject args = new AmfObject();
@@ -250,7 +255,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         connecting = true;
 
         Log.d(TAG, "rtmpConnect(): Writing 'connect' invoke packet");
-        invoke.getHeader().setAbsoluteTimestamp((int) (System.nanoTime() / 1000));
+        invoke.getHeader().setAbsoluteTimestamp((int) chunkStreamInfo.markRealAbsoluteTimestampTx());
         writeThread.send(invoke);
     }
 
@@ -315,7 +320,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
             // Wait for next received packet
             synchronized (rxPacketLock) {
                 try {
-                    rxPacketLock.wait();
+                    rxPacketLock.wait(500);
                 } catch (InterruptedException ex) {
                     Log.w(TAG, "handleRxPacketLoop: Interrupted", ex);
                 }
@@ -358,6 +363,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
             Log.d(TAG, "handleRxInvoke(): 'onFCPublish'");
         } else if (commandName.equals("onStatus")) {
             // NetStream.Publish.Start
+            publishPermitted = true;
             synchronized (publishLock) {
                 publishLock.notifyAll();
             }
@@ -408,6 +414,8 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                 Log.e(TAG, "shutdown(): failed to close socket", ex);
             }
         }
+
+        publishPermitted = false;
     }
 
     @Override
@@ -425,6 +433,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         if (currentStreamId == -1) {
             throw new IllegalStateException("No current stream object exists");
         }
+        if (!publishPermitted) {
+            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+        }
         Video video = new Video();
         video.setData(data);
         video.getHeader().setMessageStreamId(currentStreamId);
@@ -440,6 +451,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         }
         if (currentStreamId == -1) {
             throw new IllegalStateException("No current stream object exists");
+        }
+        if (!publishPermitted) {
+            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
         }
         Audio audio = new Audio();
         audio.setData(data);

@@ -21,7 +21,7 @@ public class ChunkStreamInfo {
     public static final byte RTMP_CONTROL_CHANNEL = 0x02;
     private RtmpHeader prevHeaderRx;
     private RtmpHeader prevHeaderTx;
-    private long realLastTimestamp = 0;
+    private long realLastTimestamp = System.nanoTime() / 1000;  // Do not use wall time!
     private ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 128);
 
     /** @return the previous header that was received on this channel, or <code>null</code> if no previous header was received */

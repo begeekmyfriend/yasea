@@ -121,7 +121,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         if (connecting) {
             synchronized (connectingLock) {
                 try {
-                    connectingLock.wait();
+                    connectingLock.wait(5000);
                 } catch (InterruptedException ex) {
                     // do nothing
                 }

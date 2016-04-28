@@ -50,8 +50,10 @@ public class ChunkStreamInfo {
     
     /** Utility method for calculating & synchronizing transmitted timestamps & timestamp deltas */
     public long markRealAbsoluteTimestampTx() {
-        realLastTimestamp = System.nanoTime() / 1000 - realLastTimestamp;
-        return realLastTimestamp;
+        long currentTimestamp = System.nanoTime() / 1000;
+        long diffTimestamp = currentTimestamp - realLastTimestamp;
+        realLastTimestamp = currentTimestamp;
+        return diffTimestamp;
     }
 
     /** @return <code>true</code> if all packet data has been stored, or <code>false</code> if not */

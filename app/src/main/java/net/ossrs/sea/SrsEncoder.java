@@ -36,7 +36,6 @@ public class SrsEncoder {
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
     private SrsRtmpFlv muxer;
-    private SrsRtmpPublisher publisher;
 
     private MediaCodec vencoder;
     private MediaCodecInfo vmci;
@@ -69,8 +68,7 @@ public class SrsEncoder {
     }
 
     public int start() {
-        publisher = new SrsRtmpPublisher(rtmpUrl);
-        muxer = new SrsRtmpFlv(publisher);
+        muxer = new SrsRtmpFlv(rtmpUrl);
         try {
             muxer.start();
         } catch (IOException e) {
@@ -210,7 +208,7 @@ public class SrsEncoder {
     public void onGetYuvFrame(byte[] data) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
-        if (publisher.getVideoFrameCacheNumber() < VGOP) {
+        if (muxer.getVideoFrameCacheNumber() < VGOP) {
             preProcessYuvFrame(data);
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();

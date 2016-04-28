@@ -60,13 +60,13 @@ public class SrsRtmpFlv {
 
     /**
      * constructor.
-     * @param p the rtmp publisher.
+     * @param rtmpUrl the rtmp URL.
      */
-    public SrsRtmpFlv(SrsRtmpPublisher p) {
+    public SrsRtmpFlv(String rtmpUrl) {
         sequenceHeaderOk = false;
         connected = false;
         flv = new SrsFlv();
-        publisher = p;
+        publisher = new SrsRtmpPublisher(rtmpUrl);
     }
 
     /**
@@ -119,6 +119,13 @@ public class SrsRtmpFlv {
         }
         flv.setAudioTrack(format);
         return AUDIO_TRACK;
+    }
+
+    /**
+     * get cached video frame number in publisher
+     */
+    public int getVideoFrameCacheNumber() {
+        return publisher.getVideoFrameCacheNumber();
     }
 
     /**
@@ -189,17 +196,13 @@ public class SrsRtmpFlv {
      * some point in the future.
      */
     public void release() {
-        try {
-            stop();
-        } catch (IllegalStateException e) {
-            // Ignore illegal state.
-        }
+        stop();
     }
 
     /**
      * stop the muxer, disconnect RTMP connection from SRS.
      */
-    public void stop() throws IllegalStateException {
+    public void stop() {
         if (worker == null || publisher == null) {
             throw new IllegalStateException("SrsRtmpFlv Not init!");
         }
@@ -227,7 +230,7 @@ public class SrsRtmpFlv {
      * @param byteBuf The encoded sample.
      * @param bufferInfo The buffer information related to this sample.
      */
-    public void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) throws Exception {
+    public void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) throws IllegalArgumentException {
         //Log.i(TAG, String.format("dumps the %s stream %dB, pts=%d", (trackIndex == VIDEO_TRACK) ? "Vdieo" : "Audio", bufferInfo.size, bufferInfo.presentationTimeUs / 1000));
         //SrsRtmp.srs_print_bytes(TAG, byteBuf, bufferInfo.size);
 
@@ -244,9 +247,13 @@ public class SrsRtmpFlv {
         }
     }
 
-    private void disconnect() throws IllegalStateException {
+    private void disconnect() {
         if (publisher != null) {
-            publisher.closeStream();
+            try {
+                publisher.closeStream();
+            } catch (IllegalStateException e) {
+                // Ignore illegal state.
+            }
             publisher.shutdown();
             connected = false;
             sequenceHeaderOk = false;
@@ -784,7 +791,7 @@ public class SrsRtmpFlv {
             return flv_tag;
         }
 
-        public SrsFlvFrameBytes annexb_demux(ByteBuffer bb, MediaCodec.BufferInfo bi) throws Exception {
+        public SrsFlvFrameBytes annexb_demux(ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
             SrsFlvFrameBytes tbb = new SrsFlvFrameBytes();
 
             while (bb.position() < bi.size) {
@@ -794,7 +801,7 @@ public class SrsRtmpFlv {
                 if (!tbbsc.match || tbbsc.nb_start_code < 3) {
                     Log.e(TAG, "annexb not match.");
                     SrsRtmpFlv.srs_print_bytes(TAG, bb, 16);
-                    throw new Exception(String.format("annexb not match for %dB, pos=%d", bi.size, bb.position()));
+                    throw new IllegalArgumentException(String.format("annexb not match for %dB, pos=%d", bi.size, bb.position()));
                 }
 
                 // the start codes.
@@ -888,7 +895,7 @@ public class SrsRtmpFlv {
             asample_rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         }
 
-        public void writeAudioSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws Exception {
+        public void writeAudioSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
             int pts = (int)(bi.presentationTimeUs / 1000);
             int dts = (int)pts;
 
@@ -969,7 +976,7 @@ public class SrsRtmpFlv {
             rtmp_write_packet(SrsCodecFlvTag.Audio, dts, 0, aac_packet_type, tag);
         }
 
-        public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws Exception {
+        public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
             int pts = (int)(bi.presentationTimeUs / 1000);
             int dts = (int)pts;
 

@@ -37,10 +37,10 @@ public interface RtmpPublisher {
     /**
      * publish a video content packet to server
      */
-    void publishVideoData(byte[] data, int dts) throws IllegalStateException;
+    void publishVideoData(byte[] data) throws IllegalStateException;
 
     /**
      * publish an audio content packet to server
      */
-    void publishAudioData(byte[] data, int dts) throws IllegalStateException;
+    void publishAudioData(byte[] data) throws IllegalStateException;
 }

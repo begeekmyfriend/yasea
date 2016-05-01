@@ -157,7 +157,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         writeThread.send(FCPublish);
 
         Log.d(TAG, "createStream(): Sending createStream command...");
-        final ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
+        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
         // transactionId == 4
         Command createStream = new Command("createStream", ++transactionIdCounter, chunkStreamInfo);
         createStream.addData(new AmfNull());  // command object: null for "createStream"
@@ -231,12 +231,14 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         if (fullyConnected || connecting) {
             throw new IllegalStateException("Already connected or connecting to RTMP server");
         }
+
+        // Mark session timestamp of all chunk stream information on connection.
+        ChunkStreamInfo.markSessionTimestampTx();
+
         Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
-        // Create the first command chunk infomation.
-        final ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
+        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
         Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
         invoke.getHeader().setMessageStreamId(0);
-
         AmfObject args = new AmfObject();
         args.setProperty("app", appName);
         args.setProperty("flashVer", "LNX 11,2,202,233"); // Flash player OS: Linux, version: 11.2.202.233
@@ -249,13 +251,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         args.setProperty("videoFunction", 1);
         args.setProperty("pageUrl", pageUrl);
         args.setProperty("objectEncoding", 0);
-
         invoke.addData(args);
 
         connecting = true;
-
-        Log.d(TAG, "rtmpConnect(): Writing 'connect' invoke packet");
-        invoke.getHeader().setAbsoluteTimestamp((int) chunkStreamInfo.markRealAbsoluteTimestampTx());
         writeThread.send(invoke);
     }
 
@@ -374,48 +372,50 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
 
     @Override
     public void shutdown() {
-        // shutdown read thread
-        try {
-            // It will invoke EOFException in read thread
-            socket.shutdownInput();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-        readThread.shutdown();
-        try {
-            readThread.join();
-        } catch (InterruptedException ie) {
-            ie.printStackTrace();
-            readThread.interrupt();
-        }
-
-        // shutdown write thread
-        writeThread.shutdown();
-        try {
-            writeThread.join();
-        } catch (InterruptedException ie) {
-            ie.printStackTrace();
-            writeThread.interrupt();
-        }
-
-        // shutdown handleRxPacketLoop
-        rxPacketQueue.clear();
-        active = false;
-        synchronized (rxPacketLock) {
-            rxPacketLock.notify();
-        }
-
-        // shutdown socket as well as its input and output stream
-        if (socket != null) {
+        if (active) {
+            // shutdown read thread
             try {
-                socket.close();
-                Log.d(TAG, "socket closed");
-            } catch (IOException ex) {
-                Log.e(TAG, "shutdown(): failed to close socket", ex);
+                // It will invoke EOFException in read thread
+                socket.shutdownInput();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
             }
-        }
+            readThread.shutdown();
+            try {
+                readThread.join();
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+                readThread.interrupt();
+            }
 
-        publishPermitted = false;
+            // shutdown write thread
+            writeThread.shutdown();
+            try {
+                writeThread.join();
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+                writeThread.interrupt();
+            }
+
+            // shutdown handleRxPacketLoop
+            rxPacketQueue.clear();
+            active = false;
+            synchronized (rxPacketLock) {
+                rxPacketLock.notify();
+            }
+
+            // shutdown socket as well as its input and output stream
+            if (socket != null) {
+                try {
+                    socket.close();
+                    Log.d(TAG, "socket closed");
+                } catch (IOException ex) {
+                    Log.e(TAG, "shutdown(): failed to close socket", ex);
+                }
+            }
+
+            publishPermitted = false;
+        }
     }
 
     @Override
@@ -426,7 +426,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     }
 
     @Override
-    public void publishVideoData(byte[] data, int dts) throws IllegalStateException {
+    public void publishVideoData(byte[] data) throws IllegalStateException {
         if (!fullyConnected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
@@ -439,13 +439,12 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         Video video = new Video();
         video.setData(data);
         video.getHeader().setMessageStreamId(currentStreamId);
-        video.getHeader().setAbsoluteTimestamp(dts);
         writeThread.send(video);
         videoFrameCacheNumber.getAndIncrement();
     }
 
     @Override
-    public void publishAudioData(byte[] data, int dts) throws IllegalStateException {
+    public void publishAudioData(byte[] data) throws IllegalStateException {
         if (!fullyConnected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
@@ -458,7 +457,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         Audio audio = new Audio();
         audio.setData(data);
         audio.getHeader().setMessageStreamId(currentStreamId);
-        audio.getHeader().setAbsoluteTimestamp(dts);
         writeThread.send(audio);
     }
 

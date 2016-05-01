@@ -46,25 +46,19 @@ public class SrsRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public void publishVideoData(byte[] data, int dts) throws IllegalStateException {
+    public void publishVideoData(byte[] data) throws IllegalStateException {
         if (data == null || data.length == 0) {
             throw new IllegalStateException("Invalid Video Data");
         }
-        if (dts < 0) {
-            throw new IllegalStateException("Invalid DTS");
-        }
-        rtmpConnection.publishVideoData(data, dts);
+        rtmpConnection.publishVideoData(data);
     }
 
     @Override
-    public void publishAudioData(byte[] data, int dts) throws IllegalStateException {
+    public void publishAudioData(byte[] data) throws IllegalStateException {
         if (data == null || data.length == 0) {
             throw new IllegalStateException("Invalid Audio Data");
         }
-        if (dts < 0) {
-            throw new IllegalStateException("Invalid DTS");
-        }
-        rtmpConnection.publishAudioData(data, dts);
+        rtmpConnection.publishAudioData(data);
     }
 
     public final int getVideoFrameCacheNumber() {

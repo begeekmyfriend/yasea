@@ -35,7 +35,7 @@ public class SrsEncoder {
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
-    private SrsRtmpFlv muxer;
+    private SrsFlvMuxer muxer;
 
     private MediaCodec vencoder;
     private MediaCodecInfo vmci;
@@ -68,7 +68,7 @@ public class SrsEncoder {
     }
 
     public int start() {
-        muxer = new SrsRtmpFlv(rtmpUrl);
+        muxer = new SrsFlvMuxer(rtmpUrl);
         try {
             muxer.start();
         } catch (IOException e) {

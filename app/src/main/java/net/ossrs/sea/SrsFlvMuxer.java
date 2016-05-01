@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *      muxer.stop();
  *      muxer.release();
  */
-public class SrsRtmpFlv {
+public class SrsFlvMuxer {
     private volatile boolean connected;
     private SrsRtmpPublisher publisher;
 
@@ -62,7 +62,7 @@ public class SrsRtmpFlv {
      * constructor.
      * @param rtmpUrl the rtmp URL.
      */
-    public SrsRtmpFlv(String rtmpUrl) {
+    public SrsFlvMuxer(String rtmpUrl) {
         sequenceHeaderOk = false;
         connected = false;
         flv = new SrsFlv();
@@ -204,7 +204,7 @@ public class SrsRtmpFlv {
      */
     public void stop() {
         if (worker == null || publisher == null) {
-            throw new IllegalStateException("SrsRtmpFlv Not init!");
+            throw new IllegalStateException("SrsFlvMuxer Not init!");
         }
 
         disconnect();
@@ -279,11 +279,11 @@ public class SrsRtmpFlv {
 
         if (frame.is_video()) {
             if (publisher != null) {
-                publisher.publishVideoData(frame.tag.frame.array(), frame.dts);
+                publisher.publishVideoData(frame.tag.frame.array());
             }
         } else if (frame.is_audio()) {
             if (publisher != null) {
-                publisher.publishAudioData(frame.tag.frame.array(), frame.dts);
+                publisher.publishAudioData(frame.tag.frame.array());
             }
         }
 
@@ -800,7 +800,7 @@ public class SrsRtmpFlv {
                 SrsAnnexbSearch tbbsc = utils.srs_avc_startswith_annexb(bb, bi);
                 if (!tbbsc.match || tbbsc.nb_start_code < 3) {
                     Log.e(TAG, "annexb not match.");
-                    SrsRtmpFlv.srs_print_bytes(TAG, bb, 16);
+                    SrsFlvMuxer.srs_print_bytes(TAG, bb, 16);
                     throw new IllegalArgumentException(String.format("annexb not match for %dB, pos=%d", bi.size, bb.position()));
                 }
 
@@ -824,8 +824,8 @@ public class SrsRtmpFlv {
                 tbb.size = bb.position() - pos;
                 if (bb.position() < bi.size) {
                     Log.i(TAG, String.format("annexb multiple match ok, pts=%d", bi.presentationTimeUs / 1000));
-                    SrsRtmpFlv.srs_print_bytes(TAG, tbbs, 16);
-                    SrsRtmpFlv.srs_print_bytes(TAG, bb.slice(), 16);
+                    SrsFlvMuxer.srs_print_bytes(TAG, tbbs, 16);
+                    SrsFlvMuxer.srs_print_bytes(TAG, bb.slice(), 16);
                 }
                 //Log.i(TAG, String.format("annexb match %d bytes", tbb.size));
                 break;

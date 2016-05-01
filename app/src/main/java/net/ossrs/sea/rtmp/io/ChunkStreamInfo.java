@@ -21,7 +21,8 @@ public class ChunkStreamInfo {
     public static final byte RTMP_CONTROL_CHANNEL = 0x02;
     private RtmpHeader prevHeaderRx;
     private RtmpHeader prevHeaderTx;
-    private long realLastTimestamp = System.nanoTime() / 1000;  // Do not use wall time!
+    private static long sessionBeginTimestamp;
+    private long realLastTimestamp = System.nanoTime() / 1000000;  // Do not use wall time!
     private ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 128);
 
     /** @return the previous header that was received on this channel, or <code>null</code> if no previous header was received */
@@ -47,10 +48,20 @@ public class ChunkStreamInfo {
     public void setPrevHeaderTx(RtmpHeader prevHeaderTx) {
         this.prevHeaderTx = prevHeaderTx;
     }
-    
-    /** Utility method for calculating & synchronizing transmitted timestamps & timestamp deltas */
-    public long markRealAbsoluteTimestampTx() {
-        long currentTimestamp = System.nanoTime() / 1000;
+
+    /** Sets the session beginning timestamp for all chunks */
+    public static void markSessionTimestampTx() {
+        sessionBeginTimestamp = System.nanoTime() / 1000000;
+    }
+
+    /** Utility method for calculating & synchronizing transmitted timestamps */
+    public long markAbsoluteTimestampTx() {
+        return System.nanoTime() / 1000000 - sessionBeginTimestamp;
+    }
+
+    /** Utility method for calculating & synchronizing transmitted timestamp deltas */
+    public long markDeltaTimestampTx() {
+        long currentTimestamp = System.nanoTime() / 1000000;
         long diffTimestamp = currentTimestamp - realLastTimestamp;
         realLastTimestamp = currentTimestamp;
         return diffTimestamp;

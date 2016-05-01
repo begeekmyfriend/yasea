@@ -317,47 +317,41 @@ public class RtmpHeader {
         out.write(((byte) (chunkType.getValue() << 6) | chunkStreamId));
         switch (chunkType) {
             case TYPE_0_FULL: { //  b00 = 12 byte header (full header)
-                chunkStreamInfo.markRealAbsoluteTimestampTx();
+                chunkStreamInfo.markDeltaTimestampTx();
                 Util.writeUnsignedInt24(out, absoluteTimestamp >= 0xffffff ? 0xffffff : absoluteTimestamp);
                 Util.writeUnsignedInt24(out, packetLength);
                 out.write(messageType.getValue());
                 Util.writeUnsignedInt32LittleEndian(out, messageStreamId);
                 if (absoluteTimestamp >= 0xffffff) {
-                    Util.writeUnsignedInt24(out, absoluteTimestamp);
+                    Util.writeUnsignedInt32(out, absoluteTimestamp);
                 }
                 break;
             }
             case TYPE_1_RELATIVE_LARGE: { // b01 = 8 bytes - like type 0. not including message ID (4 last bytes)
-                if (timestampDelta == -1) {
-                    timestampDelta = (int) chunkStreamInfo.markRealAbsoluteTimestampTx();
-                }
+                timestampDelta = (int) chunkStreamInfo.markDeltaTimestampTx();
                 absoluteTimestamp = chunkStreamInfo.getPrevHeaderTx().getAbsoluteTimestamp() + timestampDelta;
                 Util.writeUnsignedInt24(out, timestampDelta >= 0xffffff ? 0xffffff : timestampDelta);
                 Util.writeUnsignedInt24(out, packetLength);
                 out.write(messageType.getValue());
                 if (timestampDelta >= 0xffffff) {
-                    Util.writeUnsignedInt24(out, timestampDelta);
+                    Util.writeUnsignedInt32(out, timestampDelta);
                 }
                 break;
             }
             case TYPE_2_RELATIVE_TIMESTAMP_ONLY: { // b10 = 4 bytes - Basic Header and timestamp (3 bytes) are included
-                if (timestampDelta == -1) {
-                    timestampDelta = (int) chunkStreamInfo.markRealAbsoluteTimestampTx();
-                }
+                timestampDelta = (int) chunkStreamInfo.markDeltaTimestampTx();
                 absoluteTimestamp = chunkStreamInfo.getPrevHeaderTx().getAbsoluteTimestamp() + timestampDelta;
                 Util.writeUnsignedInt24(out, (timestampDelta >= 0xffffff) ? 0xffffff : timestampDelta);
                 if (timestampDelta >= 0xffffff) {
-                    Util.writeUnsignedInt24(out, timestampDelta);
+                    Util.writeUnsignedInt32(out, timestampDelta);
                 }
                 break;
             }
-            case TYPE_3_RELATIVE_SINGLE_BYTE: { // b11 = 1 byte: basic header only 
-                if (timestampDelta == -1) {
-                    timestampDelta = (int) chunkStreamInfo.markRealAbsoluteTimestampTx();
-                }
+            case TYPE_3_RELATIVE_SINGLE_BYTE: { // b11 = 1 byte: basic header only
+                timestampDelta = (int) chunkStreamInfo.markDeltaTimestampTx();
                 absoluteTimestamp = chunkStreamInfo.getPrevHeaderTx().getAbsoluteTimestamp() + timestampDelta;
                 if (timestampDelta >= 0xffffff) {
-                    Util.writeUnsignedInt24(out, timestampDelta);
+                    Util.writeUnsignedInt32(out, timestampDelta);
                 }
                 break;
             }

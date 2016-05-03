@@ -21,6 +21,7 @@ import net.ossrs.sea.rtmp.amf.AmfNumber;
 import net.ossrs.sea.rtmp.amf.AmfObject;
 import net.ossrs.sea.rtmp.packets.Abort;
 import net.ossrs.sea.rtmp.packets.Acknowledgement;
+import net.ossrs.sea.rtmp.packets.Data;
 import net.ossrs.sea.rtmp.packets.Handshake;
 import net.ossrs.sea.rtmp.packets.Command;
 import net.ossrs.sea.rtmp.packets.Audio;
@@ -234,6 +235,157 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         writeThread.send(publish);
     }
 
+    private void onMetaData() throws IllegalStateException {
+        if (!fullyConnected) {
+            throw new IllegalStateException("Not connected to RTMP server");
+        }
+        if (currentStreamId == -1) {
+            throw new IllegalStateException("No current stream object exists");
+        }
+
+        Log.d(TAG, "onMetaData(): Sending empty onMetaData...");
+        Data emptyMetaData = new Data("@setDataFrame");
+        emptyMetaData.addData("onMetaData");
+        emptyMetaData.addData(new AmfNull());
+        emptyMetaData.getHeader().setMessageStreamId(currentStreamId);
+        writeThread.send(emptyMetaData);
+    }
+
+    @Override
+    public void closeStream() throws IllegalStateException {
+        if (!fullyConnected) {
+            throw new IllegalStateException("Not connected to RTMP server");
+        }
+        if (currentStreamId == -1) {
+            throw new IllegalStateException("No current stream object exists");
+        }
+        if (!publishPermitted) {
+            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+        }
+        streamName = null;
+        Log.d(TAG, "closeStream(): setting current stream ID to -1");
+        currentStreamId = -1;
+        Command closeStream = new Command("closeStream", 0);
+        closeStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
+        closeStream.getHeader().setMessageStreamId(currentStreamId);
+        closeStream.addData(new AmfNull());
+        writeThread.send(closeStream);
+
+        mHandler.onRtmpStopped("stopped");
+    }
+
+    @Override
+    public void shutdown() {
+        if (active) {
+            // shutdown read thread
+            try {
+                // It will invoke EOFException in read thread
+                socket.shutdownInput();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+            readThread.shutdown();
+            try {
+                readThread.join();
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+                readThread.interrupt();
+            }
+
+            // shutdown write thread
+            writeThread.shutdown();
+            try {
+                writeThread.join();
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+                writeThread.interrupt();
+            }
+
+            // shutdown handleRxPacketLoop
+            rxPacketQueue.clear();
+            active = false;
+            synchronized (rxPacketLock) {
+                rxPacketLock.notify();
+            }
+
+            // shutdown socket as well as its input and output stream
+            if (socket != null) {
+                try {
+                    socket.close();
+                    Log.d(TAG, "socket closed");
+                } catch (IOException ex) {
+                    Log.e(TAG, "shutdown(): failed to close socket", ex);
+                }
+            }
+
+            mHandler.onRtmpDisconnected("disconnected");
+        }
+
+        reset();
+    }
+
+    private void reset() {
+        active = false;
+        connecting = false;
+        fullyConnected = false;
+        publishPermitted = false;
+        currentStreamId = -1;
+        transactionIdCounter = 0;
+        videoFrameCacheNumber.set(0);
+        rtmpSessionInfo = null;
+    }
+
+    @Override
+    public void notifyWindowAckRequired(final int numBytesReadThusFar) {
+        Log.i(TAG, "notifyWindowAckRequired() called");
+        // Create and send window bytes read acknowledgement
+        writeThread.send(new Acknowledgement(numBytesReadThusFar));
+    }
+
+    @Override
+    public void publishAudioData(byte[] data) throws IllegalStateException {
+        if (!fullyConnected) {
+            throw new IllegalStateException("Not connected to RTMP server");
+        }
+        if (currentStreamId == -1) {
+            throw new IllegalStateException("No current stream object exists");
+        }
+        if (!publishPermitted) {
+            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+        }
+        Audio audio = new Audio();
+        audio.setData(data);
+        audio.getHeader().setMessageStreamId(currentStreamId);
+        writeThread.send(audio);
+
+        mHandler.onRtmpAudioStreaming("audio streaming");
+    }
+
+    @Override
+    public void publishVideoData(byte[] data) throws IllegalStateException {
+        if (!fullyConnected) {
+            throw new IllegalStateException("Not connected to RTMP server");
+        }
+        if (currentStreamId == -1) {
+            throw new IllegalStateException("No current stream object exists");
+        }
+        if (!publishPermitted) {
+            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+        }
+        Video video = new Video();
+        video.setData(data);
+        video.getHeader().setMessageStreamId(currentStreamId);
+        writeThread.send(video);
+
+        mHandler.onRtmpVideoStreaming("video streaming");
+
+        videoFrameCacheNumber.getAndIncrement();
+    }
+
+    public final int getVideoFrameCacheNumber() {
+        return videoFrameCacheNumber.get();
+    }
+
     @Override
     public void handleRxPacket(RtmpPacket rtmpPacket) {
         if (rtmpPacket != null) {
@@ -339,6 +491,8 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
             Log.d(TAG, "handleRxInvoke(): 'onFCPublish'");
         } else if (commandName.equals("onStatus")) {
             // NetStream.Publish.Start
+            // Send empty onMetaData packet
+            onMetaData();
             publishPermitted = true;
             synchronized (publishLock) {
                 publishLock.notifyAll();
@@ -346,140 +500,5 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         } else {
             Log.e(TAG, "handleRxInvoke(): Uknown/unhandled server invoke: " + invoke);
         }
-    }
-
-    @Override
-    public void closeStream() throws IllegalStateException {
-        if (!fullyConnected) {
-            throw new IllegalStateException("Not connected to RTMP server");
-        }
-        if (currentStreamId == -1) {
-            throw new IllegalStateException("No current stream object exists");
-        }
-        if (!publishPermitted) {
-            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
-        }
-        streamName = null;
-        Log.d(TAG, "closeStream(): setting current stream ID to -1");
-        currentStreamId = -1;
-        Command closeStream = new Command("closeStream", 0);
-        closeStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
-        closeStream.getHeader().setMessageStreamId(currentStreamId);
-        closeStream.addData(new AmfNull());  // command object: null for "closeStream"
-        writeThread.send(closeStream);
-
-        mHandler.onRtmpStopped("stopped");
-    }
-
-    @Override
-    public void shutdown() {
-        if (active) {
-            // shutdown read thread
-            try {
-                // It will invoke EOFException in read thread
-                socket.shutdownInput();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-            readThread.shutdown();
-            try {
-                readThread.join();
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-                readThread.interrupt();
-            }
-
-            // shutdown write thread
-            writeThread.shutdown();
-            try {
-                writeThread.join();
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-                writeThread.interrupt();
-            }
-
-            // shutdown handleRxPacketLoop
-            rxPacketQueue.clear();
-            active = false;
-            synchronized (rxPacketLock) {
-                rxPacketLock.notify();
-            }
-
-            // shutdown socket as well as its input and output stream
-            if (socket != null) {
-                try {
-                    socket.close();
-                    Log.d(TAG, "socket closed");
-                } catch (IOException ex) {
-                    Log.e(TAG, "shutdown(): failed to close socket", ex);
-                }
-            }
-
-            mHandler.onRtmpDisconnected("disconnected");
-        }
-
-        reset();
-    }
-
-    private void reset() {
-        active = false;
-        connecting = false;
-        fullyConnected = false;
-        publishPermitted = false;
-        currentStreamId = -1;
-        transactionIdCounter = 0;
-        videoFrameCacheNumber.set(0);
-        rtmpSessionInfo = null;
-    }
-
-    @Override
-    public void notifyWindowAckRequired(final int numBytesReadThusFar) {
-        Log.i(TAG, "notifyWindowAckRequired() called");
-        // Create and send window bytes read acknowledgement        
-        writeThread.send(new Acknowledgement(numBytesReadThusFar));
-    }
-
-    @Override
-    public void publishVideoData(byte[] data) throws IllegalStateException {
-        if (!fullyConnected) {
-            throw new IllegalStateException("Not connected to RTMP server");
-        }
-        if (currentStreamId == -1) {
-            throw new IllegalStateException("No current stream object exists");
-        }
-        if (!publishPermitted) {
-            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
-        }
-        Video video = new Video();
-        video.setData(data);
-        video.getHeader().setMessageStreamId(currentStreamId);
-        writeThread.send(video);
-
-        mHandler.onRtmpVideoStreaming("video streaming");
-
-        videoFrameCacheNumber.getAndIncrement();
-    }
-
-    @Override
-    public void publishAudioData(byte[] data) throws IllegalStateException {
-        if (!fullyConnected) {
-            throw new IllegalStateException("Not connected to RTMP server");
-        }
-        if (currentStreamId == -1) {
-            throw new IllegalStateException("No current stream object exists");
-        }
-        if (!publishPermitted) {
-            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
-        }
-        Audio audio = new Audio();
-        audio.setData(data);
-        audio.getHeader().setMessageStreamId(currentStreamId);
-        writeThread.send(audio);
-
-        mHandler.onRtmpAudioStreaming("audio streaming");
-    }
-
-    public final int getVideoFrameCacheNumber() {
-        return videoFrameCacheNumber.get();
     }
 }

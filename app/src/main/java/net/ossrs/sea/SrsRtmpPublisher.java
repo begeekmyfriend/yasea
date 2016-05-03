@@ -13,18 +13,13 @@ public class SrsRtmpPublisher implements RtmpPublisher {
 
     private RtmpConnection rtmpConnection;
 
-    /** 
-     * Constructor for URLs in the format: rtmp://host[:port]/application[?streamName]
-     * 
-     * @param url a RTMP URL in the format: rtmp://host[:port]/application[?streamName]
-     */
-    public SrsRtmpPublisher(String url) {
-        rtmpConnection = new RtmpConnection(url);
+    public SrsRtmpPublisher(RtmpPublisher.EventHandler handler) {
+        rtmpConnection = new RtmpConnection(handler);
     }
 
     @Override
-    public void connect() throws IOException {
-        rtmpConnection.connect();
+    public void connect(String url) throws IOException {
+        rtmpConnection.connect(url);
     }
 
     @Override
@@ -63,9 +58,5 @@ public class SrsRtmpPublisher implements RtmpPublisher {
 
     public final int getVideoFrameCacheNumber() {
         return rtmpConnection.getVideoFrameCacheNumber();
-    }
-
-    public final String getRtmpUrl() {
-        return rtmpConnection.getRtmpUrl();
     }
 }

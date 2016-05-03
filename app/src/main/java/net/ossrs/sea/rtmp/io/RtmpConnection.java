@@ -38,23 +38,19 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
 
     private static final String TAG = "RtmpConnection";
     private static final Pattern rtmpUrlPattern = Pattern.compile("^rtmp://([^/:]+)(:(\\d+))*/([^/]+)(/(.*))*$");
-    
+
+    private RtmpPublisher.EventHandler mHandler;
     private String appName;
-    private String host;
     private String streamName;
     private String publishType;
-    private String rtmpUrl = "";
     private String swfUrl = "";
     private String tcUrl = "";
     private String pageUrl = "";
-    private int port;
     private Socket socket;
     private RtmpSessionInfo rtmpSessionInfo;
-    private int transactionIdCounter = 0;
-    private static final int SOCKET_CONNECT_TIMEOUT_MS = 3000;
     private ReadThread readThread;
     private WriteThread writeThread;
-    private final ConcurrentLinkedQueue<RtmpPacket> rxPacketQueue;
+    private final ConcurrentLinkedQueue<RtmpPacket> rxPacketQueue = new ConcurrentLinkedQueue<>();
     private final Object rxPacketLock = new Object();
     private volatile boolean active = false;
     private volatile boolean connecting = false;
@@ -64,36 +60,51 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private final Object publishLock = new Object();
     private AtomicInteger videoFrameCacheNumber = new AtomicInteger(0);
     private int currentStreamId = -1;
+    private int transactionIdCounter = 0;
 
-    public RtmpConnection(String url) {
-        rtmpUrl = url;
-        this.tcUrl = rtmpUrl.substring(0, url.lastIndexOf('/'));
-        Matcher matcher = rtmpUrlPattern.matcher(url);
-        if (matcher.matches()) {
-            this.host = matcher.group(1);
-            String portStr = matcher.group(3);
-            this.port = portStr != null ? Integer.parseInt(portStr) : 1935;            
-            this.appName = matcher.group(4);
-            this.streamName = matcher.group(6);
-            rtmpSessionInfo = new RtmpSessionInfo();
-            rxPacketQueue = new ConcurrentLinkedQueue<RtmpPacket>();
-        } else {
-            throw new RuntimeException("Invalid RTMP URL. Must be in format: rtmp://host[:port]/application[/streamName]");
-        }
+    public RtmpConnection(RtmpPublisher.EventHandler handler) {
+        mHandler = handler;
+    }
+
+    private void handshake(InputStream in, OutputStream out) throws IOException {
+        Handshake handshake = new Handshake();
+        handshake.writeC0(out);
+        handshake.writeC1(out); // Write C1 without waiting for S0
+        out.flush();
+        handshake.readS0(in);
+        handshake.readS1(in);
+        handshake.writeC2(out);
+        handshake.readS2(in);
     }
 
     @Override
-    public void connect() throws IOException {
+    public void connect(String url) throws IOException {
+        int port;
+        String host;
+        tcUrl = url.substring(0, url.lastIndexOf('/'));
+        Matcher matcher = rtmpUrlPattern.matcher(url);
+        if (matcher.matches()) {
+            host = matcher.group(1);
+            String portStr = matcher.group(3);
+            port = portStr != null ? Integer.parseInt(portStr) : 1935;
+            appName = matcher.group(4);
+            streamName = matcher.group(6);
+        } else {
+            throw new IllegalArgumentException("Invalid RTMP URL. Must be in format: rtmp://host[:port]/application[/streamName]");
+        }
+
+        // socket connection
         Log.d(TAG, "connect() called. Host: " + host + ", port: " + port + ", appName: " + appName + ", publishPath: " + streamName);
         socket = new Socket();
         SocketAddress socketAddress = new InetSocketAddress(host, port);
-        socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT_MS);
+        socket.connect(socketAddress, 3000);
         BufferedInputStream in = new BufferedInputStream(socket.getInputStream());
         BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
         Log.d(TAG, "connect(): socket connection established, doing handhake...");
         handshake(in, out);
         active = true;
         Log.d(TAG, "connect(): handshake done");
+        rtmpSessionInfo = new RtmpSessionInfo();
         readThread = new ReadThread(rtmpSessionInfo, in, this);
         writeThread = new WriteThread(rtmpSessionInfo, out, videoFrameCacheNumber);
         readThread.start();
@@ -116,6 +127,37 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         rtmpConnect();
     }
 
+    private void rtmpConnect() throws IOException, IllegalStateException {
+        if (fullyConnected || connecting) {
+            throw new IllegalStateException("Already connected or connecting to RTMP server");
+        }
+
+        // Mark session timestamp of all chunk stream information on connection.
+        ChunkStreamInfo.markSessionTimestampTx();
+
+        Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
+        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
+        Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
+        invoke.getHeader().setMessageStreamId(0);
+        AmfObject args = new AmfObject();
+        args.setProperty("app", appName);
+        args.setProperty("flashVer", "LNX 11,2,202,233"); // Flash player OS: Linux, version: 11.2.202.233
+        args.setProperty("swfUrl", swfUrl);
+        args.setProperty("tcUrl", tcUrl);
+        args.setProperty("fpad", false);
+        args.setProperty("capabilities", 239);
+        args.setProperty("audioCodecs", 3575);
+        args.setProperty("videoCodecs", 252);
+        args.setProperty("videoFunction", 1);
+        args.setProperty("pageUrl", pageUrl);
+        args.setProperty("objectEncoding", 0);
+        invoke.addData(args);
+        writeThread.send(invoke);
+
+        connecting = true;
+        mHandler.onRtmpConnecting("connecting");
+    }
+
     @Override
     public void publish(String type) throws IllegalStateException, IOException {
         if (connecting) {
@@ -128,7 +170,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
             }
         }
 
-        this.publishType = type;
+        publishType = type;
         createStream();
     }
 
@@ -190,71 +232,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         publish.addData(streamName);
         publish.addData(publishType);
         writeThread.send(publish);
-    }
-
-    @Override
-    public void closeStream() throws IllegalStateException {
-        if (!fullyConnected) {
-            throw new IllegalStateException("Not connected to RTMP server");
-        }
-        if (currentStreamId == -1) {
-            throw new IllegalStateException("No current stream object exists");
-        }
-        if (!publishPermitted) {
-            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
-        }
-        streamName = null;
-        Log.d(TAG, "closeStream(): setting current stream ID to -1");
-        currentStreamId = -1;
-        Command closeStream = new Command("closeStream", 0);
-        closeStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
-        closeStream.getHeader().setMessageStreamId(currentStreamId);
-        closeStream.addData(new AmfNull());  // command object: null for "closeStream"
-        writeThread.send(closeStream);
-    }
-
-    /**
-     * Performs the RTMP handshake sequence with the server 
-     */
-    private void handshake(InputStream in, OutputStream out) throws IOException {
-        Handshake handshake = new Handshake();
-        handshake.writeC0(out);
-        handshake.writeC1(out); // Write C1 without waiting for S0
-        out.flush();
-        handshake.readS0(in);
-        handshake.readS1(in);
-        handshake.writeC2(out);
-        handshake.readS2(in);
-    }
-
-    private void rtmpConnect() throws IOException, IllegalStateException {
-        if (fullyConnected || connecting) {
-            throw new IllegalStateException("Already connected or connecting to RTMP server");
-        }
-
-        // Mark session timestamp of all chunk stream information on connection.
-        ChunkStreamInfo.markSessionTimestampTx();
-
-        Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
-        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
-        Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
-        invoke.getHeader().setMessageStreamId(0);
-        AmfObject args = new AmfObject();
-        args.setProperty("app", appName);
-        args.setProperty("flashVer", "LNX 11,2,202,233"); // Flash player OS: Linux, version: 11.2.202.233
-        args.setProperty("swfUrl", swfUrl);
-        args.setProperty("tcUrl", tcUrl);
-        args.setProperty("fpad", false);
-        args.setProperty("capabilities", 239);
-        args.setProperty("audioCodecs", 3575);
-        args.setProperty("videoCodecs", 252);
-        args.setProperty("videoFunction", 1);
-        args.setProperty("pageUrl", pageUrl);
-        args.setProperty("objectEncoding", 0);
-        invoke.addData(args);
-
-        connecting = true;
-        writeThread.send(invoke);
     }
 
     @Override
@@ -338,6 +315,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                 // We can now send createStream commands
                 connecting = false;
                 fullyConnected = true;
+                mHandler.onRtmpConnected("connected");
                 synchronized (connectingLock) {
                     connectingLock.notifyAll();
                 }
@@ -368,6 +346,29 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         } else {
             Log.e(TAG, "handleRxInvoke(): Uknown/unhandled server invoke: " + invoke);
         }
+    }
+
+    @Override
+    public void closeStream() throws IllegalStateException {
+        if (!fullyConnected) {
+            throw new IllegalStateException("Not connected to RTMP server");
+        }
+        if (currentStreamId == -1) {
+            throw new IllegalStateException("No current stream object exists");
+        }
+        if (!publishPermitted) {
+            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+        }
+        streamName = null;
+        Log.d(TAG, "closeStream(): setting current stream ID to -1");
+        currentStreamId = -1;
+        Command closeStream = new Command("closeStream", 0);
+        closeStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
+        closeStream.getHeader().setMessageStreamId(currentStreamId);
+        closeStream.addData(new AmfNull());  // command object: null for "closeStream"
+        writeThread.send(closeStream);
+
+        mHandler.onRtmpStopped("stopped");
     }
 
     @Override
@@ -414,8 +415,21 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                 }
             }
 
-            publishPermitted = false;
+            mHandler.onRtmpDisconnected("disconnected");
         }
+
+        reset();
+    }
+
+    private void reset() {
+        active = false;
+        connecting = false;
+        fullyConnected = false;
+        publishPermitted = false;
+        currentStreamId = -1;
+        transactionIdCounter = 0;
+        videoFrameCacheNumber.set(0);
+        rtmpSessionInfo = null;
     }
 
     @Override
@@ -440,6 +454,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         video.setData(data);
         video.getHeader().setMessageStreamId(currentStreamId);
         writeThread.send(video);
+
+        mHandler.onRtmpVideoStreaming("video streaming");
+
         videoFrameCacheNumber.getAndIncrement();
     }
 
@@ -458,13 +475,11 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         audio.setData(data);
         audio.getHeader().setMessageStreamId(currentStreamId);
         writeThread.send(audio);
+
+        mHandler.onRtmpAudioStreaming("audio streaming");
     }
 
     public final int getVideoFrameCacheNumber() {
         return videoFrameCacheNumber.get();
-    }
-
-    public final String getRtmpUrl() {
-        return rtmpUrl;
     }
 }

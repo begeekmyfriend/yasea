@@ -4,6 +4,8 @@ import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.util.Log;
 
+import net.ossrs.sea.rtmp.RtmpPublisher;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -42,14 +44,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *      muxer.release();
  */
 public class SrsFlvMuxer {
-    private volatile boolean connected;
+    private volatile boolean connected = false;
+    private String rtmpUrl;
     private SrsRtmpPublisher publisher;
 
     private Thread worker;
     private final Object txFrameLock = new Object();
 
-    private SrsFlv flv;
-    private boolean sequenceHeaderOk;
+    private SrsFlv flv = new SrsFlv();
+    private boolean sequenceHeaderOk = false;
     private SrsFlvFrame videoSequenceHeader;
     private SrsFlvFrame audioSequenceHeader;
     private ConcurrentLinkedQueue<SrsFlvFrame> frameCache = new ConcurrentLinkedQueue<SrsFlvFrame>();
@@ -60,51 +63,17 @@ public class SrsFlvMuxer {
 
     /**
      * constructor.
-     * @param rtmpUrl the rtmp URL.
+     * @param handler the rtmp event handler.
      */
-    public SrsFlvMuxer(String rtmpUrl) {
-        sequenceHeaderOk = false;
-        connected = false;
-        flv = new SrsFlv();
-        publisher = new SrsRtmpPublisher(rtmpUrl);
+    public SrsFlvMuxer(RtmpPublisher.EventHandler handler) {
+        publisher = new SrsRtmpPublisher(handler);
     }
 
     /**
-     * print the size of bytes in bb
-     * @param bb the bytes to print.
-     * @param size the total size of bytes to print.
+     * get cached video frame number in publisher
      */
-    public static void srs_print_bytes(String tag, ByteBuffer bb, int size) {
-        StringBuilder sb = new StringBuilder();
-        int i = 0;
-        int bytes_in_line = 16;
-        int max = bb.remaining();
-        for (i = 0; i < size && i < max; i++) {
-            sb.append(String.format("0x%s ", Integer.toHexString(bb.get(i) & 0xFF)));
-            if (((i + 1) % bytes_in_line) == 0) {
-                Log.i(tag, String.format("%03d-%03d: %s", i / bytes_in_line * bytes_in_line, i, sb.toString()));
-                sb = new StringBuilder();
-            }
-        }
-        if (sb.length() > 0) {
-            Log.i(tag, String.format("%03d-%03d: %s", size / bytes_in_line * bytes_in_line, i - 1, sb.toString()));
-        }
-    }
-    public static void srs_print_bytes(String tag, byte[] bb, int size) {
-        StringBuilder sb = new StringBuilder();
-        int i = 0;
-        int bytes_in_line = 16;
-        int max = bb.length;
-        for (i = 0; i < size && i < max; i++) {
-            sb.append(String.format("0x%s ", Integer.toHexString(bb[i] & 0xFF)));
-            if (((i + 1) % bytes_in_line) == 0) {
-                Log.i(tag, String.format("%03d-%03d: %s", i / bytes_in_line * bytes_in_line, i, sb.toString()));
-                sb = new StringBuilder();
-            }
-        }
-        if (sb.length() > 0) {
-            Log.i(tag, String.format("%03d-%03d: %s", size / bytes_in_line * bytes_in_line, i - 1, sb.toString()));
-        }
+    public int getVideoFrameCacheNumber() {
+        return publisher.getVideoFrameCacheNumber();
     }
 
     /**
@@ -121,17 +90,51 @@ public class SrsFlvMuxer {
         return AUDIO_TRACK;
     }
 
-    /**
-     * get cached video frame number in publisher
-     */
-    public int getVideoFrameCacheNumber() {
-        return publisher.getVideoFrameCacheNumber();
+    private void disconnect() {
+        try {
+            publisher.closeStream();
+        } catch (IllegalStateException e) {
+            // Ignore illegal state.
+        }
+        publisher.shutdown();
+        connected = false;
+        sequenceHeaderOk = false;
+        Log.i(TAG, "worker: disconnect SRS ok.");
+    }
+
+    private void connect(String url) throws IllegalStateException, IOException {
+        if (!connected) {
+            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
+            publisher.connect(url);
+            publisher.publish("live");
+            Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
+            connected = true;
+            sequenceHeaderOk = false;
+        }
+    }
+
+    private void sendFlvTag(SrsFlvFrame frame) throws IllegalStateException, IOException {
+        if (!connected || frame == null || frame.tag.size <= 0) {
+            return;
+        }
+
+        if (frame.is_video()) {
+            publisher.publishVideoData(frame.tag.frame.array());
+        } else if (frame.is_audio()) {
+            publisher.publishAudioData(frame.tag.frame.array());
+        }
+
+        if (frame.is_keyframe()) {
+            Log.i(TAG, String.format("worker: send frame type=%d, dts=%d, size=%dB",
+                    frame.type, frame.dts, frame.tag.size));
+        }
     }
 
     /**
      * start to the remote SRS for remux.
      */
-    public void start() throws IOException {
+    public void start(String url) throws IOException {
+        rtmpUrl = url;
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -142,7 +145,7 @@ public class SrsFlvMuxer {
                         try {
                             // only connect when got keyframe.
                             if (frame.is_keyframe()) {
-                                connect();
+                                connect(rtmpUrl);
                             }
                             // when sequence header required,
                             // adjust the dts by the current frame and sent it.
@@ -191,15 +194,6 @@ public class SrsFlvMuxer {
     }
 
     /**
-     * Make sure you call this when you're done to free up any resources
-     * instead of relying on the garbage collector to do this for you at
-     * some point in the future.
-     */
-    public void release() {
-        stop();
-    }
-
-    /**
      * stop the muxer, disconnect RTMP connection from SRS.
      */
     public void stop() {
@@ -218,7 +212,6 @@ public class SrsFlvMuxer {
                 worker.interrupt();
             }
             worker = null;
-            publisher = null;
         }
 
         Log.i(TAG, String.format("SrsMuxer closed"));
@@ -247,49 +240,42 @@ public class SrsFlvMuxer {
         }
     }
 
-    private void disconnect() {
-        if (publisher != null) {
-            try {
-                publisher.closeStream();
-            } catch (IllegalStateException e) {
-                // Ignore illegal state.
+    /**
+     * print the size of bytes in bb
+     * @param bb the bytes to print.
+     * @param size the total size of bytes to print.
+     */
+    public static void srs_print_bytes(String tag, ByteBuffer bb, int size) {
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        int bytes_in_line = 16;
+        int max = bb.remaining();
+        for (i = 0; i < size && i < max; i++) {
+            sb.append(String.format("0x%s ", Integer.toHexString(bb.get(i) & 0xFF)));
+            if (((i + 1) % bytes_in_line) == 0) {
+                Log.i(tag, String.format("%03d-%03d: %s", i / bytes_in_line * bytes_in_line, i, sb.toString()));
+                sb = new StringBuilder();
             }
-            publisher.shutdown();
-            connected = false;
-            sequenceHeaderOk = false;
         }
-        Log.i(TAG, "worker: disconnect SRS ok.");
+        if (sb.length() > 0) {
+            Log.i(tag, String.format("%03d-%03d: %s", size / bytes_in_line * bytes_in_line, i - 1, sb.toString()));
+        }
     }
 
-    private void connect() throws IllegalStateException, IOException {
-        if (!connected) {
-            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", publisher.getRtmpUrl()));
-            publisher.connect();
-            publisher.publish("live");
-            Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", publisher.getRtmpUrl()));
-            connected = true;
-            sequenceHeaderOk = false;
-        }
-    }
-    
-    private void sendFlvTag(SrsFlvFrame frame) throws IllegalStateException, IOException {
-        if (!connected || frame == null || frame.tag.size <= 0) {
-            return;
-        }
-
-        if (frame.is_video()) {
-            if (publisher != null) {
-                publisher.publishVideoData(frame.tag.frame.array());
-            }
-        } else if (frame.is_audio()) {
-            if (publisher != null) {
-                publisher.publishAudioData(frame.tag.frame.array());
+    public static void srs_print_bytes(String tag, byte[] bb, int size) {
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        int bytes_in_line = 16;
+        int max = bb.length;
+        for (i = 0; i < size && i < max; i++) {
+            sb.append(String.format("0x%s ", Integer.toHexString(bb[i] & 0xFF)));
+            if (((i + 1) % bytes_in_line) == 0) {
+                Log.i(tag, String.format("%03d-%03d: %s", i / bytes_in_line * bytes_in_line, i, sb.toString()));
+                sb = new StringBuilder();
             }
         }
-
-        if (frame.is_keyframe()) {
-            Log.i(TAG, String.format("worker: send frame type=%d, dts=%d, size=%dB",
-                    frame.type, frame.dts, frame.tag.size));
+        if (sb.length() > 0) {
+            Log.i(tag, String.format("%03d-%03d: %s", size / bytes_in_line * bytes_in_line, i - 1, sb.toString()));
         }
     }
 

@@ -12,7 +12,7 @@ import java.io.IOException;
  */
 public interface RtmpPublisher {
     
-    void connect() throws IOException;
+    void connect(String url) throws IOException;
     
     /**
      * Issues an RTMP "publish" command and write the media content stream packets (audio and video). 
@@ -43,4 +43,22 @@ public interface RtmpPublisher {
      * publish an audio content packet to server
      */
     void publishAudioData(byte[] data) throws IllegalStateException;
+
+    /**
+     * RTMP event handler.
+     */
+    interface EventHandler {
+
+        void onRtmpConnecting(String msg);
+
+        void onRtmpConnected(String msg);
+
+        void onRtmpVideoStreaming(String msg);
+
+        void onRtmpAudioStreaming(String msg);
+
+        void onRtmpStopped(String msg);
+
+        void onRtmpDisconnected(String msg);
+    }
 }

@@ -18,6 +18,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import net.ossrs.sea.rtmp.RtmpPublisher;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -34,28 +36,77 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     private int mPreviewRotation = 90;
     private int mDisplayRotation = 90;
     private int mCamId = Camera.getNumberOfCameras() - 1; // default camera
-    private byte[] mYuvFrameBuffer;
+    private byte[] mYuvFrameBuffer = new byte[SrsEncoder.VWIDTH * SrsEncoder.VHEIGHT * 3 / 2];
 
-    private SrsEncoder mEncoder;
-    private String mIoErrMsg;
+    private String mNotifyMsg;
     private SharedPreferences sp;
+
+    private SrsEncoder mEncoder = new SrsEncoder(new RtmpPublisher.EventHandler() {
+        @Override
+        public void onRtmpConnecting(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onRtmpConnected(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onRtmpVideoStreaming(String msg) {
+        }
+
+        @Override
+        public void onRtmpAudioStreaming(String msg) {
+        }
+
+        @Override
+        public void onRtmpStopped(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onRtmpDisconnected(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        sp = getSharedPreferences("SrsPublisher", MODE_PRIVATE);
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
-        mEncoder = new SrsEncoder();
-        mYuvFrameBuffer = new byte[SrsEncoder.VWIDTH * SrsEncoder.VHEIGHT * 3 / 2];
-
         // restore data.
+        sp = getSharedPreferences("SrsPublisher", MODE_PRIVATE);
         SrsEncoder.rtmpUrl = sp.getString("rtmpUrl", SrsEncoder.rtmpUrl);
         SrsEncoder.vbitrate = sp.getInt("vbitrate", SrsEncoder.vbitrate);
-        Log.i(TAG, String.format("initialize rtmp url to %s, vbitrate=%dkbps", SrsEncoder.rtmpUrl, SrsEncoder.vbitrate));
+        Log.i(TAG, String.format("init rtmp url %s, vbitrate=%dkbps", SrsEncoder.rtmpUrl, SrsEncoder.vbitrate));
 
         // initialize url.
         final EditText efu = (EditText) findViewById(R.id.url);
@@ -128,11 +179,11 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread thread, Throwable ex) {
-                mIoErrMsg = ex.getMessage();
+                mNotifyMsg = ex.getMessage();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), mIoErrMsg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                         btnPublish.setEnabled(true);
                         btnStop.setEnabled(false);
                         stopPublish();
@@ -140,14 +191,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                 });
             }
         });
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        final Button btn = (Button) findViewById(R.id.publish);
-        btn.setEnabled(true);
     }
 
     @Override
@@ -353,6 +396,13 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
         Log.d(TAG, "surfaceDestroyed");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        final Button btn = (Button) findViewById(R.id.publish);
+        btn.setEnabled(true);
     }
 
     @Override

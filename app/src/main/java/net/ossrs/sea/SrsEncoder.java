@@ -8,6 +8,8 @@ import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.util.Log;
 
+import net.ossrs.sea.rtmp.RtmpPublisher;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -43,17 +45,19 @@ public class SrsEncoder {
     private MediaCodec aencoder;
     private MediaCodec.BufferInfo aebi;
 
-    private byte[] mRotatedFrameBuffer;
-    private byte[] mFlippedFrameBuffer;
-    private byte[] mCroppedFrameBuffer;
+    private byte[] mRotatedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+    private byte[] mFlippedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+    private byte[] mCroppedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
     private boolean mCameraFaceFront = true;
     private long mPresentTimeUs;
     private int vfmt_color;
     private int vtrack;
     private int atrack;
 
-    public SrsEncoder() {
+    public SrsEncoder(RtmpPublisher.EventHandler handler) {
         rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
+        muxer = new SrsFlvMuxer(handler);
+
         vfmt_color = chooseVideoEncoder();
         if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
             VFORMAT = ImageFormat.YV12;
@@ -62,15 +66,11 @@ public class SrsEncoder {
         } else {
             throw new IllegalStateException("Unsupported color format!");
         }
-        mRotatedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
-        mFlippedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
-        mCroppedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
     }
 
     public int start() {
-        muxer = new SrsFlvMuxer(rtmpUrl);
         try {
-            muxer.start();
+            muxer.start(rtmpUrl);
         } catch (IOException e) {
             Log.e(TAG, "start muxer failed.");
             e.printStackTrace();
@@ -148,8 +148,7 @@ public class SrsEncoder {
 
         if (muxer != null) {
             Log.i(TAG, "stop muxer to SRS over RTMP");
-            muxer.release();
-            muxer = null;
+            muxer.stop();
         }
     }
 

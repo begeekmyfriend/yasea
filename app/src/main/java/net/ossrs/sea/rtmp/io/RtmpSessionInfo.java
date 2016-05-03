@@ -3,7 +3,6 @@ package net.ossrs.sea.rtmp.io;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import android.util.Log;
 import net.ossrs.sea.rtmp.packets.RtmpPacket;
 
 /**

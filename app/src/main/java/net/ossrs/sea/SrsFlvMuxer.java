@@ -197,10 +197,6 @@ public class SrsFlvMuxer {
      * stop the muxer, disconnect RTMP connection from SRS.
      */
     public void stop() {
-        if (worker == null || publisher == null) {
-            throw new IllegalStateException("SrsFlvMuxer Not init!");
-        }
-
         disconnect();
 
         if (worker != null) {

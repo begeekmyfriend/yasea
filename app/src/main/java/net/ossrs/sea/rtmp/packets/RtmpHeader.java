@@ -402,17 +402,6 @@ public class RtmpHeader {
         this.timestampDelta = timestampDelta;
     }
 
-//
-//    /** Get the timestamp as specified by the server */
-//    public int getTimestamp() {
-//        return timestamp;
-//    }
-//    
-//
-//    /** Calculate and return the timestamp delta relative to START_TIMESTAMP */
-//    public int getTimestampDelta() {
-//        return (int) System.nanoTime() / 1000 - START_TIMESTAMP;
-//    }
     /** Sets the RTMP chunk stream ID (channel ID) for this chunk */
     public void setChunkStreamId(int channelId) {
         this.chunkStreamId = channelId;
@@ -434,12 +423,6 @@ public class RtmpHeader {
         this.packetLength = packetLength;
     }
 
-//    public void initStartTimeStamp() {
-//        if (START_TIMESTAMP == -1) {
-//            START_TIMESTAMP = (int) System.nanoTime() / 1000;
-//        }
-//        timestamp = 0;
-//    }
     public void writeAggregateHeaderByte(OutputStream out) throws IOException {
         // Aggregate header 0x11 : 11.. ....
         out.write(0xC0 | chunkStreamId);

@@ -56,7 +56,23 @@ public class SrsRtmpPublisher implements RtmpPublisher {
         rtmpConnection.publishAudioData(data);
     }
 
+    @Override
     public final int getVideoFrameCacheNumber() {
         return rtmpConnection.getVideoFrameCacheNumber();
+    }
+
+    @Override
+    public final String getServerIpAddr() {
+        return rtmpConnection.getServerIpAddr();
+    }
+
+    @Override
+    public final int getServerPid() {
+        return rtmpConnection.getServerPid();
+    }
+
+    @Override
+    public final int getServerId() {
+        return rtmpConnection.getServerId();
     }
 }

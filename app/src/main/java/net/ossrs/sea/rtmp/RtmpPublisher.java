@@ -36,13 +36,37 @@ public interface RtmpPublisher {
 
     /**
      * publish a video content packet to server
+     *
+     * @param data video stream byte array
      */
     void publishVideoData(byte[] data) throws IllegalStateException;
 
     /**
      * publish an audio content packet to server
+     *
+     * @param data audio stream byte array
      */
     void publishAudioData(byte[] data) throws IllegalStateException;
+
+    /**
+     * obtain video frame number cached in publisher
+     */
+    final int getVideoFrameCacheNumber();
+
+    /**
+     * obtain the IP address of the peer if any
+     */
+    final String getServerIpAddr();
+
+    /**
+     * obtain the PID of the peer if any
+     */
+    final int getServerPid();
+
+    /**
+     * obtain the ID of the peer if any
+     */
+    final int getServerId();
 
     /**
      * RTMP event handler.

@@ -63,7 +63,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private AtomicInteger videoFrameCacheNumber = new AtomicInteger(0);
     private int currentStreamId = -1;
     private int transactionIdCounter = 0;
-    private AmfString serverIp;
+    private AmfString serverIpAddr;
     private AmfNumber serverPid;
     private AmfNumber serverId;
 
@@ -341,7 +341,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         currentStreamId = -1;
         transactionIdCounter = 0;
         videoFrameCacheNumber.set(0);
-        serverIp = null;
+        serverIpAddr = null;
         serverPid = null;
         serverId = null;
         rtmpSessionInfo = null;
@@ -389,10 +389,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         writeThread.send(video);
         videoFrameCacheNumber.getAndIncrement();
         mHandler.onRtmpVideoStreaming("video streaming");
-    }
-
-    public final int getVideoFrameCacheNumber() {
-        return videoFrameCacheNumber.get();
     }
 
     @Override
@@ -517,14 +513,30 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private String onSrsServerInfo(Command invoke) {
         // SRS server special information
         AmfObject data = ((AmfObject) ((AmfObject) invoke.getData().get(1)).getProperty("data"));
-        serverIp = (AmfString) data.getProperty("srs_server_ip");
+        serverIpAddr = (AmfString) data.getProperty("srs_server_ip");
         serverPid = (AmfNumber) data.getProperty("srs_pid");
         serverId = (AmfNumber) data.getProperty("srs_id");
 
         String info = "";
-        info += serverIp == null ? "" : " ip: " + serverIp.getValue();
+        info += serverIpAddr == null ? "" : " ip: " + serverIpAddr.getValue();
         info += serverPid == null ? "" : " pid: " + serverPid.getValue();
-        info += serverPid == null ? "" : " id: " + serverId.getValue();
+        info += serverId == null ? "" : " id: " + serverId.getValue();
         return info;
+    }
+
+    public final int getVideoFrameCacheNumber() {
+        return videoFrameCacheNumber.get();
+    }
+
+    public final String getServerIpAddr() {
+        return serverIpAddr == null ? null : serverIpAddr.getValue();
+    }
+
+    public final int getServerPid() {
+        return serverPid == null ? 0 : (int) serverPid.getValue();
+    }
+
+    public final int getServerId() {
+        return serverId == null ? 0 : (int) serverId.getValue();
     }
 }

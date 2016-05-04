@@ -492,7 +492,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         } else if (commandName.equals("onStatus")) {
             // NetStream.Publish.Start
             // Send empty onMetaData packet
-            onMetaData();
+            //onMetaData();
             publishPermitted = true;
             synchronized (publishLock) {
                 publishLock.notifyAll();

@@ -56,13 +56,12 @@ public class RtmpDecoder {
 
         switch (header.getMessageType()) {
 
-            case SET_CHUNK_SIZE: {
+            case SET_CHUNK_SIZE:
                 SetChunkSize setChunkSize = new SetChunkSize(header);
                 setChunkSize.readBody(in);
                 Log.d(TAG, "readPacket(): Setting chunk size to: " + setChunkSize.getChunkSize());
                 rtmpSessionInfo.setRxChunkSize(setChunkSize.getChunkSize());
                 return null;
-            }
             case ABORT:
                 rtmpPacket = new Abort(header);
                 break;

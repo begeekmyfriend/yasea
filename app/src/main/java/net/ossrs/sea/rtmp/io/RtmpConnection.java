@@ -19,6 +19,7 @@ import net.ossrs.sea.rtmp.RtmpPublisher;
 import net.ossrs.sea.rtmp.amf.AmfNull;
 import net.ossrs.sea.rtmp.amf.AmfNumber;
 import net.ossrs.sea.rtmp.amf.AmfObject;
+import net.ossrs.sea.rtmp.amf.AmfString;
 import net.ossrs.sea.rtmp.packets.Abort;
 import net.ossrs.sea.rtmp.packets.Acknowledgement;
 import net.ossrs.sea.rtmp.packets.Data;
@@ -62,6 +63,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private AtomicInteger videoFrameCacheNumber = new AtomicInteger(0);
     private int currentStreamId = -1;
     private int transactionIdCounter = 0;
+    private AmfString srv_ip;
+    private AmfNumber srv_pid;
+    private AmfNumber srv_id;
 
     public RtmpConnection(RtmpPublisher.EventHandler handler) {
         mHandler = handler;
@@ -464,10 +468,19 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
 
             Log.d(TAG, "handleRxInvoke: Got result for invoked method: " + method);
             if ("connect".equals(method)) {
+                // Capture server ip/pid/id information
+                AmfObject data = ((AmfObject) ((AmfObject) invoke.getData().get(1)).getProperty("data"));
+                srv_ip = (AmfString) data.getProperty("srs_server_ip");
+                srv_pid = (AmfNumber) data.getProperty("srs_pid");
+                srv_id = (AmfNumber) data.getProperty("srs_id");
+                String msg = "";
+                msg += srv_ip == null ? "" : " ip: " + srv_ip.getValue();
+                msg += srv_pid == null ? "" : " pid: " + srv_pid.getValue();
+                msg += srv_pid == null ? "" : " id: " + srv_id.getValue();
+                mHandler.onRtmpConnected("connected" + msg);
                 // We can now send createStream commands
                 connecting = false;
                 fullyConnected = true;
-                mHandler.onRtmpConnected("connected");
                 synchronized (connectingLock) {
                     connectingLock.notifyAll();
                 }
@@ -490,12 +503,13 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         } else if (commandName.equals("onFCPublish")) {
             Log.d(TAG, "handleRxInvoke(): 'onFCPublish'");
         } else if (commandName.equals("onStatus")) {
-            // NetStream.Publish.Start
-            // Send empty onMetaData packet
-            //onMetaData();
-            publishPermitted = true;
-            synchronized (publishLock) {
-                publishLock.notifyAll();
+            String code = ((AmfString) ((AmfObject) invoke.getData().get(1)).getProperty("code")).getValue();
+            if (code.equals("NetStream.Publish.Start")) {
+                // We can now publish AV data
+                publishPermitted = true;
+                synchronized (publishLock) {
+                    publishLock.notifyAll();
+                }
             }
         } else {
             Log.e(TAG, "handleRxInvoke(): Uknown/unhandled server invoke: " + invoke);

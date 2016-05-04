@@ -45,9 +45,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private String appName;
     private String streamName;
     private String publishType;
-    private String swfUrl = "";
-    private String tcUrl = "";
-    private String pageUrl = "";
+    private String swfUrl;
+    private String tcUrl;
+    private String pageUrl;
     private Socket socket;
     private RtmpSessionInfo rtmpSessionInfo;
     private ReadThread readThread;
@@ -86,9 +86,11 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     public void connect(String url) throws IOException {
         int port;
         String host;
-        tcUrl = url.substring(0, url.lastIndexOf('/'));
         Matcher matcher = rtmpUrlPattern.matcher(url);
         if (matcher.matches()) {
+            tcUrl = url.substring(0, url.lastIndexOf('/'));
+            swfUrl = "";            
+            pageUrl = "";            
             host = matcher.group(1);
             String portStr = matcher.group(3);
             port = portStr != null ? Integer.parseInt(portStr) : 1935;
@@ -266,15 +268,12 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         if (!publishPermitted) {
             throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
         }
-        streamName = null;
         Log.d(TAG, "closeStream(): setting current stream ID to -1");
-        currentStreamId = -1;
         Command closeStream = new Command("closeStream", 0);
         closeStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
         closeStream.getHeader().setMessageStreamId(currentStreamId);
         closeStream.addData(new AmfNull());
         writeThread.send(closeStream);
-
         mHandler.onRtmpStopped("stopped");
     }
 
@@ -333,9 +332,18 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         connecting = false;
         fullyConnected = false;
         publishPermitted = false;
+        tcUrl = null;
+        swfUrl = null;            
+        pageUrl = null;            
+        appName = null;
+        streamName = null;
+        publishType = null;
         currentStreamId = -1;
         transactionIdCounter = 0;
         videoFrameCacheNumber.set(0);
+        serverIp = null;
+        serverPid = null;
+        serverId = null;
         rtmpSessionInfo = null;
     }
 
@@ -361,7 +369,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         audio.setData(data);
         audio.getHeader().setMessageStreamId(currentStreamId);
         writeThread.send(audio);
-
         mHandler.onRtmpAudioStreaming("audio streaming");
     }
 
@@ -380,10 +387,8 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         video.setData(data);
         video.getHeader().setMessageStreamId(currentStreamId);
         writeThread.send(video);
-
-        mHandler.onRtmpVideoStreaming("video streaming");
-
         videoFrameCacheNumber.getAndIncrement();
+        mHandler.onRtmpVideoStreaming("video streaming");
     }
 
     public final int getVideoFrameCacheNumber() {

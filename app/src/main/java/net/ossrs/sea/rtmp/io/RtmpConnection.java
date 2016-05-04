@@ -63,9 +63,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private AtomicInteger videoFrameCacheNumber = new AtomicInteger(0);
     private int currentStreamId = -1;
     private int transactionIdCounter = 0;
-    private AmfString srv_ip;
-    private AmfNumber srv_pid;
-    private AmfNumber srv_id;
+    private AmfString serverIp;
+    private AmfNumber serverPid;
+    private AmfNumber serverId;
 
     public RtmpConnection(RtmpPublisher.EventHandler handler) {
         mHandler = handler;
@@ -468,16 +468,9 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
 
             Log.d(TAG, "handleRxInvoke: Got result for invoked method: " + method);
             if ("connect".equals(method)) {
-                // Capture server ip/pid/id information
-                AmfObject data = ((AmfObject) ((AmfObject) invoke.getData().get(1)).getProperty("data"));
-                srv_ip = (AmfString) data.getProperty("srs_server_ip");
-                srv_pid = (AmfNumber) data.getProperty("srs_pid");
-                srv_id = (AmfNumber) data.getProperty("srs_id");
-                String msg = "";
-                msg += srv_ip == null ? "" : " ip: " + srv_ip.getValue();
-                msg += srv_pid == null ? "" : " pid: " + srv_pid.getValue();
-                msg += srv_pid == null ? "" : " id: " + srv_id.getValue();
-                mHandler.onRtmpConnected("connected" + msg);
+                // Capture server ip/pid/id information if any
+                String serverInfo = onSrsServerInfo(invoke);
+                mHandler.onRtmpConnected("connected" + serverInfo);
                 // We can now send createStream commands
                 connecting = false;
                 fullyConnected = true;
@@ -514,5 +507,19 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         } else {
             Log.e(TAG, "handleRxInvoke(): Uknown/unhandled server invoke: " + invoke);
         }
+    }
+
+    private String onSrsServerInfo(Command invoke) {
+        // SRS server special information
+        AmfObject data = ((AmfObject) ((AmfObject) invoke.getData().get(1)).getProperty("data"));
+        serverIp = (AmfString) data.getProperty("srs_server_ip");
+        serverPid = (AmfNumber) data.getProperty("srs_pid");
+        serverId = (AmfNumber) data.getProperty("srs_id");
+
+        String info = "";
+        info += serverIp == null ? "" : " ip: " + serverIp.getValue();
+        info += serverPid == null ? "" : " pid: " + serverPid.getValue();
+        info += serverPid == null ? "" : " id: " + serverId.getValue();
+        return info;
     }
 }

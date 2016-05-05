@@ -414,13 +414,12 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                     case USER_CONTROL_MESSAGE: {
                         UserControl ping = (UserControl) rtmpPacket;
                         switch (ping.getType()) {
-                            case PING_REQUEST: {
+                            case PING_REQUEST:
                                 ChunkStreamInfo channelInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CONTROL_CHANNEL);
                                 Log.d(TAG, "handleRxPacketLoop(): Sending PONG reply..");
                                 UserControl pong = new UserControl(ping, channelInfo);
                                 writeThread.send(pong);
                                 break;
-                            }
                             case STREAM_EOF:
                                 Log.i(TAG, "handleRxPacketLoop(): Stream EOF reached, closing RTMP writer...");
                                 break;
@@ -512,15 +511,17 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
 
     private String onSrsServerInfo(Command invoke) {
         // SRS server special information
-        AmfObject data = ((AmfObject) ((AmfObject) invoke.getData().get(1)).getProperty("data"));
-        serverIpAddr = (AmfString) data.getProperty("srs_server_ip");
-        serverPid = (AmfNumber) data.getProperty("srs_pid");
-        serverId = (AmfNumber) data.getProperty("srs_id");
-
+        AmfObject objData = (AmfObject) invoke.getData().get(1);
+        if ((objData).getProperty("data") instanceof AmfObject) {
+            objData = ((AmfObject) objData.getProperty("data"));
+            serverIpAddr = (AmfString) objData.getProperty("srs_server_ip");
+            serverPid = (AmfNumber) objData.getProperty("srs_pid");
+            serverId = (AmfNumber) objData.getProperty("srs_id");
+        }
         String info = "";
         info += serverIpAddr == null ? "" : " ip: " + serverIpAddr.getValue();
-        info += serverPid == null ? "" : " pid: " + serverPid.getValue();
-        info += serverId == null ? "" : " id: " + serverId.getValue();
+        info += serverPid == null ? "" : " pid: " + (int) serverPid.getValue();
+        info += serverId == null ? "" : " id: " + (int) serverId.getValue();
         return info;
     }
 

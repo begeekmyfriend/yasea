@@ -7,7 +7,7 @@ android {
     defaultConfig {
         applicationId "net.ossrs.sea"
         minSdkVersion 16
-        targetSdkVersion 21
+        targetSdkVersion 22
         versionCode 1
         versionName "1.0"
     }

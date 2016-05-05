@@ -51,22 +51,22 @@ public interface RtmpPublisher {
     /**
      * obtain video frame number cached in publisher
      */
-    final int getVideoFrameCacheNumber();
+    int getVideoFrameCacheNumber();
 
     /**
      * obtain the IP address of the peer if any
      */
-    final String getServerIpAddr();
+    String getServerIpAddr();
 
     /**
      * obtain the PID of the peer if any
      */
-    final int getServerPid();
+    int getServerPid();
 
     /**
      * obtain the ID of the peer if any
      */
-    final int getServerId();
+    int getServerId();
 
     /**
      * RTMP event handler.

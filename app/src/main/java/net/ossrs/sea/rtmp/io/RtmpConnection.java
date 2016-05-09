@@ -147,7 +147,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
         Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
         invoke.getHeader().setMessageStreamId(0);
-        AmfMap args = new AmfMap();
+        AmfObject args = new AmfObject();
         args.setProperty("app", appName);
         args.setProperty("flashVer", "LNX 11,2,202,233"); // Flash player OS: Linux, version: 11.2.202.233
         args.setProperty("swfUrl", swfUrl);

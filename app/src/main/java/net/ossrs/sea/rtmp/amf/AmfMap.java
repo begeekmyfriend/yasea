@@ -19,8 +19,8 @@ public class AmfMap extends AmfObject {
         // Begin the map/object/array/whatever exactly this is
         out.write(AmfType.MAP.getValue());
 
-        // Write the "array size" == 0
-        Util.writeUnsignedInt32(out, 0);
+        // Write the "array size"
+        Util.writeUnsignedInt32(out, properties.size());
 
         // Write key/value pairs in this object        
         for (Map.Entry<String, AmfData> entry : properties.entrySet()) {

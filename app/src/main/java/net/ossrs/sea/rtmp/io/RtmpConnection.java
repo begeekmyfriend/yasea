@@ -113,7 +113,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         Log.d(TAG, "connect(): handshake done");
         rtmpSessionInfo = new RtmpSessionInfo();
         readThread = new ReadThread(rtmpSessionInfo, in, this);
-        writeThread = new WriteThread(rtmpSessionInfo, out, videoFrameCacheNumber);
+        writeThread = new WriteThread(rtmpSessionInfo, out, videoFrameCacheNumber, mHandler);
         readThread.start();
         writeThread.start();
 
@@ -505,7 +505,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                 }
             }
         } else {
-            Log.e(TAG, "handleRxInvoke(): Uknown/unhandled server invoke: " + invoke);
+            Log.e(TAG, "handleRxInvoke(): Unknown/unhandled server invoke: " + invoke);
         }
     }
 

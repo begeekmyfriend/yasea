@@ -93,6 +93,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                 }
             });
         }
+
+        @Override
+        public void onRtmpOutputFps(final double fps) {
+            Log.i(TAG, String.format("Output Fps: %f", fps));
     });
 
     @Override

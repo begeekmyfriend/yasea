@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import android.util.Log;
+
+import net.ossrs.sea.rtmp.RtmpPublisher;
 import net.ossrs.sea.rtmp.packets.Command;
 import net.ossrs.sea.rtmp.packets.RtmpPacket;
 import net.ossrs.sea.rtmp.packets.Video;
@@ -20,18 +22,22 @@ public class WriteThread extends Thread {
 
     private static final String TAG = "WriteThread";
 
+    private RtmpPublisher.EventHandler handler;
     private RtmpSessionInfo rtmpSessionInfo;
     private OutputStream out;
     private ConcurrentLinkedQueue<RtmpPacket> writeQueue = new ConcurrentLinkedQueue<RtmpPacket>();
     private final Object txPacketLock = new Object();
     private volatile boolean active = true;
+    private int videoFrameCount;
+    private long lastTimeMillis;
     private AtomicInteger videoFrameCacheNumber;
 
-    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, AtomicInteger count) {
+    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, AtomicInteger count, RtmpPublisher.EventHandler handler) {
         super("RtmpWriteThread");
         this.rtmpSessionInfo = rtmpSessionInfo;
         this.out = out;
         this.videoFrameCacheNumber = count;
+        this.handler = handler;
     }
 
     @Override
@@ -51,6 +57,7 @@ public class WriteThread extends Thread {
                     }
                     if (rtmpPacket instanceof Video) {
                         videoFrameCacheNumber.getAndDecrement();
+                        calcFps();
                     }
                 }
                 out.flush();
@@ -98,6 +105,19 @@ public class WriteThread extends Thread {
         active = false;
         synchronized (txPacketLock) {
             txPacketLock.notify();
+        }
+    }
+
+    private void calcFps() {
+        if (videoFrameCount == 0) {
+            lastTimeMillis = System.nanoTime() / 1000000;
+            videoFrameCount++;
+        } else {
+            if (++videoFrameCount >= 48) {
+                long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
+                handler.onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
+                videoFrameCount = 0;
+            }
         }
     }
 }

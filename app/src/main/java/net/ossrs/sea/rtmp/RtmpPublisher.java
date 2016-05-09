@@ -84,5 +84,7 @@ public interface RtmpPublisher {
         void onRtmpStopped(String msg);
 
         void onRtmpDisconnected(String msg);
+
+        void onRtmpOutputFps(double fps);
     }
 }

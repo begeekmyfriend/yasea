@@ -119,7 +119,7 @@ public class SrsEncoder {
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vbitrate);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
-        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP);
+        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
         vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the video tracker to muxer.
         vtrack = muxer.addTrack(videoFormat);

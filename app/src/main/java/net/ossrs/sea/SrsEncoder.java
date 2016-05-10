@@ -70,12 +70,13 @@ public class SrsEncoder {
 
     public int start() {
         try {
-            muxer.start(rtmpUrl, VCROP_WIDTH, VCROP_HEIGHT);
+            muxer.start(rtmpUrl);
         } catch (IOException e) {
             Log.e(TAG, "start muxer failed.");
             e.printStackTrace();
             return -1;
         }
+        muxer.setVideoResolution(VCROP_WIDTH, VCROP_HEIGHT);
 
         // the referent PTS for video and audio encoder.
         mPresentTimeUs = System.nanoTime() / 1000;

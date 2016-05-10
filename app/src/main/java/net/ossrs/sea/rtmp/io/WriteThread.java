@@ -22,7 +22,6 @@ public class WriteThread extends Thread {
 
     private static final String TAG = "WriteThread";
 
-    private RtmpPublisher.EventHandler handler;
     private RtmpSessionInfo rtmpSessionInfo;
     private OutputStream out;
     private ConcurrentLinkedQueue<RtmpPacket> writeQueue = new ConcurrentLinkedQueue<RtmpPacket>();

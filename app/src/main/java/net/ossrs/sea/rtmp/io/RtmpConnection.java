@@ -67,6 +67,8 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private AmfString serverIpAddr;
     private AmfNumber serverPid;
     private AmfNumber serverId;
+    private int videoWidth;
+    private int videoHeight;
 
     public RtmpConnection(RtmpPublisher.EventHandler handler) {
         mHandler = handler;
@@ -114,7 +116,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         Log.d(TAG, "connect(): handshake done");
         rtmpSessionInfo = new RtmpSessionInfo();
         readThread = new ReadThread(rtmpSessionInfo, in, this);
-        writeThread = new WriteThread(rtmpSessionInfo, out, videoFrameCacheNumber, mHandler);
+        writeThread = new WriteThread(rtmpSessionInfo, out, this);
         readThread.start();
         writeThread.start();
 
@@ -251,11 +253,22 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         }
 
         Log.d(TAG, "onMetaData(): Sending empty onMetaData...");
-        Data emptyMetaData = new Data("@setDataFrame");
-        emptyMetaData.addData("onMetaData");
-        emptyMetaData.addData(new AmfNull());
-        emptyMetaData.getHeader().setMessageStreamId(currentStreamId);
-        writeThread.send(emptyMetaData);
+        Data metadata = new Data("@setDataFrame");
+        metadata.getHeader().setMessageStreamId(currentStreamId);
+        metadata.addData("onMetaData");
+        AmfMap ecmaArray = new AmfMap();
+        ecmaArray.setProperty("duration", 0);
+        ecmaArray.setProperty("width", videoWidth);
+        ecmaArray.setProperty("height", videoHeight);
+        ecmaArray.setProperty("videodatarate", 0);
+        ecmaArray.setProperty("framerate", 0);
+        ecmaArray.setProperty("audiodatarate", 0);
+        ecmaArray.setProperty("audiosamplerate", 44100);
+        ecmaArray.setProperty("audiosamplesize", 16);
+        ecmaArray.setProperty("stereo", true);
+        ecmaArray.setProperty("filesize", 0);
+        metadata.addData(ecmaArray);
+        writeThread.send(metadata);
     }
 
     @Override
@@ -281,14 +294,18 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     @Override
     public void shutdown() {
         if (active) {
-            // shutdown read thread
+            readThread.shutdown();
+            writeThread.shutdown();
+
             try {
                 // It will invoke EOFException in read thread
                 socket.shutdownInput();
+                // It will invoke SocketException in write thread
+                socket.shutdownOutput();
             } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
-            readThread.shutdown();
+
             try {
                 readThread.join();
             } catch (InterruptedException ie) {
@@ -296,8 +313,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                 readThread.interrupt();
             }
 
-            // shutdown write thread
-            writeThread.shutdown();
             try {
                 writeThread.join();
             } catch (InterruptedException ie) {
@@ -412,7 +427,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                     case ABORT:
                         rtmpSessionInfo.getChunkStreamInfo(((Abort) rtmpPacket).getChunkStreamId()).clearStoredChunks();
                         break;
-                    case USER_CONTROL_MESSAGE: {
+                    case USER_CONTROL_MESSAGE:
                         UserControl ping = (UserControl) rtmpPacket;
                         switch (ping.getType()) {
                             case PING_REQUEST:
@@ -426,7 +441,6 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                                 break;
                         }
                         break;
-                    }
                     case WINDOW_ACKNOWLEDGEMENT_SIZE:
                         WindowAckSize windowAckSize = (WindowAckSize) rtmpPacket;
                         int size = windowAckSize.getAcknowledgementWindowSize();
@@ -499,6 +513,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         } else if (commandName.equals("onStatus")) {
             String code = ((AmfString) ((AmfObject) invoke.getData().get(1)).getProperty("code")).getValue();
             if (code.equals("NetStream.Publish.Start")) {
+                onMetaData();
                 // We can now publish AV data
                 publishPermitted = true;
                 synchronized (publishLock) {
@@ -526,19 +541,34 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         return info;
     }
 
-    public final int getVideoFrameCacheNumber() {
-        return videoFrameCacheNumber.get();
+    @Override
+    public AtomicInteger getVideoFrameCacheNumber() {
+        return videoFrameCacheNumber;
     }
 
+    @Override
+    public EventHandler getEventHandler() {
+        return mHandler;
+    }
+
+    @Override
     public final String getServerIpAddr() {
         return serverIpAddr == null ? null : serverIpAddr.getValue();
     }
 
+    @Override
     public final int getServerPid() {
         return serverPid == null ? 0 : (int) serverPid.getValue();
     }
 
+    @Override
     public final int getServerId() {
         return serverId == null ? 0 : (int) serverId.getValue();
+    }
+
+    @Override
+    public void setVideoResolution(int width, int height) {
+        videoWidth = width;
+        videoHeight = height;
     }
 }

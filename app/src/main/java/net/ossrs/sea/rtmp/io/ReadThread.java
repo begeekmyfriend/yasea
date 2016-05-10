@@ -45,10 +45,10 @@ public class ReadThread extends Thread {
 //                    packetRxHandler.handleRxPacket(war.getRtmpPacket());
 //                }
             } catch (SocketException se) {
-                Log.e(TAG, "ReadThread: Caught SocketException while reading/decoding packet, shutting down...", se);
+                Log.e(TAG, "ReadThread: Caught SocketException while reading/decoding packet, shutting down: " + se.getMessage());
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, se);
             } catch (IOException ioe) {
-                Log.e(TAG, "ReadThread: Caught exception while reading/decoding packet, shutting down...", ioe);
+                Log.e(TAG, "ReadThread: Caught exception while reading/decoding packet, shutting down: " + ioe.getMessage());
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, ioe);
             }
         }

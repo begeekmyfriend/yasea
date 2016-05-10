@@ -70,7 +70,7 @@ public class SrsEncoder {
 
     public int start() {
         try {
-            muxer.start(rtmpUrl);
+            muxer.start(rtmpUrl, VCROP_WIDTH, VCROP_HEIGHT);
         } catch (IOException e) {
             Log.e(TAG, "start muxer failed.");
             e.printStackTrace();
@@ -207,7 +207,7 @@ public class SrsEncoder {
     public void onGetYuvFrame(byte[] data) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
-        if (muxer.getVideoFrameCacheNumber() < VGOP) {
+        if (muxer.getVideoFrameCacheNumber().get() < VGOP) {
             preProcessYuvFrame(data);
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by winlin on 5/2/15.
@@ -72,7 +73,7 @@ public class SrsFlvMuxer {
     /**
      * get cached video frame number in publisher
      */
-    public int getVideoFrameCacheNumber() {
+    public final AtomicInteger getVideoFrameCacheNumber() {
         return publisher.getVideoFrameCacheNumber();
     }
 
@@ -133,8 +134,10 @@ public class SrsFlvMuxer {
     /**
      * start to the remote SRS for remux.
      */
-    public void start(String url) throws IOException {
+    public void start(String url, int width, int height) throws IOException {
         rtmpUrl = url;
+        publisher.setVideoResolution(width, height);
+
         worker = new Thread(new Runnable() {
             @Override
             public void run() {

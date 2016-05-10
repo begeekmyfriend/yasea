@@ -30,14 +30,13 @@ public class WriteThread extends Thread {
     private volatile boolean active = true;
     private int videoFrameCount;
     private long lastTimeMillis;
-    private AtomicInteger videoFrameCacheNumber;
+    private RtmpPublisher publisher;
 
-    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, AtomicInteger count, RtmpPublisher.EventHandler handler) {
+    public WriteThread(RtmpSessionInfo rtmpSessionInfo, OutputStream out, RtmpPublisher publisher) {
         super("RtmpWriteThread");
         this.rtmpSessionInfo = rtmpSessionInfo;
         this.out = out;
-        this.videoFrameCacheNumber = count;
-        this.handler = handler;
+        this.publisher = publisher;
     }
 
     @Override
@@ -56,18 +55,18 @@ public class WriteThread extends Thread {
                         rtmpSessionInfo.addInvokedCommand(((Command) rtmpPacket).getTransactionId(), ((Command) rtmpPacket).getCommandName());
                     }
                     if (rtmpPacket instanceof Video) {
-                        videoFrameCacheNumber.getAndDecrement();
+                        publisher.getVideoFrameCacheNumber().getAndDecrement();
                         calcFps();
                     }
                 }
                 out.flush();
             } catch (SocketException se) {
-                Log.e(TAG, "WriteThread: Caught SocketException during write loop, shutting down", se);
+                Log.e(TAG, "WriteThread: Caught SocketException during write loop, shutting down: " + se.getMessage());
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, se);
                 active = false;
                 continue;
             } catch (IOException ioe) {
-                Log.e(TAG, "WriteThread: Caught IOException during write loop, shutting down", ioe);
+                Log.e(TAG, "WriteThread: Caught IOException during write loop, shutting down: " + ioe.getMessage());
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(this, ioe);
                 active = false;
                 continue;
@@ -115,7 +114,7 @@ public class WriteThread extends Thread {
         } else {
             if (++videoFrameCount >= 48) {
                 long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
-                handler.onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
+                publisher.getEventHandler().onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
                 videoFrameCount = 0;
             }
         }

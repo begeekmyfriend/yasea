@@ -1,6 +1,8 @@
 package net.ossrs.sea;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import net.ossrs.sea.rtmp.RtmpPublisher;
 import net.ossrs.sea.rtmp.io.RtmpConnection;
 
@@ -57,8 +59,13 @@ public class SrsRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public final int getVideoFrameCacheNumber() {
+    public final AtomicInteger getVideoFrameCacheNumber() {
         return rtmpConnection.getVideoFrameCacheNumber();
+    }
+
+    @Override
+    public final EventHandler getEventHandler() {
+        return rtmpConnection.getEventHandler();
     }
 
     @Override
@@ -74,5 +81,10 @@ public class SrsRtmpPublisher implements RtmpPublisher {
     @Override
     public final int getServerId() {
         return rtmpConnection.getServerId();
+    }
+
+    @Override
+    public void setVideoResolution(int width, int height) {
+        rtmpConnection.setVideoResolution(width, height);
     }
 }

@@ -1,6 +1,7 @@
 package net.ossrs.sea.rtmp;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Simple RTMP publisher, using vanilla Java networking (no NIO)
@@ -49,9 +50,14 @@ public interface RtmpPublisher {
     void publishAudioData(byte[] data) throws IllegalStateException;
 
     /**
+     * obtain event handler in publisher
+     */
+    EventHandler getEventHandler();
+
+    /**
      * obtain video frame number cached in publisher
      */
-    int getVideoFrameCacheNumber();
+    AtomicInteger getVideoFrameCacheNumber();
 
     /**
      * obtain the IP address of the peer if any
@@ -67,6 +73,14 @@ public interface RtmpPublisher {
      * obtain the ID of the peer if any
      */
     int getServerId();
+
+    /**
+     * set video resolution
+     *
+     * @param width
+     * @param height
+     */
+    void setVideoResolution(int width, int height);
 
     /**
      * RTMP event handler.

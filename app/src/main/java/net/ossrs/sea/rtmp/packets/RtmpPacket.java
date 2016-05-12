@@ -32,7 +32,7 @@ public abstract class RtmpPacket {
         byte[] body = baos.toByteArray();        
         header.setPacketLength(body.length);
         // Write header for first chunk
-        header.writeTo(out, chunkStreamInfo);        
+        header.writeTo(out, RtmpHeader.ChunkType.TYPE_0_FULL, chunkStreamInfo);
         int remainingBytes = body.length;
         int pos = 0;
         while (remainingBytes > chunkSize) {
@@ -41,7 +41,7 @@ public abstract class RtmpPacket {
             remainingBytes -= chunkSize;
             pos += chunkSize;
             // Write header for remain chunk
-            header.writeAggregateHeaderByte(out);
+            header.writeTo(out, RtmpHeader.ChunkType.TYPE_3_RELATIVE_SINGLE_BYTE, chunkStreamInfo);
         }
         out.write(body, pos, remainingBytes);
     }

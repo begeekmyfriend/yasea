@@ -27,7 +27,7 @@ public class RtmpHeader {
      * Note: docstrings are adapted from the official Adobe RTMP spec:
      * http://www.adobe.com/devnet/rtmp/
      */
-    public static enum MessageType {
+    public enum MessageType {
 
         /**
          * Protocol control message 1
@@ -146,7 +146,7 @@ public class RtmpHeader {
             }
         }
 
-        private MessageType(int value) {
+        MessageType(int value) {
             this.value = (byte) value;
         }
 
@@ -164,20 +164,19 @@ public class RtmpHeader {
         }
     }
 
-    public static enum ChunkType {
+    public enum ChunkType {
 
         /** Full 12-byte RTMP chunk header */
-        TYPE_0_FULL(0x00, 12),
+        TYPE_0_FULL(0x00),
         /** Relative 8-byte RTMP chunk header (message stream ID is not included) */
-        TYPE_1_RELATIVE_LARGE(0x01, 8),
+        TYPE_1_RELATIVE_LARGE(0x01),
         /** Relative 4-byte RTMP chunk header (only timestamp delta) */
-        TYPE_2_RELATIVE_TIMESTAMP_ONLY(0x02, 4),
+        TYPE_2_RELATIVE_TIMESTAMP_ONLY(0x02),
         /** Relative 1-byte RTMP chunk header (no "real" header, just the 1-byte indicating chunk header type & chunk stream ID) */
-        TYPE_3_RELATIVE_SINGLE_BYTE(0x03, 1);
+        TYPE_3_RELATIVE_SINGLE_BYTE(0x03);
         /** The byte value of this chunk header type */
         private byte value;
         /** The full size (in bytes) of this RTMP header (including the basic header byte) */
-        private int size;
         private static final Map<Byte, ChunkType> quickLookupMap = new HashMap<Byte, ChunkType>();
         
         static {
@@ -186,18 +185,13 @@ public class RtmpHeader {
             }
         }
 
-        private ChunkType(int byteValue, int fullHeaderSize) {
+        ChunkType(int byteValue) {
             this.value = (byte) byteValue;
-            this.size = fullHeaderSize;
         }
 
         /** Returns the byte value of this chunk header type */
         public byte getValue() {
             return value;
-        }
-
-        public int getSize() {
-            return size;
         }
 
         public static ChunkType valueOf(byte chunkHeaderType) {
@@ -309,7 +303,7 @@ public class RtmpHeader {
         }
     }
 
-    public void writeTo(OutputStream out, final ChunkStreamInfo chunkStreamInfo) throws IOException {
+    public void writeTo(OutputStream out, ChunkType chunkType, final ChunkStreamInfo chunkStreamInfo) throws IOException {
         // Write basic header byte
         out.write(((byte) (chunkType.getValue() << 6) | chunkStreamId));
         switch (chunkType) {
@@ -422,15 +416,5 @@ public class RtmpHeader {
 
     public void setPacketLength(int packetLength) {
         this.packetLength = packetLength;
-    }
-
-    public void writeAggregateHeaderByte(OutputStream out) throws IOException {
-        // Aggregate header 0x11 : 11.. ....
-        out.write(0xC0 | chunkStreamId);
-    }
-
-    public static void writeAggregateHeaderByte(OutputStream out, int chunkStreamId) throws IOException {
-        // Aggregate header 0x11 : 11.. ....
-        out.write(0xC0 | chunkStreamId);
     }
 }

@@ -5,7 +5,7 @@ android {
     buildToolsVersion "23.0.2"
 
     defaultConfig {
-        applicationId "net.ossrs.sea"
+        applicationId "net.ossrs.yasea"
         minSdkVersion 16
         targetSdkVersion 22
         versionCode 1

@@ -3,8 +3,8 @@ package net.ossrs.yasea;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.ossrs.sea.rtmp.RtmpPublisher;
-import net.ossrs.sea.rtmp.io.RtmpConnection;
+import net.ossrs.yasea.rtmp.RtmpPublisher;
+import net.ossrs.yasea.rtmp.io.RtmpConnection;
 
 /**
  * Srs implementation of an RTMP publisher

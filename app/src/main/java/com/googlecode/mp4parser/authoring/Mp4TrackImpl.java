@@ -155,14 +155,14 @@ public class Mp4TrackImpl extends AbstractTrack {
         setInPreview(tkhd.isInPreview());
 
         trackMetaData.setTrackId(tkhd.getTrackId());
-        trackMetaData.setCreationTime(DateHelper.convert(mdhd.getCreationTime()));
+        trackMetaData.setCreationTime(mdhd.getCreationTime());
         trackMetaData.setLanguage(mdhd.getLanguage());
 /*        System.err.println(mdhd.getModificationTime());
         System.err.println(DateHelper.convert(mdhd.getModificationTime()));
         System.err.println(DateHelper.convert(DateHelper.convert(mdhd.getModificationTime())));
         System.err.println(DateHelper.convert(DateHelper.convert(DateHelper.convert(mdhd.getModificationTime()))));*/
 
-        trackMetaData.setModificationTime(DateHelper.convert(mdhd.getModificationTime()));
+        trackMetaData.setModificationTime(mdhd.getModificationTime());
         trackMetaData.setTimescale(mdhd.getTimescale());
         trackMetaData.setHeight(tkhd.getHeight());
         trackMetaData.setWidth(tkhd.getWidth());

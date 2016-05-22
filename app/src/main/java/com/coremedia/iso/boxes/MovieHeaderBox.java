@@ -19,8 +19,11 @@ package com.coremedia.iso.boxes;
 import com.coremedia.iso.IsoTypeReader;
 import com.coremedia.iso.IsoTypeWriter;
 import com.googlecode.mp4parser.AbstractFullBox;
+import com.googlecode.mp4parser.authoring.DateHelper;
+import com.googlecode.mp4parser.util.Matrix;
 
 import java.nio.ByteBuffer;
+import java.util.Date;
 
 /**
  * <code>
@@ -33,13 +36,13 @@ import java.nio.ByteBuffer;
  * considered as a whole.
  */
 public class MovieHeaderBox extends AbstractFullBox {
-    private long creationTime;
-    private long modificationTime;
+    private Date creationTime;
+    private Date modificationTime;
     private long timescale;
     private long duration;
     private double rate = 1.0;
     private float volume = 1.0f;
-    private long[] matrix = new long[]{0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000};
+    private Matrix matrix = Matrix.ROTATE_0;
     private long nextTrackId;
 
     private int previewTime;
@@ -56,11 +59,11 @@ public class MovieHeaderBox extends AbstractFullBox {
         super(TYPE);
     }
 
-    public long getCreationTime() {
+    public Date getCreationTime() {
         return creationTime;
     }
 
-    public long getModificationTime() {
+    public Date getModificationTime() {
         return modificationTime;
     }
 
@@ -80,7 +83,7 @@ public class MovieHeaderBox extends AbstractFullBox {
         return volume;
     }
 
-    public long[] getMatrix() {
+    public Matrix getMatrix() {
         return matrix;
     }
 
@@ -103,13 +106,13 @@ public class MovieHeaderBox extends AbstractFullBox {
     public void _parseDetails(ByteBuffer content) {
         parseVersionAndFlags(content);
         if (getVersion() == 1) {
-            creationTime = IsoTypeReader.readUInt64(content);
-            modificationTime = IsoTypeReader.readUInt64(content);
+            creationTime = DateHelper.convert(IsoTypeReader.readUInt64(content));
+            modificationTime = DateHelper.convert(IsoTypeReader.readUInt64(content));
             timescale = IsoTypeReader.readUInt32(content);
             duration = IsoTypeReader.readUInt64(content);
         } else {
-            creationTime = IsoTypeReader.readUInt32(content);
-            modificationTime = IsoTypeReader.readUInt32(content);
+            creationTime = DateHelper.convert(IsoTypeReader.readUInt32(content));
+            modificationTime = DateHelper.convert(IsoTypeReader.readUInt32(content));
             timescale = IsoTypeReader.readUInt32(content);
             duration = IsoTypeReader.readUInt32(content);
         }
@@ -118,10 +121,8 @@ public class MovieHeaderBox extends AbstractFullBox {
         IsoTypeReader.readUInt16(content);
         IsoTypeReader.readUInt32(content);
         IsoTypeReader.readUInt32(content);
-        matrix = new long[9];
-        for (int i = 0; i < 9; i++) {
-            matrix[i] = IsoTypeReader.readUInt32(content);
-        }
+
+        matrix = Matrix.fromByteBuffer(content);
 
         previewTime = content.getInt();
         previewDuration = content.getInt();
@@ -148,10 +149,8 @@ public class MovieHeaderBox extends AbstractFullBox {
         result.append("rate=").append(getRate());
         result.append(";");
         result.append("volume=").append(getVolume());
-        for (int i = 0; i < matrix.length; i++) {
-            result.append(";");
-            result.append("matrix").append(i).append("=").append(matrix[i]);
-        }
+        result.append(";");
+        result.append("matrix=").append(matrix);
         result.append(";");
         result.append("nextTrackId=").append(getNextTrackId());
         result.append("]");
@@ -163,27 +162,23 @@ public class MovieHeaderBox extends AbstractFullBox {
     protected void getContent(ByteBuffer byteBuffer) {
         writeVersionAndFlags(byteBuffer);
         if (getVersion() == 1) {
-            IsoTypeWriter.writeUInt64(byteBuffer, creationTime);
-            IsoTypeWriter.writeUInt64(byteBuffer, modificationTime);
+            IsoTypeWriter.writeUInt64(byteBuffer, DateHelper.convert(creationTime));
+            IsoTypeWriter.writeUInt64(byteBuffer, DateHelper.convert(modificationTime));
             IsoTypeWriter.writeUInt32(byteBuffer, timescale);
             IsoTypeWriter.writeUInt64(byteBuffer, duration);
         } else {
-            IsoTypeWriter.writeUInt32(byteBuffer, creationTime);
-            IsoTypeWriter.writeUInt32(byteBuffer, modificationTime);
+            IsoTypeWriter.writeUInt32(byteBuffer, DateHelper.convert(creationTime));
+            IsoTypeWriter.writeUInt32(byteBuffer, DateHelper.convert(modificationTime));
             IsoTypeWriter.writeUInt32(byteBuffer, timescale);
             IsoTypeWriter.writeUInt32(byteBuffer, duration);
         }
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, rate);
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, rate);
         IsoTypeWriter.writeFixedPont88(byteBuffer, volume);
         IsoTypeWriter.writeUInt16(byteBuffer, 0);
         IsoTypeWriter.writeUInt32(byteBuffer, 0);
         IsoTypeWriter.writeUInt32(byteBuffer, 0);
 
-
-        for (int i = 0; i < 9; i++) {
-            IsoTypeWriter.writeUInt32(byteBuffer, matrix[i]);
-        }
-
+        matrix.getContent(byteBuffer);
 
         byteBuffer.putInt(previewTime);
         byteBuffer.putInt(previewDuration);
@@ -196,11 +191,11 @@ public class MovieHeaderBox extends AbstractFullBox {
     }
 
 
-    public void setCreationTime(long creationTime) {
+    public void setCreationTime(Date creationTime) {
         this.creationTime = creationTime;
     }
 
-    public void setModificationTime(long modificationTime) {
+    public void setModificationTime(Date modificationTime) {
         this.modificationTime = modificationTime;
     }
 
@@ -220,7 +215,7 @@ public class MovieHeaderBox extends AbstractFullBox {
         this.volume = volume;
     }
 
-    public void setMatrix(long[] matrix) {
+    public void setMatrix(Matrix matrix) {
         this.matrix = matrix;
     }
 

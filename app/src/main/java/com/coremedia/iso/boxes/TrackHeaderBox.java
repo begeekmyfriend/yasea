@@ -20,8 +20,11 @@ package com.coremedia.iso.boxes;
 import com.coremedia.iso.IsoTypeReader;
 import com.coremedia.iso.IsoTypeWriter;
 import com.googlecode.mp4parser.AbstractFullBox;
+import com.googlecode.mp4parser.authoring.DateHelper;
+import com.googlecode.mp4parser.util.Matrix;
 
 import java.nio.ByteBuffer;
+import java.util.Date;
 
 /**
  * This box specifies the characteristics of a single track. Exactly one Track Header Box is contained in a track.<br>
@@ -36,14 +39,14 @@ public class TrackHeaderBox extends AbstractFullBox {
 
     public static final String TYPE = "tkhd";
 
-    private long creationTime;
-    private long modificationTime;
+    private Date creationTime;
+    private Date modificationTime;
     private long trackId;
     private long duration;
     private int layer;
     private int alternateGroup;
     private float volume;
-    private long[] matrix = new long[]{0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000};
+    private Matrix matrix = Matrix.ROTATE_0;
     private double width;
     private double height;
 
@@ -53,11 +56,11 @@ public class TrackHeaderBox extends AbstractFullBox {
 
     }
 
-    public long getCreationTime() {
+    public Date getCreationTime() {
         return creationTime;
     }
 
-    public long getModificationTime() {
+    public Date getModificationTime() {
         return modificationTime;
     }
 
@@ -81,7 +84,7 @@ public class TrackHeaderBox extends AbstractFullBox {
         return volume;
     }
 
-    public long[] getMatrix() {
+    public Matrix getMatrix() {
         return matrix;
     }
 
@@ -108,14 +111,14 @@ public class TrackHeaderBox extends AbstractFullBox {
     public void _parseDetails(ByteBuffer content) {
         parseVersionAndFlags(content);
         if (getVersion() == 1) {
-            creationTime = IsoTypeReader.readUInt64(content);
-            modificationTime = IsoTypeReader.readUInt64(content);
+            creationTime = DateHelper.convert(IsoTypeReader.readUInt64(content));
+            modificationTime = DateHelper.convert(IsoTypeReader.readUInt64(content));
             trackId = IsoTypeReader.readUInt32(content);
             IsoTypeReader.readUInt32(content);
             duration = IsoTypeReader.readUInt64(content);
         } else {
-            creationTime = IsoTypeReader.readUInt32(content);
-            modificationTime = IsoTypeReader.readUInt32(content);
+            creationTime = DateHelper.convert(IsoTypeReader.readUInt32(content));
+            modificationTime = DateHelper.convert(IsoTypeReader.readUInt32(content));
             trackId = IsoTypeReader.readUInt32(content);
             IsoTypeReader.readUInt32(content);
             duration = IsoTypeReader.readUInt32(content);
@@ -126,10 +129,7 @@ public class TrackHeaderBox extends AbstractFullBox {
         alternateGroup = IsoTypeReader.readUInt16(content);
         volume = IsoTypeReader.readFixedPoint88(content);
         IsoTypeReader.readUInt16(content);     // 212
-        matrix = new long[9];
-        for (int i = 0; i < 9; i++) {
-            matrix[i] = IsoTypeReader.readUInt32(content);
-        }
+        matrix = Matrix.fromByteBuffer(content);
         width = IsoTypeReader.readFixedPoint1616(content);    // 248
         height = IsoTypeReader.readFixedPoint1616(content);
     }
@@ -137,14 +137,14 @@ public class TrackHeaderBox extends AbstractFullBox {
     public void getContent(ByteBuffer byteBuffer) {
         writeVersionAndFlags(byteBuffer);
         if (getVersion() == 1) {
-            IsoTypeWriter.writeUInt64(byteBuffer, creationTime);
-            IsoTypeWriter.writeUInt64(byteBuffer, modificationTime);
+            IsoTypeWriter.writeUInt64(byteBuffer, DateHelper.convert(creationTime));
+            IsoTypeWriter.writeUInt64(byteBuffer, DateHelper.convert(modificationTime));
             IsoTypeWriter.writeUInt32(byteBuffer, trackId);
             IsoTypeWriter.writeUInt32(byteBuffer, 0);
             IsoTypeWriter.writeUInt64(byteBuffer, duration);
         } else {
-            IsoTypeWriter.writeUInt32(byteBuffer, creationTime);
-            IsoTypeWriter.writeUInt32(byteBuffer, modificationTime);
+            IsoTypeWriter.writeUInt32(byteBuffer, DateHelper.convert(creationTime));
+            IsoTypeWriter.writeUInt32(byteBuffer, DateHelper.convert(modificationTime));
             IsoTypeWriter.writeUInt32(byteBuffer, trackId);
             IsoTypeWriter.writeUInt32(byteBuffer, 0);
             IsoTypeWriter.writeUInt32(byteBuffer, duration);
@@ -155,11 +155,9 @@ public class TrackHeaderBox extends AbstractFullBox {
         IsoTypeWriter.writeUInt16(byteBuffer, alternateGroup);
         IsoTypeWriter.writeFixedPont88(byteBuffer, volume);
         IsoTypeWriter.writeUInt16(byteBuffer, 0);
-        for (int i = 0; i < 9; i++) {
-            IsoTypeWriter.writeUInt32(byteBuffer, matrix[i]);
-        }
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, width);
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, height);
+        matrix.getContent(byteBuffer);
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, width);
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, height);
     }
 
     public String toString() {
@@ -178,10 +176,8 @@ public class TrackHeaderBox extends AbstractFullBox {
         result.append("alternateGroup=").append(getAlternateGroup());
         result.append(";");
         result.append("volume=").append(getVolume());
-        for (int i = 0; i < matrix.length; i++) {
-            result.append(";");
-            result.append("matrix").append(i).append("=").append(matrix[i]);
-        }
+        result.append(";");
+        result.append("matrix=").append(matrix);
         result.append(";");
         result.append("width=").append(getWidth());
         result.append(";");
@@ -190,11 +186,11 @@ public class TrackHeaderBox extends AbstractFullBox {
         return result.toString();
     }
 
-    public void setCreationTime(long creationTime) {
+    public void setCreationTime(Date creationTime) {
         this.creationTime = creationTime;
     }
 
-    public void setModificationTime(long modificationTime) {
+    public void setModificationTime(Date modificationTime) {
         this.modificationTime = modificationTime;
     }
 
@@ -218,7 +214,7 @@ public class TrackHeaderBox extends AbstractFullBox {
         this.volume = volume;
     }
 
-    public void setMatrix(long[] matrix) {
+    public void setMatrix(Matrix matrix) {
         this.matrix = matrix;
     }
 
@@ -245,5 +241,37 @@ public class TrackHeaderBox extends AbstractFullBox {
 
     public boolean isInPoster() {
         return (getFlags() & 8) > 0;
+    }
+
+    public void setEnabled(boolean enabled) {
+        if (enabled) {
+            setFlags(getFlags() | 1);
+        } else {
+            setFlags(getFlags() & ~1);
+        }
+    }
+
+    public void setInMovie(boolean inMovie) {
+        if (inMovie) {
+            setFlags(getFlags() | 2);
+        } else {
+            setFlags(getFlags() & ~2);
+        }
+    }
+
+    public void setInPreview(boolean inPreview) {
+        if (inPreview) {
+            setFlags(getFlags() | 4);
+        } else {
+            setFlags(getFlags() & ~4);
+        }
+    }
+
+    public void setInPoster(boolean inPoster) {
+        if (inPoster) {
+            setFlags(getFlags() | 8);
+        } else {
+            setFlags(getFlags() & ~8);
+        }
     }
 }

@@ -115,9 +115,9 @@ public class LocationInformationBox extends AbstractFullBox {
         byteBuffer.put(Utf8.convert(name));
         byteBuffer.put((byte) 0);
         IsoTypeWriter.writeUInt8(byteBuffer, role);
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, longitude);
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, latitude);
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, altitude);
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, longitude);
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, latitude);
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, altitude);
         byteBuffer.put(Utf8.convert(astronomicalBody));
         byteBuffer.put((byte) 0);
         byteBuffer.put(Utf8.convert(additionalNotes));

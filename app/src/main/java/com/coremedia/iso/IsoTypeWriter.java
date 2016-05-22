@@ -62,8 +62,16 @@ public final class IsoTypeWriter {
     }
 
 
-    public static void writeFixedPont1616(ByteBuffer bb, double v) {
+    public static void writeFixedPoint1616(ByteBuffer bb, double v) {
         int result = (int) (v * 65536);
+        bb.put((byte) ((result & 0xFF000000) >> 24));
+        bb.put((byte) ((result & 0x00FF0000) >> 16));
+        bb.put((byte) ((result & 0x0000FF00) >> 8));
+        bb.put((byte) ((result & 0x000000FF)));
+    }
+
+    public static void writeFixedPoint0230(ByteBuffer bb, double v) {
+        int result = (int) (v * (1 << 30));
         bb.put((byte) ((result & 0xFF000000) >> 24));
         bb.put((byte) ((result & 0x00FF0000) >> 16));
         bb.put((byte) ((result & 0x0000FF00) >> 8));

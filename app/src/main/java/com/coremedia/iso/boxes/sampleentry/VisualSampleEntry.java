@@ -190,8 +190,8 @@ public class VisualSampleEntry extends SampleEntry implements ContainerBox {
         IsoTypeWriter.writeUInt16(byteBuffer, getWidth());
         IsoTypeWriter.writeUInt16(byteBuffer, getHeight());
 
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, getHorizresolution());
-        IsoTypeWriter.writeFixedPont1616(byteBuffer, getVertresolution());
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, getHorizresolution());
+        IsoTypeWriter.writeFixedPoint1616(byteBuffer, getVertresolution());
 
 
         IsoTypeWriter.writeUInt32(byteBuffer, 0);

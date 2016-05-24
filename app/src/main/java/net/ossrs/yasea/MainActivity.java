@@ -98,6 +98,60 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         public void onRtmpOutputFps(final double fps) {
             Log.i(TAG, String.format("Output Fps: %f", fps));
         }
+    }, new SrsMp4Muxer.EventHandler() {
+        @Override
+        public void onVideoTrackBuilt(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onAudioTrackBuilt(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onVideoRecording(String msg) {
+
+        }
+
+        @Override
+        public void onAudioRecording(String msg) {
+
+        }
+
+        @Override
+        public void onRecordStarted(String msg) {
+            mNotifyMsg = "Recording file: " + msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @Override
+        public void onRecordFinished(String msg) {
+            mNotifyMsg = "File saved: " + msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
     });
 
     @Override
@@ -188,7 +242,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_LONG).show();
                         btnPublish.setEnabled(true);
                         btnStop.setEnabled(false);
                         stopPublish();

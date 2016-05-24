@@ -82,6 +82,10 @@ public class SrsMp4Muxer {
     private ArrayList<byte[]> spsList = new ArrayList<>();
     private ArrayList<byte[]> ppsList = new ArrayList<>();
 
+    private EventHandler mHandler;
+
+    private File mRecFile;
+
     private Thread worker;
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<SrsFlvFrame> frameCache = new ConcurrentLinkedQueue<SrsFlvFrame>();
@@ -103,14 +107,35 @@ public class SrsMp4Muxer {
         samplingFrequencyIndexMap.put(8000, 0xb);
     }
 
-    public SrsMp4Muxer() {
+    public SrsMp4Muxer(EventHandler handler) {
+        mHandler = handler;
     }
 
+    /**
+     * MP4 recording event handler.
+     */
+    interface EventHandler {
+
+        void onVideoTrackBuilt(String msg);
+
+        void onAudioTrackBuilt(String msg);
+
+        void onVideoRecording(String msg);
+
+        void onAudioRecording(String msg);
+
+        void onRecordStarted(String msg);
+
+        void onRecordFinished(String msg);
+    }
+    
     /**
      * start recording.
      */
     public void start(File outputFile) throws IOException {
-        createMovie(outputFile);
+        mRecFile = outputFile;
+        createMovie(mRecFile);
+        mHandler.onRecordStarted(mRecFile.getPath());
 
         worker = new Thread(new Runnable() {
             @Override
@@ -122,8 +147,10 @@ public class SrsMp4Muxer {
                         try {
                             if (frame.is_video()) {
                                 writeSampleData(VIDEO_TRACK, frame.bb, frame.bi, false);
+                                mHandler.onVideoRecording("Video");
                             } else if (frame.is_audio()) {
                                 writeSampleData(AUDIO_TRACK, frame.bb, frame.bi, true);
+                                mHandler.onAudioRecording("Audio");
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -164,6 +191,7 @@ public class SrsMp4Muxer {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            mHandler.onRecordFinished(mRecFile.getPath());
         }
 
         Log.i(TAG, String.format("SrsMp4Muxer closed"));
@@ -263,7 +291,7 @@ public class SrsMp4Muxer {
             achannel = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
             asample_rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
             audioFormat = format;
-            return VIDEO_TRACK;
+            return AUDIO_TRACK;
         }
     }
 
@@ -321,6 +349,7 @@ public class SrsMp4Muxer {
                     h264_sps_changed = false;
                     h264_pps_changed = false;
                     mp4Movie.addTrack(videoFormat, false);
+                    mHandler.onVideoTrackBuilt("H.264 SPS PPS got");
                 }
             }
         }
@@ -370,6 +399,7 @@ public class SrsMp4Muxer {
             aac_specific_config = frame;
             aac_packet_type = 0; // 0 = AAC sequence header
             mp4Movie.addTrack(audioFormat, true);
+            mHandler.onAudioTrackBuilt("AAC specific configuration got");
         } else {
             rtmp_write_packet(SrsCodecFlvTag.Audio, bb, bi);
             //bb.get(frame, 2, frame.length - 2);

@@ -58,13 +58,13 @@ public class SrsEncoder {
     private int vtrack;
     private int atrack;
 
-    public SrsEncoder(RtmpPublisher.EventHandler handler) {
+    public SrsEncoder(RtmpPublisher.EventHandler publisherHandler, SrsMp4Muxer.EventHandler recordHandler) {
         rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
         recPath = Environment.getExternalStorageDirectory().getPath();
         recPath += "/" + getRandomAlphaDigitString(13) + ".mp4";
 
-        flvMuxer = new SrsFlvMuxer(handler);
-        mp4Muxer = new SrsMp4Muxer();
+        flvMuxer = new SrsFlvMuxer(publisherHandler);
+        mp4Muxer = new SrsMp4Muxer(recordHandler);
 
         vfmt_color = chooseVideoEncoder();
         if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {

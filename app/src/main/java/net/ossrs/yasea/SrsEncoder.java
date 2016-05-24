@@ -6,13 +6,15 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
+import android.os.Environment;
 import android.util.Log;
 
-import net.ossrs.yasea.rtmp.RtmpPublisher;
-
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
+
+import net.ossrs.yasea.rtmp.RtmpPublisher;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -23,6 +25,7 @@ public class SrsEncoder {
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
     public static String rtmpUrl = "";
+    public static String recPath = "";
 
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
@@ -37,7 +40,8 @@ public class SrsEncoder {
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
-    private SrsFlvMuxer muxer;
+    private SrsFlvMuxer flvMuxer;
+    private SrsMp4Muxer mp4Muxer;
 
     private MediaCodec vencoder;
     private MediaCodecInfo vmci;
@@ -56,7 +60,11 @@ public class SrsEncoder {
 
     public SrsEncoder(RtmpPublisher.EventHandler handler) {
         rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
-        muxer = new SrsFlvMuxer(handler);
+        recPath = Environment.getExternalStorageDirectory().getPath();
+        recPath += "/" + getRandomAlphaDigitString(13) + ".mp4";
+
+        flvMuxer = new SrsFlvMuxer(handler);
+        mp4Muxer = new SrsMp4Muxer();
 
         vfmt_color = chooseVideoEncoder();
         if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
@@ -70,13 +78,14 @@ public class SrsEncoder {
 
     public int start() {
         try {
-            muxer.start(rtmpUrl);
+            //flvMuxer.start(rtmpUrl);
+            mp4Muxer.start(new File(recPath));
         } catch (IOException e) {
             Log.e(TAG, "start muxer failed.");
             e.printStackTrace();
             return -1;
         }
-        muxer.setVideoResolution(VCROP_WIDTH, VCROP_HEIGHT);
+        flvMuxer.setVideoResolution(VCROP_WIDTH, VCROP_HEIGHT);
 
         // the referent PTS for video and audio encoder.
         mPresentTimeUs = System.nanoTime() / 1000;
@@ -100,7 +109,8 @@ public class SrsEncoder {
         audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the audio tracker to muxer.
-        atrack = muxer.addTrack(audioFormat);
+        //atrack = flvMuxer.addTrack(audioFormat);
+        atrack = mp4Muxer.addTrack(audioFormat);
 
         // vencoder yuv to 264 es stream.
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
@@ -123,7 +133,8 @@ public class SrsEncoder {
         videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
         vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the video tracker to muxer.
-        vtrack = muxer.addTrack(videoFormat);
+        //vtrack = flvMuxer.addTrack(videoFormat);
+        vtrack = mp4Muxer.addTrack(videoFormat);
 
         // start device and encoder.
         vencoder.start();
@@ -147,9 +158,14 @@ public class SrsEncoder {
             vencoder = null;
         }
 
-        if (muxer != null) {
-            Log.i(TAG, "stop muxer to SRS over RTMP");
-            muxer.stop();
+        if (flvMuxer != null) {
+            Log.i(TAG, "stop FLV muxer");
+            flvMuxer.stop();
+        }
+
+        if (mp4Muxer != null) {
+            Log.i(TAG, "stop MP4 muxer");
+            mp4Muxer.stop();
         }
     }
 
@@ -164,7 +180,8 @@ public class SrsEncoder {
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         try {
-            muxer.writeSampleData(vtrack, es, bi);
+            mp4Muxer.writeSampleData(vtrack, es, bi);
+            //flvMuxer.writeSampleData(vtrack, es, bi);
         } catch (Exception e) {
             Log.e(TAG, "muxer write video sample failed.");
             e.printStackTrace();
@@ -208,7 +225,7 @@ public class SrsEncoder {
     public void onGetYuvFrame(byte[] data) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
-        if (muxer.getVideoFrameCacheNumber().get() < VGOP) {
+        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
             preProcessYuvFrame(data);
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
@@ -241,7 +258,8 @@ public class SrsEncoder {
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         try {
-            muxer.writeSampleData(atrack, es, bi);
+            //flvMuxer.writeSampleData(atrack, es, bi);
+            mp4Muxer.writeSampleData(atrack, es, bi);
         } catch (Exception e) {
             Log.e(TAG, "muxer write audio sample failed.");
             e.printStackTrace();

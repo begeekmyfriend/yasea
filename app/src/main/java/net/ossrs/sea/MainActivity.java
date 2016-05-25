@@ -2,6 +2,8 @@ package net.ossrs.sea;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
 import android.media.AudioRecord;
@@ -106,6 +108,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
+
+        // response screen rotation event
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
 
         // restore data.
         sp = getSharedPreferences("SrsPublisher", MODE_PRIVATE);
@@ -420,5 +425,13 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     protected void onDestroy() {
         super.onDestroy();
         stopPublish();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        stopPublish();
+        mEncoder.setScreenOrientation(newConfig.orientation);
+        startPublish();
     }
 }

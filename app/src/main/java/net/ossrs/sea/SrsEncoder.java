@@ -1,5 +1,6 @@
 package net.ossrs.sea;
 
+import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.media.AudioFormat;
 import android.media.MediaCodec;
@@ -26,9 +27,11 @@ public class SrsEncoder {
 
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
+    public static final int VCROP_WIDTH = 384;
+    public static final int VCROP_HEIGHT = 640;
     public static int vbitrate = 500 * 1000;  // 500kbps
-    public static final int VCROP_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
-    public static final int VCROP_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+    public static int vCropWidth = VCROP_WIDTH;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+    public static int vCropHeight = VCROP_HEIGHT;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static final int VFPS = 24;
     public static final int VGOP = 48;
     public static int VFORMAT = ImageFormat.YV12;
@@ -36,6 +39,8 @@ public class SrsEncoder {
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
+
+    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     private SrsFlvMuxer muxer;
 
@@ -45,9 +50,9 @@ public class SrsEncoder {
     private MediaCodec aencoder;
     private MediaCodec.BufferInfo aebi;
 
-    private byte[] mRotatedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
-    private byte[] mFlippedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
-    private byte[] mCroppedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+    private byte[] mRotatedFrameBuffer = new byte[vCropWidth * vCropHeight * 3 / 2];
+    private byte[] mFlippedFrameBuffer = new byte[vCropWidth * vCropHeight * 3 / 2];
+    private byte[] mCroppedFrameBuffer = new byte[vCropWidth * vCropHeight * 3 / 2];
     private boolean mCameraFaceFront = true;
     private long mPresentTimeUs;
     private int vfmt_color;
@@ -76,7 +81,7 @@ public class SrsEncoder {
             e.printStackTrace();
             return -1;
         }
-        muxer.setVideoResolution(VCROP_WIDTH, VCROP_HEIGHT);
+        muxer.setVideoResolution(vCropWidth, vCropHeight);
 
         // the referent PTS for video and audio encoder.
         mPresentTimeUs = System.nanoTime() / 1000;
@@ -114,8 +119,8 @@ public class SrsEncoder {
         vebi = new MediaCodec.BufferInfo();
 
         // setup the vencoder.
-        // Note: landscape to portrait, 90 degree rotation, so we need to switch VWIDTH and VHEIGHT in configuration
-        MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VCROP_WIDTH, VCROP_HEIGHT);
+        // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
+        MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, vCropWidth, vCropHeight);
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vfmt_color);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vbitrate);
@@ -161,6 +166,17 @@ public class SrsEncoder {
         }
     }
 
+    public void setScreenOrientation(int orientation) {
+        mOrientation = orientation;
+        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            vCropWidth = VCROP_WIDTH;
+            vCropHeight = VCROP_HEIGHT;
+        } else {
+            vCropWidth = VCROP_HEIGHT;
+            vCropHeight = VCROP_WIDTH;
+        }
+    }
+
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         try {
@@ -171,18 +187,18 @@ public class SrsEncoder {
         }
     }
 
-    private int preProcessYuvFrame(byte[] data) {
+    private void portraitPreprocessYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
             switch (vfmt_color) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
-                    flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
-                    rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropHeight, vCropWidth);
+                    rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
-                    flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
-                    rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropHeight, vCropWidth);
+                    rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
                 default:
                     throw new IllegalStateException("Unsupported color format!");
@@ -190,26 +206,60 @@ public class SrsEncoder {
         } else {
             switch (vfmt_color) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
-                    rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
-                    rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
         }
-
-        return 0;
     }
 
+    private void landscapePreprocessYuvFrame(byte[] data) {
+        if (mCameraFaceFront) {
+            switch (vfmt_color) {
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropHeight, vCropWidth);
+                    unrotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
+                    break;
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropWidth, vCropHeight);
+                    unrotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported color format!");
+            }
+        } else {
+            switch (vfmt_color) {
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    unrotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
+                    break;
+                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    unrotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported color format!");
+            }
+        }
+    }
+    
     public void onGetYuvFrame(byte[] data) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         if (muxer.getVideoFrameCacheNumber().get() < VGOP) {
-            preProcessYuvFrame(data);
+            if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                portraitPreprocessYuvFrame(data);
+            } else {
+                landscapePreprocessYuvFrame(data);
+            }
             ByteBuffer[] inBuffers = vencoder.getInputBuffers();
             ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
 
@@ -408,6 +458,60 @@ public class SrsEncoder {
         i = 0;
         for (int col = 0; col < width / 2; col++) {
             for (int row = height / 2 - 1; row >= 0; row--) {
+                output[frameSize + qFrameSize + i] = input[frameSize + width / 2 * row + col]; // Cr (V)
+                i++;
+            }
+        }
+
+        return output;
+    }
+
+    // convert NV21 to NV12
+    private byte[] unrotateYUV420SemiPlannerFrame(byte[] input, byte[] output, int width, int height) {
+        int frameSize = width * height;
+
+        int i = 0;
+        for (int row = 0; row < height; row++) {
+            for (int col = 0; col < width; col++) {
+                output[i++] = input[width * row + col]; // Y
+            }
+        }
+
+        i = 0;
+        for (int row = 0; row < height / 2; row++) {
+            for (int col = 0; col < width / 2; col++) {
+                output[frameSize + i * 2 + 1] = input[frameSize + width * row + col * 2]; // Cb (U)
+                output[frameSize + i * 2] = input[frameSize + width * row + col * 2 + 1]; // Cr (V)
+                i++;
+            }
+        }
+
+        return output;
+    }
+
+    // convert YV12 to I420
+    private byte[] unrotateYUV420PlannerFrame(byte[] input, byte[] output, int width, int height) {
+        int frameSize = width * height;
+        int qFrameSize = frameSize / 4;
+
+        int i = 0;
+        for (int row = 0; row < height; row++) {
+            for (int col = 0; col < width; col++) {
+                output[i++] = input[width * row + col]; // Y
+            }
+        }
+
+        i = 0;
+        for (int row = 0; row < height / 2; row++) {
+            for (int col = 0; col < width / 2; col++) {
+                output[frameSize + i] = input[frameSize + qFrameSize + width / 2 * row + col]; // Cb (U)
+                i++;
+            }
+        }
+
+        i = 0;
+        for (int row = 0; row < height / 2; row++) {
+            for (int col = 0; col < width / 2; col++) {
                 output[frameSize + qFrameSize + i] = input[frameSize + width / 2 * row + col]; // Cr (V)
                 i++;
             }

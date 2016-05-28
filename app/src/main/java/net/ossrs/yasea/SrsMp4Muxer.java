@@ -65,30 +65,24 @@ public class SrsMp4Muxer {
     private static final int VIDEO_TRACK = 100;
     private static final int AUDIO_TRACK = 101;
 
+    private File mRecFile;
+    private EventHandler mHandler;
+
     private MediaFormat videoFormat = null;
     private MediaFormat audioFormat = null;
 
     private SrsUtils utils = new SrsUtils();
     private SrsRawH264Stream avc = new SrsRawH264Stream();
-    private byte[] aac_specific_config = null;
-    private int achannel;
-    private int asample_rate;
     private Mp4Movie mp4Movie = new Mp4Movie();
 
-    private boolean h264_sps_changed = false;
-    private boolean h264_pps_changed = false;
-    private byte[] h264_sps = new byte[0];
-    private byte[] h264_pps = new byte[0];
+    private boolean aacSpecConfig = false;
+    private byte[] h264_sps = null;
+    private byte[] h264_pps = null;
     private ArrayList<byte[]> spsList = new ArrayList<>();
     private ArrayList<byte[]> ppsList = new ArrayList<>();
 
-    private EventHandler mHandler;
-
-    private File mRecFile;
-
     private Thread worker;
     private final Object writeLock = new Object();
-    private final Object moovLock = new Object();
     private ConcurrentLinkedQueue<SrsEsFrame> frameCache = new ConcurrentLinkedQueue<>();
 
     private static Map<Integer, Integer> samplingFrequencyIndexMap = new HashMap<>();
@@ -141,14 +135,6 @@ public class SrsMp4Muxer {
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
-                // Wait for moov box.
-                synchronized (moovLock) {
-                    try {
-                        moovLock.wait();
-                    } catch (InterruptedException ie) {
-                        // do nothing
-                    }
-                }
 
                 while (!Thread.interrupted()) {
                     // Keep at least one audio and video frame in cache to ensure monotonically increasing.
@@ -208,38 +194,34 @@ public class SrsMp4Muxer {
     }
 
     /**
-     * E.4.1 FLV Tag, page 75
+     * Adds a track with the specified format.
+     *
+     * @param format The media format for the track.
+     * @return The track index for this newly added track.
      */
-    class SrsCodecFlvTag
-    {
-        // set to the zero to reserved, for array map.
-        public final static int Reserved = 0;
-
-        // 8 = audio
-        public final static int Audio = 8;
-        // 9 = video
-        public final static int Video = 9;
-        // 18 = script data
-        public final static int Script = 18;
+    public int addTrack(MediaFormat format) {
+        if (format.getString(MediaFormat.KEY_MIME) == MediaFormat.MIMETYPE_VIDEO_AVC) {
+            videoFormat = format;
+            return VIDEO_TRACK;
+        } else {
+            audioFormat = format;
+            return AUDIO_TRACK;
+        }
     }
 
     /**
-     * the FLV/RTMP supported audio sample rate.
-     * Sampling rate. The following values are defined:
-     * 0 = 5.5 kHz = 5512 Hz
-     * 1 = 11 kHz = 11025 Hz
-     * 2 = 22 kHz = 22050 Hz
-     * 3 = 44 kHz = 44100 Hz
+     * send the annexb frame to SRS over RTMP.
+     *
+     * @param trackIndex The track index for this sample.
+     * @param byteBuf    The encoded sample.
+     * @param bufferInfo The buffer information related to this sample.
      */
-    class SrsCodecAudioSampleRate
-    {
-        // set to the max value to reserved, for array map.
-        public final static int Reserved                 = 4;
-
-        public final static int R5512                     = 0;
-        public final static int R11025                    = 1;
-        public final static int R22050                    = 2;
-        public final static int R44100                    = 3;
+    public void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) throws IllegalArgumentException {
+        if (VIDEO_TRACK == trackIndex) {
+            writeVideoSample(byteBuf, bufferInfo);
+        } else {
+            writeAudioSample(byteBuf, bufferInfo);
+        }
     }
 
     /**
@@ -287,166 +269,50 @@ public class SrsMp4Muxer {
         public final static int CodedSliceExt = 20;
     }
 
-    /**
-     * Adds a track with the specified format.
-     *
-     * @param format The media format for the track.
-     * @return The track index for this newly added track.
-     */
-    public int addTrack(MediaFormat format) {
-        if (format.getString(MediaFormat.KEY_MIME) == MediaFormat.MIMETYPE_VIDEO_AVC) {
-            videoFormat = format;
-            return VIDEO_TRACK;
-        } else {
-            achannel = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-            asample_rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-            audioFormat = format;
-            return AUDIO_TRACK;
-        }
-    }
-
-    /**
-     * send the annexb frame to SRS over RTMP.
-     *
-     * @param trackIndex The track index for this sample.
-     * @param byteBuf    The encoded sample.
-     * @param bufferInfo The buffer information related to this sample.
-     */
-    public void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) throws IllegalArgumentException {
-        if (VIDEO_TRACK == trackIndex) {
-            writeVideoSample(byteBuf, bufferInfo);
-        } else {
-            writeAudioSample(byteBuf, bufferInfo);
-        }
-    }
-
     public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
         int nal_unit_type = bb.get(4) & 0x1f;
         if (nal_unit_type == SrsAvcNaluType.IDR || nal_unit_type == SrsAvcNaluType.NonIDR) {
-            writeFrameByte(SrsCodecFlvTag.Video, bb, bi);
+            writeFrameByte(VIDEO_TRACK, bb, bi);
         } else {
             while (bb.position() < bi.size) {
                 SrsEsFrameBytes frame = avc.annexb_demux(bb, bi);
                 // for sps
                 if (avc.is_sps(frame)) {
-                    byte[] sps = new byte[frame.size];
-                    frame.data.get(sps);
-                    if (utils.srs_bytes_equals(h264_sps, sps)) {
-                        continue;
-                    }
-                    h264_sps_changed = true;
-                    h264_sps = sps;
-                    spsList.add(sps);
+                    h264_sps = new byte[frame.size];
+                    frame.data.get(h264_sps);
+                    spsList.add(h264_sps);
                     continue;
                 }
 
                 // for pps
                 if (avc.is_pps(frame)) {
-                    byte[] pps = new byte[frame.size];
-                    frame.data.get(pps);
-                    if (utils.srs_bytes_equals(h264_pps, pps)) {
-                        continue;
-                    }
-                    h264_pps_changed = true;
-                    h264_pps = pps;
-                    ppsList.add(pps);
+                    h264_pps = new byte[frame.size];
+                    frame.data.get(h264_pps);
+                    ppsList.add(h264_pps);
                     continue;
                 }
             }
 
-            if (h264_sps_changed && h264_pps_changed) {
-                h264_sps_changed = false;
-                h264_pps_changed = false;
+            if (!spsList.isEmpty() && !ppsList.isEmpty()) {
                 mp4Movie.addTrack(videoFormat, false);
             }
         }
     }
 
     public void writeAudioSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
-        byte[] frame = new byte[bi.size + 2];
-        byte aac_packet_type = 1; // 1 = AAC raw
-        if (aac_specific_config == null) {
-            frame = new byte[4];
-
-            // @see aac-mp4a-format-ISO_IEC_14496-3+2001.pdf
-            // AudioSpecificConfig (), page 33
-            // 1.6.2.1 AudioSpecificConfig
-            // audioObjectType; 5 bslbf
-            byte ch = (byte) (bb.get(0) & 0xf8);
-            // 3bits left.
-
-            // samplingFrequencyIndex; 4 bslbf
-            byte samplingFrequencyIndex = 0x04;
-            if (asample_rate == SrsCodecAudioSampleRate.R22050) {
-                samplingFrequencyIndex = 0x07;
-            } else if (asample_rate == SrsCodecAudioSampleRate.R11025) {
-                samplingFrequencyIndex = 0x0a;
-            }
-            ch |= (samplingFrequencyIndex >> 1) & 0x07;
-            frame[2] = ch;
-
-            ch = (byte) ((samplingFrequencyIndex << 7) & 0x80);
-            // 7bits left.
-
-            // channelConfiguration; 4 bslbf
-            byte channelConfiguration = 1;
-            if (achannel == 2) {
-                channelConfiguration = 2;
-            }
-            ch |= (channelConfiguration << 3) & 0x78;
-            // 3bits left.
-
-            // GASpecificConfig(), page 451
-            // 4.4.1 Decoder configuration (GASpecificConfig)
-            // frameLengthFlag; 1 bslbf
-            // dependsOnCoreCoder; 1 bslbf
-            // extensionFlag; 1 bslbf
-            frame[3] = ch;
-
-            aac_specific_config = frame;
-            aac_packet_type = 0; // 0 = AAC sequence header
+        if (!aacSpecConfig) {
+            aacSpecConfig = true;
             mp4Movie.addTrack(audioFormat, true);
         } else {
-            writeFrameByte(SrsCodecFlvTag.Audio, bb, bi);
-            //bb.get(frame, 2, frame.length - 2);
+            writeFrameByte(AUDIO_TRACK, bb, bi);
         }
-
-//        byte sound_format = 10; // AAC
-//        byte sound_type = 0; // 0 = Mono sound
-//        if (achannel == 2) {
-//            sound_type = 1; // 1 = Stereo sound
-//        }
-//        byte sound_size = 1; // 1 = 16-bit samples
-//        byte sound_rate = 3; // 44100, 22050, 11025
-//        if (asample_rate == 22050) {
-//            sound_rate = 2;
-//        } else if (asample_rate == 11025) {
-//            sound_rate = 1;
-//        }
-
-        // for audio frame, there is 1 or 2 bytes header:
-        //      1bytes, SoundFormat|SoundRate|SoundSize|SoundType
-        //      1bytes, AACPacketType for SoundFormat == 10, 0 is sequence header.
-//        byte audio_header = (byte) (sound_type & 0x01);
-//        audio_header |= (sound_size << 1) & 0x02;
-//        audio_header |= (sound_rate << 2) & 0x0c;
-//        audio_header |= (sound_format << 4) & 0xf0;
-//
-//        frame[0] = audio_header;
-//        frame[1] = aac_packet_type;
-
-        //SrsEsFrameBytes tag = new SrsEsFrameBytes();
-        //tag.frame = ByteBuffer.wrap(frame);
-        //tag.size = frame.length;
-
-        //writeFrameByte(SrsCodecFlvTag.Audio, dts, 0, aac_packet_type, tag);
     }
 
-    private void writeFrameByte(int type, ByteBuffer bb, MediaCodec.BufferInfo bi) {
+    private void writeFrameByte(int track, ByteBuffer bb, MediaCodec.BufferInfo bi) {
         SrsEsFrame frame = new SrsEsFrame();
         frame.bb = bb;
         frame.bi = bi;
-        frame.type = type;
+        frame.track = track;
 
         frameCache.add(frame);
         synchronized (writeLock) {
@@ -538,14 +404,14 @@ public class SrsMp4Muxer {
     class SrsEsFrame {
         public ByteBuffer bb;
         public MediaCodec.BufferInfo bi;
-        public int type;
+        public int track;
 
         public boolean is_video() {
-            return type == SrsCodecFlvTag.Video;
+            return track == VIDEO_TRACK;
         }
 
         public boolean is_audio() {
-            return type == SrsCodecFlvTag.Audio;
+            return track == AUDIO_TRACK;
         }
     }
 
@@ -564,25 +430,14 @@ public class SrsMp4Muxer {
                 return false;
             }
 
-            // 5bits, 7.3.1 NAL unit syntax,
-            // H.264-AVC-ISO_IEC_14496-10.pdf, page 44.
-            //  7: SPS, 8: PPS, 5: I Frame, 1: P Frame
-            int nal_unit_type = (int) (frame.data.get(0) & 0x1f);
-
-            return nal_unit_type == SrsAvcNaluType.SPS;
+            return (frame.data.get(0) & 0x1f) == SrsAvcNaluType.SPS;
         }
 
         public boolean is_pps(SrsEsFrameBytes frame) {
             if (frame.size < 1) {
                 return false;
             }
-
-            // 5bits, 7.3.1 NAL unit syntax,
-            // H.264-AVC-ISO_IEC_14496-10.pdf, page 44.
-            //  7: SPS, 8: PPS, 5: I Frame, 1: P Frame
-            int nal_unit_type = (int) (frame.data.get(0) & 0x1f);
-
-            return nal_unit_type == SrsAvcNaluType.PPS;
+            return (frame.data.get(0) & 0x1f) == SrsAvcNaluType.PPS;
         }
 
         public SrsEsFrameBytes annexb_demux(ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
@@ -618,7 +473,6 @@ public class SrsMp4Muxer {
                 if (bb.position() < bi.size) {
                     Log.i(TAG, String.format("annexb multiple match ok, pts=%d", bi.presentationTimeUs / 1000));
                 }
-                //Log.i(TAG, String.format("annexb match %d bytes", tbb.size));
                 break;
             }
 
@@ -839,18 +693,6 @@ public class SrsMp4Muxer {
             return matrix;
         }
 
-        public void setRotation(int angle) {
-            if (angle == 0) {
-                matrix = Matrix.ROTATE_0;
-            } else if (angle == 90) {
-                matrix = Matrix.ROTATE_90;
-            } else if (angle == 180) {
-                matrix = Matrix.ROTATE_180;
-            } else if (angle == 270) {
-                matrix = Matrix.ROTATE_270;
-            }
-        }
-
         public HashMap<Integer, Track> getTracks() {
             return tracks;
         }
@@ -867,26 +709,6 @@ public class SrsMp4Muxer {
             } else {
                 tracks.put(VIDEO_TRACK, new Track(tracks.size(), format, false));
                 mHandler.onVideoTrackBuilt("H.264 SPS PPS got");
-
-                for (Track track : getTracks().values()) {
-                    List<Sample> samples = track.getSamples();
-                    long[] sizes = new long[samples.size()];
-                    for (int i = 0; i < sizes.length; i++) {
-                        sizes[i] = samples.get(i).getSize();
-                    }
-                    track2SampleSizes.put(track, sizes);
-                }
-
-                Box moov = createMovieBox(this);
-                try {
-                    moov.getBox(fc);
-                    fos.flush();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                synchronized (moovLock) {
-                    moovLock.notifyAll();
-                }
             }
         }
     }
@@ -896,22 +718,17 @@ public class SrsMp4Muxer {
     private FileChannel fc = null;
     private long dataOffset = 0;
     private long writedSinceLastMdat = 0;
-    private boolean writeNewMdat = true;
     private HashMap<Track, long[]> track2SampleSizes = new HashMap<>();
-    private ByteBuffer sizeBuffer = null;
 
     private void createMovie(File outputFile) throws IOException {
         fos = new FileOutputStream(outputFile);
         fc = fos.getChannel();
+        mdat = new InterleaveChunkMdat();
 
         FileTypeBox fileTypeBox = createFileTypeBox();
         fileTypeBox.getBox(fc);
         dataOffset += fileTypeBox.getSize();
-        writedSinceLastMdat += dataOffset;
-
-        mdat = new InterleaveChunkMdat();
-
-        sizeBuffer = ByteBuffer.allocateDirect(4);
+        writedSinceLastMdat += fileTypeBox.getSize();
     }
 
     private void flushCurrentMdat() throws IOException {
@@ -924,45 +741,32 @@ public class SrsMp4Muxer {
         fos.flush();
     }
 
-    private boolean writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo, boolean isAudio) throws IOException {
-        if (writeNewMdat) {
+    private void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo, boolean isAudio) throws IOException {
+        if (mdat.first) {
             mdat.setContentSize(0);
             mdat.getBox(fc);
             mdat.setDataOffset(dataOffset);
             dataOffset += 16;
             writedSinceLastMdat += 16;
-            writeNewMdat = false;
+            mdat.first = false;
         }
 
         mdat.setContentSize(mdat.getContentSize() + bufferInfo.size);
-        writedSinceLastMdat += bufferInfo.size;
-
-        boolean flush = false;
-        if (writedSinceLastMdat >= 32 * 1024) {
-            flushCurrentMdat();
-            writeNewMdat = true;
-            flush = true;
-            writedSinceLastMdat -= 32 * 1024;
-        }
-
         mp4Movie.addSample(trackIndex, dataOffset, bufferInfo);
         byteBuf.position(bufferInfo.offset + (isAudio ? 0 : 4));
         byteBuf.limit(bufferInfo.offset + bufferInfo.size);
-
         if (!isAudio) {
-            sizeBuffer.position(0);
-            sizeBuffer.putInt(bufferInfo.size - 4);
-            sizeBuffer.position(0);
-            fc.write(sizeBuffer);
+            ByteBuffer size = ByteBuffer.allocateDirect(4);
+            size.position(0);
+            size.putInt(bufferInfo.size);
+            size.position(0);
+            fc.write(size);
         }
+        dataOffset += bufferInfo.size;
+        writedSinceLastMdat += bufferInfo.size;
 
         fc.write(byteBuf);
-        dataOffset += bufferInfo.size;
-
-        if (flush) {
-            fos.flush();
-        }
-        return flush;
+        fos.flush();
     }
 
     private void finishMovie() throws IOException {
@@ -970,8 +774,27 @@ public class SrsMp4Muxer {
             flushCurrentMdat();
         }
 
+        for (Track track : mp4Movie.getTracks().values()) {
+            List<Sample> samples = track.getSamples();
+            long[] sizes = new long[samples.size()];
+            for (int i = 0; i < sizes.length; i++) {
+                sizes[i] = samples.get(i).getSize();
+            }
+            track2SampleSizes.put(track, sizes);
+        }
+
+        Box moov = createMovieBox(mp4Movie);
+        moov.getBox(fc);
+        fos.flush();
+
         fc.close();
         fos.close();
+        spsList.clear();
+        ppsList.clear();
+        mp4Movie.getTracks().clear();
+        aacSpecConfig = false;
+        dataOffset = 0;
+        writedSinceLastMdat = 0;
     }
 
     private FileTypeBox createFileTypeBox() {
@@ -982,7 +805,9 @@ public class SrsMp4Muxer {
     }
 
     private class InterleaveChunkMdat implements Box {
+        private boolean first = true;
         private ContainerBox parent;
+        private ByteBuffer header;
         private long contentSize = 1024 * 1024 * 1024;
         private long dataOffset = 0;
 
@@ -1015,29 +840,29 @@ public class SrsMp4Muxer {
         }
 
         public long getSize() {
-            return 16 + contentSize;
+            return header.limit() + contentSize;
         }
 
         private boolean isSmallBox(long contentSize) {
-            return (contentSize + 8) < 4294967296L;
+            return (contentSize + header.limit()) < 4294967296L;
         }
 
         public void getBox(WritableByteChannel writableByteChannel) throws IOException {
-            ByteBuffer bb = ByteBuffer.allocate(16);
+            header = ByteBuffer.allocate(16);
             long size = getSize();
             if (isSmallBox(size)) {
-                IsoTypeWriter.writeUInt32(bb, size);
+                IsoTypeWriter.writeUInt32(header, size);
             } else {
-                IsoTypeWriter.writeUInt32(bb, 1);
+                IsoTypeWriter.writeUInt32(header, 1);
             }
-            bb.put(IsoFile.fourCCtoBytes("mdat"));
+            header.put(IsoFile.fourCCtoBytes("mdat"));
             if (isSmallBox(size)) {
-                bb.put(new byte[8]);
+                header.put(new byte[8]);
             } else {
-                IsoTypeWriter.writeUInt64(bb, size);
+                IsoTypeWriter.writeUInt64(header, size);
             }
-            bb.rewind();
-            writableByteChannel.write(bb);
+            header.rewind();
+            writableByteChannel.write(header);
         }
 
         @Override

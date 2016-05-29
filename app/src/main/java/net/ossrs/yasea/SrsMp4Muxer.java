@@ -71,7 +71,6 @@ public class SrsMp4Muxer {
     private MediaFormat videoFormat = null;
     private MediaFormat audioFormat = null;
 
-    private SrsUtils utils = new SrsUtils();
     private SrsRawH264Stream avc = new SrsRawH264Stream();
     private Mp4Movie mp4Movie = new Mp4Movie();
 
@@ -321,68 +320,6 @@ public class SrsMp4Muxer {
     }
 
     /**
-     * utils functions from srs.
-     */
-    public class SrsUtils {
-        public boolean srs_bytes_equals(byte[] a, byte[] b) {
-            if ((a == null || b == null) && (a != null || b != null)) {
-                return false;
-            }
-
-            if (a.length != b.length) {
-                return false;
-            }
-
-            for (int i = 0; i < a.length && i < b.length; i++) {
-                if (a[i] != b[i]) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public SrsAnnexbSearch srs_avc_startswith_annexb(ByteBuffer bb, MediaCodec.BufferInfo bi) {
-            SrsAnnexbSearch as = new SrsAnnexbSearch();
-            as.match = false;
-
-            int pos = bb.position();
-            while (pos < bi.size - 3) {
-                // not match.
-                if (bb.get(pos) != 0x00 || bb.get(pos + 1) != 0x00) {
-                    break;
-                }
-
-                // match N[00] 00 00 01, where N>=0
-                if (bb.get(pos + 2) == 0x01) {
-                    as.match = true;
-                    as.nb_start_code = pos + 3 - bb.position();
-                    break;
-                }
-
-                pos++;
-            }
-
-            return as;
-        }
-
-        public boolean srs_aac_startswith_adts(ByteBuffer bb, MediaCodec.BufferInfo bi) {
-            int pos = bb.position();
-            if (bi.size - pos < 2) {
-                return false;
-            }
-
-            // matched 12bits 0xFFF,
-            // @remark, we must cast the 0xff to char to compare.
-            if (bb.get(pos) != (byte) 0xff || (byte) (bb.get(pos + 1) & 0xf0) != (byte) 0xf0) {
-                return false;
-            }
-
-            return true;
-        }
-    }
-
-    /**
      * the search result for annexb.
      */
     class SrsAnnexbSearch {
@@ -419,12 +356,6 @@ public class SrsMp4Muxer {
      * the raw h.264 stream, in annexb.
      */
     class SrsRawH264Stream {
-        private SrsUtils utils;
-
-        public SrsRawH264Stream() {
-            utils = new SrsUtils();
-        }
-
         public boolean is_sps(SrsEsFrameBytes frame) {
             if (frame.size < 1) {
                 return false;
@@ -440,13 +371,37 @@ public class SrsMp4Muxer {
             return (frame.data.get(0) & 0x1f) == SrsAvcNaluType.PPS;
         }
 
+        public SrsAnnexbSearch srs_avc_startswith_annexb(ByteBuffer bb, MediaCodec.BufferInfo bi) {
+            SrsAnnexbSearch as = new SrsAnnexbSearch();
+            as.match = false;
+
+            int pos = bb.position();
+            while (pos < bi.size - 3) {
+                // not match.
+                if (bb.get(pos) != 0x00 || bb.get(pos + 1) != 0x00) {
+                    break;
+                }
+
+                // match N[00] 00 00 01, where N>=0
+                if (bb.get(pos + 2) == 0x01) {
+                    as.match = true;
+                    as.nb_start_code = pos + 3 - bb.position();
+                    break;
+                }
+
+                pos++;
+            }
+
+            return as;
+        }
+
         public SrsEsFrameBytes annexb_demux(ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
             SrsEsFrameBytes tbb = new SrsEsFrameBytes();
 
             while (bb.position() < bi.size) {
                 // each frame must prefixed by annexb format.
                 // about annexb, @see H.264-AVC-ISO_IEC_14496-10.pdf, page 211.
-                SrsAnnexbSearch tbbsc = utils.srs_avc_startswith_annexb(bb, bi);
+                SrsAnnexbSearch tbbsc = srs_avc_startswith_annexb(bb, bi);
                 if (!tbbsc.match || tbbsc.nb_start_code < 3) {
                     Log.e(TAG, "annexb not match.");
                     throw new IllegalArgumentException(String.format("annexb not match for %dB, pos=%d", bi.size, bb.position()));
@@ -462,7 +417,7 @@ public class SrsMp4Muxer {
                 tbb.data = bb.slice();
                 int pos = bb.position();
                 while (bb.position() < bi.size) {
-                    SrsAnnexbSearch bsc = utils.srs_avc_startswith_annexb(bb, bi);
+                    SrsAnnexbSearch bsc = srs_avc_startswith_annexb(bb, bi);
                     if (bsc.match) {
                         break;
                     }
@@ -717,7 +672,6 @@ public class SrsMp4Muxer {
     private FileOutputStream fos = null;
     private FileChannel fc = null;
     private long dataOffset = 0;
-    private long writedSinceLastMdat = 0;
     private HashMap<Track, long[]> track2SampleSizes = new HashMap<>();
 
     private void createMovie(File outputFile) throws IOException {
@@ -728,7 +682,6 @@ public class SrsMp4Muxer {
         FileTypeBox fileTypeBox = createFileTypeBox();
         fileTypeBox.getBox(fc);
         dataOffset += fileTypeBox.getSize();
-        writedSinceLastMdat += fileTypeBox.getSize();
     }
 
     private void flushCurrentMdat() throws IOException {
@@ -747,7 +700,6 @@ public class SrsMp4Muxer {
             mdat.getBox(fc);
             mdat.setDataOffset(dataOffset);
             dataOffset += 16;
-            writedSinceLastMdat += 16;
             mdat.first = false;
         }
 
@@ -763,7 +715,6 @@ public class SrsMp4Muxer {
             fc.write(size);
         }
         dataOffset += bufferInfo.size;
-        writedSinceLastMdat += bufferInfo.size;
 
         fc.write(byteBuf);
         fos.flush();
@@ -794,7 +745,6 @@ public class SrsMp4Muxer {
         mp4Movie.getTracks().clear();
         aacSpecConfig = false;
         dataOffset = 0;
-        writedSinceLastMdat = 0;
     }
 
     private FileTypeBox createFileTypeBox() {

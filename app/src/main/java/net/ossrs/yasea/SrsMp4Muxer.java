@@ -668,7 +668,7 @@ public class SrsMp4Muxer {
     private InterleaveChunkMdat mdat = null;
     private FileOutputStream fos = null;
     private FileChannel fc = null;
-    private volatile long dataOffset = 0;
+    private volatile long recFileSize = 0;
     private HashMap<Track, long[]> track2SampleSizes = new HashMap<>();
 
     private void createMovie(File outputFile) throws IOException {
@@ -678,13 +678,13 @@ public class SrsMp4Muxer {
 
         FileTypeBox fileTypeBox = createFileTypeBox();
         fileTypeBox.getBox(fc);
-        dataOffset += fileTypeBox.getSize();
+        recFileSize += fileTypeBox.getSize();
     }
 
     private void flushCurrentMdat() throws IOException {
         long oldPosition = fc.position();
         fc.position(mdat.getStartOffset());
-        mdat.setContentSize(dataOffset - mdat.getHeaderSize() - mdat.getStartOffset());
+        mdat.setContentSize(recFileSize - mdat.getHeaderSize() - mdat.getStartOffset());
         mdat.getBox(fc);
         fc.position(oldPosition);
         mdat.setStartOffset(0);
@@ -696,12 +696,12 @@ public class SrsMp4Muxer {
         if (mdat.first) {
             mdat.setContentSize(0);
             mdat.getBox(fc);
-            mdat.setStartOffset(dataOffset);
-            dataOffset += mdat.getHeaderSize();
+            mdat.setStartOffset(recFileSize);
+            recFileSize += mdat.getHeaderSize();
             mdat.first = false;
         }
 
-        mp4Movie.addSample(trackIndex, dataOffset, bufferInfo);
+        mp4Movie.addSample(trackIndex, recFileSize, bufferInfo);
         byteBuf.position(bufferInfo.offset + (isAudio ? 0 : 4));
         byteBuf.limit(bufferInfo.offset + bufferInfo.size);
         if (!isAudio) {
@@ -709,11 +709,9 @@ public class SrsMp4Muxer {
             size.position(0);
             size.putInt(bufferInfo.size - 4);
             size.position(0);
-            fc.write(size);
+            recFileSize += fc.write(size);
         }
-        dataOffset += bufferInfo.size;
-
-        fc.write(byteBuf);
+        recFileSize += fc.write(byteBuf);
         fos.flush();
     }
 
@@ -741,7 +739,7 @@ public class SrsMp4Muxer {
         ppsList.clear();
         mp4Movie.getTracks().clear();
         aacSpecConfig = false;
-        dataOffset = 0;
+        recFileSize = 0;
     }
 
     private FileTypeBox createFileTypeBox() {

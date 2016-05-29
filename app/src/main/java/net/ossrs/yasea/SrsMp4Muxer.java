@@ -81,6 +81,7 @@ public class SrsMp4Muxer {
     private ArrayList<byte[]> ppsList = new ArrayList<>();
 
     private Thread worker;
+    private volatile boolean bRecording = false;
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<SrsEsFrame> frameCache = new ConcurrentLinkedQueue<>();
 
@@ -114,10 +115,6 @@ public class SrsMp4Muxer {
 
         void onAudioTrackBuilt(String msg);
 
-        void onVideoRecording(String msg);
-
-        void onAudioRecording(String msg);
-
         void onRecordStarted(String msg);
 
         void onRecordFinished(String msg);
@@ -134,18 +131,16 @@ public class SrsMp4Muxer {
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
-
-                while (!Thread.interrupted()) {
+                bRecording = true;
+                while (bRecording) {
                     // Keep at least one audio and video frame in cache to ensure monotonically increasing.
                     while (!frameCache.isEmpty()) {
                         SrsEsFrame frame = frameCache.poll();
                         try {
                             if (frame.is_video()) {
                                 writeSampleData(VIDEO_TRACK, frame.bb, frame.bi, false);
-                                mHandler.onVideoRecording("Video");
                             } else if (frame.is_audio()) {
                                 writeSampleData(AUDIO_TRACK, frame.bb, frame.bi, true);
-                                mHandler.onAudioRecording("Audio");
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -172,7 +167,7 @@ public class SrsMp4Muxer {
     public void stop() {
         if (worker != null) {
 
-            worker.interrupt();
+            bRecording = false;
             try {
                 worker.join();
             } catch (InterruptedException e) {
@@ -313,9 +308,11 @@ public class SrsMp4Muxer {
         frame.bi = bi;
         frame.track = track;
 
-        frameCache.add(frame);
-        synchronized (writeLock) {
-            writeLock.notifyAll();
+        if (bRecording) {
+            frameCache.add(frame);
+            synchronized (writeLock) {
+                writeLock.notifyAll();
+            }
         }
     }
 
@@ -671,7 +668,7 @@ public class SrsMp4Muxer {
     private InterleaveChunkMdat mdat = null;
     private FileOutputStream fos = null;
     private FileChannel fc = null;
-    private long dataOffset = 0;
+    private volatile long dataOffset = 0;
     private HashMap<Track, long[]> track2SampleSizes = new HashMap<>();
 
     private void createMovie(File outputFile) throws IOException {
@@ -686,10 +683,11 @@ public class SrsMp4Muxer {
 
     private void flushCurrentMdat() throws IOException {
         long oldPosition = fc.position();
-        fc.position(mdat.getOffset());
+        fc.position(mdat.getStartOffset());
+        mdat.setContentSize(dataOffset - mdat.getHeaderSize() - mdat.getStartOffset());
         mdat.getBox(fc);
         fc.position(oldPosition);
-        mdat.setDataOffset(0);
+        mdat.setStartOffset(0);
         mdat.setContentSize(0);
         fos.flush();
     }
@@ -698,12 +696,11 @@ public class SrsMp4Muxer {
         if (mdat.first) {
             mdat.setContentSize(0);
             mdat.getBox(fc);
-            mdat.setDataOffset(dataOffset);
-            dataOffset += 16;
+            mdat.setStartOffset(dataOffset);
+            dataOffset += mdat.getHeaderSize();
             mdat.first = false;
         }
 
-        mdat.setContentSize(mdat.getContentSize() + bufferInfo.size);
         mp4Movie.addSample(trackIndex, dataOffset, bufferInfo);
         byteBuf.position(bufferInfo.offset + (isAudio ? 0 : 4));
         byteBuf.limit(bufferInfo.offset + bufferInfo.size);
@@ -721,7 +718,7 @@ public class SrsMp4Muxer {
     }
 
     private void finishMovie() throws IOException {
-        if (mdat.getContentSize() != 0) {
+        if (mdat.getSize() != 0) {
             flushCurrentMdat();
         }
 
@@ -759,18 +756,18 @@ public class SrsMp4Muxer {
         private ContainerBox parent;
         private ByteBuffer header;
         private long contentSize = 1024 * 1024 * 1024;
-        private long dataOffset = 0;
+        private long startOffset = 0;
 
         public ContainerBox getParent() {
             return parent;
         }
 
-        public long getOffset() {
-            return dataOffset;
+        public long getStartOffset() {
+            return startOffset;
         }
 
-        public void setDataOffset(long offset) {
-            dataOffset = offset;
+        public void setStartOffset(long offset) {
+            startOffset = offset;
         }
 
         public void setParent(ContainerBox parent) {
@@ -791,6 +788,10 @@ public class SrsMp4Muxer {
 
         public long getSize() {
             return header.limit() + contentSize;
+        }
+
+        public int getHeaderSize() {
+            return header.limit();
         }
 
         private boolean isSmallBox(long contentSize) {

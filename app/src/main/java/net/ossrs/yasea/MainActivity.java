@@ -101,34 +101,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     }, new SrsMp4Muxer.EventHandler() {
         @Override
         public void onVideoTrackBuilt(String msg) {
-            mNotifyMsg = msg;
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
-                }
-            });
         }
 
         @Override
         public void onAudioTrackBuilt(String msg) {
-            mNotifyMsg = msg;
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        @Override
-        public void onVideoRecording(String msg) {
-
-        }
-
-        @Override
-        public void onAudioRecording(String msg) {
-
         }
 
         @Override

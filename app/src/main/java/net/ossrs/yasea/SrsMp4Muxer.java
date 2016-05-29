@@ -710,7 +710,7 @@ public class SrsMp4Muxer {
         if (!isAudio) {
             ByteBuffer size = ByteBuffer.allocateDirect(4);
             size.position(0);
-            size.putInt(bufferInfo.size);
+            size.putInt(bufferInfo.size - 4);
             size.position(0);
             fc.write(size);
         }

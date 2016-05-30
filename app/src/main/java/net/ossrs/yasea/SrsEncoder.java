@@ -155,10 +155,10 @@ public class SrsEncoder {
         return 0;
     }
 
-    public void stopRecord() {
+    public void pauseRecord() {
         if (mp4Muxer != null) {
-            Log.i(TAG, "stop MP4 muxer");
-            mp4Muxer.stop();
+            Log.i(TAG, "pause MP4 muxer");
+            mp4Muxer.pause();
         }
     }
 

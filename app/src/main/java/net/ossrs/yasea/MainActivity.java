@@ -186,6 +186,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                 stopPublish();
                 btnPublish.setEnabled(true);
                 btnStop.setEnabled(false);
+                btnRecord.setText("record");
             }
         });
 
@@ -204,12 +205,15 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         btnRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (btnRecord.getText() == "Record") {
+                if (btnRecord.getText().toString().contentEquals("record")) {
                     mEncoder.record();
-                    btnRecord.setText("Stop");
-                } else {
-                    mEncoder.stopRecord();
-                    btnRecord.setText("Record");
+                    btnRecord.setText("pause");
+                } else if (btnRecord.getText().toString().contentEquals("pause")) {
+                    mEncoder.pauseRecord();
+                    btnRecord.setText("resume");
+                } else if (btnRecord.getText().toString().contentEquals("resume")) {
+                    mEncoder.pauseRecord();
+                    btnRecord.setText("pause");
                 }
             }
         });

@@ -82,6 +82,8 @@ public class SrsMp4Muxer {
 
     private Thread worker;
     private volatile boolean bRecording = false;
+    private volatile boolean bPaused = false;
+    private volatile boolean needToSearchKeyFrame = false;
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<SrsEsFrame> frameCache = new ConcurrentLinkedQueue<>();
 
@@ -159,6 +161,16 @@ public class SrsMp4Muxer {
             }
         });
         worker.start();
+    }
+
+    /**
+     * pause recording.
+     */
+    public void pause() {
+        bPaused = !bPaused;
+        if (!bPaused) {
+            needToSearchKeyFrame = true;
+        }
     }
 
     /**
@@ -266,7 +278,7 @@ public class SrsMp4Muxer {
     public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
         int nal_unit_type = bb.get(4) & 0x1f;
         if (nal_unit_type == SrsAvcNaluType.IDR || nal_unit_type == SrsAvcNaluType.NonIDR) {
-            writeFrameByte(VIDEO_TRACK, bb, bi);
+            writeFrameByte(VIDEO_TRACK, bb, bi, nal_unit_type == SrsAvcNaluType.IDR);
         } else {
             while (bb.position() < bi.size) {
                 SrsEsFrameBytes frame = avc.annexb_demux(bb, bi);
@@ -305,20 +317,31 @@ public class SrsMp4Muxer {
             aacSpecConfig = true;
             mp4Movie.addTrack(audioFormat, true);
         } else {
-            writeFrameByte(AUDIO_TRACK, bb, bi);
+            writeFrameByte(AUDIO_TRACK, bb, bi, false);
         }
     }
 
-    private void writeFrameByte(int track, ByteBuffer bb, MediaCodec.BufferInfo bi) {
+    private void writeFrameByte(int track, ByteBuffer bb, MediaCodec.BufferInfo bi, boolean isKeyFrame) {
         SrsEsFrame frame = new SrsEsFrame();
         frame.bb = bb;
         frame.bi = bi;
+        frame.isKeyFrame = isKeyFrame;
         frame.track = track;
 
-        if (bRecording) {
-            frameCache.add(frame);
-            synchronized (writeLock) {
-                writeLock.notifyAll();
+        if (bRecording && !bPaused) {
+            if (needToSearchKeyFrame) {
+                if (frame.isKeyFrame) {
+                    needToSearchKeyFrame = false;
+                    frameCache.add(frame);
+                    synchronized (writeLock) {
+                        writeLock.notifyAll();
+                    }
+                }
+            } else {
+                frameCache.add(frame);
+                synchronized (writeLock) {
+                    writeLock.notifyAll();
+                }
             }
         }
     }
@@ -346,6 +369,7 @@ public class SrsMp4Muxer {
         public ByteBuffer bb;
         public MediaCodec.BufferInfo bi;
         public int track;
+        public boolean isKeyFrame;
 
         public boolean is_video() {
             return track == VIDEO_TRACK;
@@ -788,6 +812,7 @@ public class SrsMp4Muxer {
     private void finishMovie() throws IOException {
         if (flushBytes > 0) {
             fos.flush();
+            flushBytes = 0;
         }
         if (mdat.getSize() != 0) {
             // flush cached mdat box
@@ -819,6 +844,7 @@ public class SrsMp4Muxer {
         track2SampleSizes.clear();
         aacSpecConfig = false;
         recFileSize = 0;
+        flushBytes = 0;
     }
 
     private FileTypeBox createFileTypeBox() {

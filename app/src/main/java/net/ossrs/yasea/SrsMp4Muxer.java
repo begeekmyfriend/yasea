@@ -83,7 +83,7 @@ public class SrsMp4Muxer {
     private Thread worker;
     private volatile boolean bRecording = false;
     private volatile boolean bPaused = false;
-    private volatile boolean needToSearchKeyFrame = false;
+    private volatile boolean needToFindKeyFrame = false;
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<SrsEsFrame> frameCache = new ConcurrentLinkedQueue<>();
 
@@ -167,9 +167,11 @@ public class SrsMp4Muxer {
      * pause recording.
      */
     public void pause() {
-        bPaused = !bPaused;
-        if (!bPaused) {
-            needToSearchKeyFrame = true;
+        if (bRecording) {
+            bPaused = !bPaused;
+            if (!bPaused) {
+                needToFindKeyFrame = true;
+            }
         }
     }
 
@@ -178,8 +180,11 @@ public class SrsMp4Muxer {
      */
     public void stop() {
         if (worker != null) {
-
             bRecording = false;
+            bPaused = false;
+            needToFindKeyFrame = false;
+            aacSpecConfig = false;
+
             try {
                 worker.join();
             } catch (InterruptedException e) {
@@ -329,9 +334,9 @@ public class SrsMp4Muxer {
         frame.track = track;
 
         if (bRecording && !bPaused) {
-            if (needToSearchKeyFrame) {
+            if (needToFindKeyFrame) {
                 if (frame.isKeyFrame) {
-                    needToSearchKeyFrame = false;
+                    needToFindKeyFrame = false;
                     frameCache.add(frame);
                     synchronized (writeLock) {
                         writeLock.notifyAll();
@@ -842,7 +847,6 @@ public class SrsMp4Muxer {
         fos.close();
         mp4Movie.getTracks().clear();
         track2SampleSizes.clear();
-        aacSpecConfig = false;
         recFileSize = 0;
         flushBytes = 0;
     }

@@ -450,6 +450,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     @Override
     protected void onPause() {
         super.onPause();
+        mEncoder.pauseRecord();
         stopPublish();
     }
 

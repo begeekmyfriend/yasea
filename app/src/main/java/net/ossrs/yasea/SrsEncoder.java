@@ -55,13 +55,14 @@ public class SrsEncoder {
     private boolean mCameraFaceFront = true;
     private long mPresentTimeUs;
     private int vfmt_color;
-    private int vtrack;
-    private int atrack;
+    private int videoFlvTrack;
+    private int videoMp4Track;
+    private int audioFlvTrack;
+    private int audioMp4Track;
 
     public SrsEncoder(RtmpPublisher.EventHandler publisherHandler, SrsMp4Muxer.EventHandler recordHandler) {
         rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
-        recPath = Environment.getExternalStorageDirectory().getPath();
-        recPath += "/" + getRandomAlphaDigitString(13) + ".mp4";
+        recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
 
         flvMuxer = new SrsFlvMuxer(publisherHandler);
         mp4Muxer = new SrsMp4Muxer(recordHandler);
@@ -76,12 +77,23 @@ public class SrsEncoder {
         }
     }
 
-    public int start() {
+    public int record() {
         try {
-            //flvMuxer.start(rtmpUrl);
             mp4Muxer.start(new File(recPath));
         } catch (IOException e) {
-            Log.e(TAG, "start muxer failed.");
+            Log.e(TAG, "start MP4 muxer failed.");
+            e.printStackTrace();
+            return -1;
+        }
+
+        return 0;
+    }
+
+    public int start() {
+        try {
+            flvMuxer.start(rtmpUrl);
+        } catch (IOException e) {
+            Log.e(TAG, "start FLV muxer failed.");
             e.printStackTrace();
             return -1;
         }
@@ -109,8 +121,8 @@ public class SrsEncoder {
         audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the audio tracker to muxer.
-        //atrack = flvMuxer.addTrack(audioFormat);
-        atrack = mp4Muxer.addTrack(audioFormat);
+        audioFlvTrack = flvMuxer.addTrack(audioFormat);
+        audioMp4Track = mp4Muxer.addTrack(audioFormat);
 
         // vencoder yuv to 264 es stream.
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
@@ -133,14 +145,21 @@ public class SrsEncoder {
         videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
         vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the video tracker to muxer.
-        //vtrack = flvMuxer.addTrack(videoFormat);
-        vtrack = mp4Muxer.addTrack(videoFormat);
+        videoFlvTrack = flvMuxer.addTrack(videoFormat);
+        videoMp4Track = mp4Muxer.addTrack(videoFormat);
 
         // start device and encoder.
         vencoder.start();
         aencoder.start();
 
         return 0;
+    }
+
+    public void stopRecord() {
+        if (mp4Muxer != null) {
+            Log.i(TAG, "stop MP4 muxer");
+            mp4Muxer.stop();
+        }
     }
 
     public void stop() {
@@ -180,8 +199,9 @@ public class SrsEncoder {
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         try {
-            mp4Muxer.writeSampleData(vtrack, es, bi);
-            //flvMuxer.writeSampleData(vtrack, es, bi);
+            ByteBuffer record = es.duplicate();
+            mp4Muxer.writeSampleData(videoMp4Track, record, bi);
+            flvMuxer.writeSampleData(videoFlvTrack, es, bi);
         } catch (Exception e) {
             Log.e(TAG, "muxer write video sample failed.");
             e.printStackTrace();
@@ -258,8 +278,9 @@ public class SrsEncoder {
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         try {
-            //flvMuxer.writeSampleData(atrack, es, bi);
-            mp4Muxer.writeSampleData(atrack, es, bi);
+            ByteBuffer record = es.duplicate();
+            mp4Muxer.writeSampleData(audioMp4Track, record, bi);
+            flvMuxer.writeSampleData(audioFlvTrack, es, bi);
         } catch (Exception e) {
             Log.e(TAG, "muxer write audio sample failed.");
             e.printStackTrace();

@@ -155,7 +155,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         final Button btnPublish = (Button) findViewById(R.id.publish);
         final Button btnStop = (Button) findViewById(R.id.stop);
         final Button btnSwitch = (Button) findViewById(R.id.swCam);
-        final Button btnRotate = (Button) findViewById(R.id.rotate);
+        final Button btnRecord = (Button) findViewById(R.id.record);
         mCameraView = (SurfaceView) findViewById(R.id.preview);
         mCameraView.getHolder().addCallback(this);
         // mCameraView.getHolder().setFormat(SurfaceHolder.SURFACE_TYPE_HARDWARE);
@@ -201,12 +201,15 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
             }
         });
 
-        btnRotate.setOnClickListener(new View.OnClickListener() {
+        btnRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mCamera != null) {
-                    mPreviewRotation = (mPreviewRotation + 90) % 360;
-                    mCamera.setDisplayOrientation(mPreviewRotation);
+                if (btnRecord.getText() == "Record") {
+                    mEncoder.record();
+                    btnRecord.setText("Stop");
+                } else {
+                    mEncoder.stopRecord();
+                    btnRecord.setText("Record");
                 }
             }
         });

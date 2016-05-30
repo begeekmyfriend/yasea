@@ -75,8 +75,8 @@ public class SrsMp4Muxer {
     private Mp4Movie mp4Movie = new Mp4Movie();
 
     private boolean aacSpecConfig = false;
-    private byte[] h264_sps = null;
-    private byte[] h264_pps = null;
+    private ByteBuffer h264_sps = null;
+    private ByteBuffer h264_pps = null;
     private ArrayList<byte[]> spsList = new ArrayList<>();
     private ArrayList<byte[]> ppsList = new ArrayList<>();
 
@@ -270,19 +270,26 @@ public class SrsMp4Muxer {
         } else {
             while (bb.position() < bi.size) {
                 SrsEsFrameBytes frame = avc.annexb_demux(bb, bi);
-                // for sps
+
                 if (avc.is_sps(frame)) {
-                    h264_sps = new byte[frame.size];
-                    frame.data.get(h264_sps);
-                    spsList.add(h264_sps);
+                    if (!frame.data.equals(h264_sps)) {
+                        byte[] sps = new byte[frame.size];
+                        frame.data.get(sps);
+                        h264_sps = ByteBuffer.wrap(sps);
+                        spsList.clear();
+                        spsList.add(sps);
+                    }
                     continue;
                 }
 
-                // for pps
                 if (avc.is_pps(frame)) {
-                    h264_pps = new byte[frame.size];
-                    frame.data.get(h264_pps);
-                    ppsList.add(h264_pps);
+                    if (!frame.data.equals(h264_pps)) {
+                        byte[] pps = new byte[frame.size];
+                        frame.data.get(pps);
+                        h264_pps = ByteBuffer.wrap(pps);
+                        ppsList.clear();
+                        ppsList.add(pps);
+                    }
                     continue;
                 }
             }
@@ -494,9 +501,9 @@ public class SrsMp4Muxer {
 
                     AvcConfigurationBox avcConfigurationBox = new AvcConfigurationBox();
                     avcConfigurationBox.setConfigurationVersion(1);
-                    avcConfigurationBox.setAvcProfileIndication((int) h264_sps[1]);
+                    avcConfigurationBox.setAvcProfileIndication((int) h264_sps.get(1));
                     avcConfigurationBox.setProfileCompatibility(0);
-                    avcConfigurationBox.setAvcLevelIndication((int) h264_sps[3]);
+                    avcConfigurationBox.setAvcLevelIndication((int) h264_sps.get(3));
                     avcConfigurationBox.setLengthSizeMinusOne(3);
                     avcConfigurationBox.setSequenceParameterSets(spsList);
                     avcConfigurationBox.setPictureParameterSets(ppsList);
@@ -665,107 +672,14 @@ public class SrsMp4Muxer {
         }
     }
 
-    private InterleaveChunkMdat mdat = null;
-    private FileOutputStream fos = null;
-    private FileChannel fc = null;
-    private volatile long recFileSize = 0;
-    private HashMap<Track, long[]> track2SampleSizes = new HashMap<>();
-
-    private void createMovie(File outputFile) throws IOException {
-        fos = new FileOutputStream(outputFile);
-        fc = fos.getChannel();
-        mdat = new InterleaveChunkMdat();
-
-        FileTypeBox fileTypeBox = createFileTypeBox();
-        fileTypeBox.getBox(fc);
-        recFileSize += fileTypeBox.getSize();
-    }
-
-    private void flushCurrentMdat() throws IOException {
-        long oldPosition = fc.position();
-        fc.position(mdat.getStartOffset());
-        mdat.setContentSize(recFileSize - mdat.getHeaderSize() - mdat.getStartOffset());
-        mdat.getBox(fc);
-        fc.position(oldPosition);
-        mdat.setStartOffset(0);
-        mdat.setContentSize(0);
-        fos.flush();
-    }
-
-    private void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo, boolean isAudio) throws IOException {
-        if (mdat.first) {
-            mdat.setContentSize(0);
-            mdat.getBox(fc);
-            mdat.setStartOffset(recFileSize);
-            recFileSize += mdat.getHeaderSize();
-            mdat.first = false;
-        }
-
-        mp4Movie.addSample(trackIndex, recFileSize, bufferInfo);
-        byteBuf.position(bufferInfo.offset + (isAudio ? 0 : 4));
-        byteBuf.limit(bufferInfo.offset + bufferInfo.size);
-        if (!isAudio) {
-            ByteBuffer size = ByteBuffer.allocateDirect(4);
-            size.position(0);
-            size.putInt(bufferInfo.size - 4);
-            size.position(0);
-            recFileSize += fc.write(size);
-        }
-        recFileSize += fc.write(byteBuf);
-        fos.flush();
-    }
-
-    private void finishMovie() throws IOException {
-        if (mdat.getSize() != 0) {
-            flushCurrentMdat();
-        }
-
-        for (Track track : mp4Movie.getTracks().values()) {
-            List<Sample> samples = track.getSamples();
-            long[] sizes = new long[samples.size()];
-            for (int i = 0; i < sizes.length; i++) {
-                sizes[i] = samples.get(i).getSize();
-            }
-            track2SampleSizes.put(track, sizes);
-        }
-
-        Box moov = createMovieBox(mp4Movie);
-        moov.getBox(fc);
-        fos.flush();
-
-        fc.close();
-        fos.close();
-        spsList.clear();
-        ppsList.clear();
-        mp4Movie.getTracks().clear();
-        aacSpecConfig = false;
-        recFileSize = 0;
-    }
-
-    private FileTypeBox createFileTypeBox() {
-        LinkedList<String> minorBrands = new LinkedList<>();
-        minorBrands.add("isom");
-        minorBrands.add("3gp4");
-        return new FileTypeBox("isom", 0, minorBrands);
-    }
-
-    private class InterleaveChunkMdat implements Box {
+    public class InterleaveChunkMdat implements Box {
         private boolean first = true;
         private ContainerBox parent;
         private ByteBuffer header;
         private long contentSize = 1024 * 1024 * 1024;
-        private long startOffset = 0;
 
         public ContainerBox getParent() {
             return parent;
-        }
-
-        public long getStartOffset() {
-            return startOffset;
-        }
-
-        public void setStartOffset(long offset) {
-            startOffset = offset;
         }
 
         public void setParent(ContainerBox parent) {
@@ -817,6 +731,101 @@ public class SrsMp4Muxer {
         @Override
         public void parse(ReadableByteChannel readableByteChannel, ByteBuffer header, long contentSize, BoxParser boxParser) throws IOException {
         }
+    }
+
+    private InterleaveChunkMdat mdat = null;
+    private FileOutputStream fos = null;
+    private FileChannel fc = null;
+    private volatile long recFileSize = 0;
+    private volatile long mdatOffset = 0;
+    private volatile long flushBytes = 0;
+    private HashMap<Track, long[]> track2SampleSizes = new HashMap<>();
+
+    private void createMovie(File outputFile) throws IOException {
+        fos = new FileOutputStream(outputFile);
+        fc = fos.getChannel();
+        mdat = new InterleaveChunkMdat();
+        mdatOffset = 0;
+
+        FileTypeBox fileTypeBox = createFileTypeBox();
+        fileTypeBox.getBox(fc);
+        recFileSize += fileTypeBox.getSize();
+    }
+
+    private void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo, boolean isAudio) throws IOException {
+        if (!mp4Movie.getTracks().containsKey(trackIndex)) {
+            return;
+        }
+
+        if (mdat.first) {
+            mdat.setContentSize(0);
+            mdat.getBox(fc);
+            mdatOffset = recFileSize;
+            recFileSize += mdat.getHeaderSize();
+            mdat.first = false;
+        }
+
+        mp4Movie.addSample(trackIndex, recFileSize, bufferInfo);
+        byteBuf.position(bufferInfo.offset + (isAudio ? 0 : 4));
+        byteBuf.limit(bufferInfo.offset + bufferInfo.size);
+        if (!isAudio) {
+            ByteBuffer size = ByteBuffer.allocateDirect(4);
+            size.position(0);
+            size.putInt(bufferInfo.size - 4);
+            size.position(0);
+            recFileSize += fc.write(size);
+        }
+        int writeBytes = fc.write(byteBuf);
+
+        recFileSize += writeBytes;
+        flushBytes += writeBytes;
+        if (flushBytes > 64 * 1024) {
+            fos.flush();
+            flushBytes = 0;
+        }
+    }
+
+    private void finishMovie() throws IOException {
+        if (flushBytes > 0) {
+            fos.flush();
+        }
+        if (mdat.getSize() != 0) {
+            // flush cached mdat box
+            long oldPosition = fc.position();
+            fc.position(mdatOffset);
+            mdat.setContentSize(recFileSize - mdat.getHeaderSize() - mdatOffset);
+            mdat.getBox(fc);
+            fc.position(oldPosition);
+            mdat.setContentSize(0);
+            fos.flush();
+        }
+
+        for (Track track : mp4Movie.getTracks().values()) {
+            List<Sample> samples = track.getSamples();
+            long[] sizes = new long[samples.size()];
+            for (int i = 0; i < sizes.length; i++) {
+                sizes[i] = samples.get(i).getSize();
+            }
+            track2SampleSizes.put(track, sizes);
+        }
+
+        Box moov = createMovieBox(mp4Movie);
+        moov.getBox(fc);
+        fos.flush();
+
+        fc.close();
+        fos.close();
+        mp4Movie.getTracks().clear();
+        track2SampleSizes.clear();
+        aacSpecConfig = false;
+        recFileSize = 0;
+    }
+
+    private FileTypeBox createFileTypeBox() {
+        LinkedList<String> minorBrands = new LinkedList<>();
+        minorBrands.add("isom");
+        minorBrands.add("3gp4");
+        return new FileTypeBox("isom", 0, minorBrands);
     }
 
     private static long gcd(long a, long b) {

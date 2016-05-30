@@ -35,8 +35,8 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="rotate"
-        android:id="@+id/rotate"
+        android:text="record"
+        android:id="@+id/record"
         android:layout_above="@+id/url"
         android:layout_toRightOf="@id/swCam" />
 

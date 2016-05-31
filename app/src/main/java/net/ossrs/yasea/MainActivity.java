@@ -7,6 +7,7 @@ import android.hardware.Camera.Size;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,10 +19,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import net.ossrs.yasea.rtmp.RtmpPublisher;
-
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
+
+import net.ossrs.yasea.rtmp.RtmpPublisher;
 
 public class MainActivity extends Activity implements SurfaceHolder.Callback, Camera.PreviewCallback {
     private static final String TAG = "Yasea";
@@ -34,14 +37,15 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     private Camera mCamera = null;
 
     private int mPreviewRotation = 90;
-    private int mDisplayRotation = 90;
     private int mCamId = Camera.getNumberOfCameras() - 1; // default camera
     private byte[] mYuvFrameBuffer = new byte[SrsEncoder.VWIDTH * SrsEncoder.VHEIGHT * 3 / 2];
 
     private String mNotifyMsg;
     private SharedPreferences sp;
+    private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
+    private String recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
 
-    private SrsEncoder mEncoder = new SrsEncoder(new RtmpPublisher.EventHandler() {
+    private SrsFlvMuxer flvMuxer = new SrsFlvMuxer(new RtmpPublisher.EventHandler() {
         @Override
         public void onRtmpConnecting(String msg) {
             mNotifyMsg = msg;
@@ -98,7 +102,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         public void onRtmpOutputFps(final double fps) {
             Log.i(TAG, String.format("Output Fps: %f", fps));
         }
-    }, new SrsMp4Muxer.EventHandler() {
+    });
+
+    private SrsMp4Muxer mp4Muxer = new SrsMp4Muxer(new SrsMp4Muxer.EventHandler() {
         @Override
         public void onRecordPause(String msg) {
             mNotifyMsg = msg;
@@ -144,6 +150,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         }
     });
 
+    private SrsEncoder mEncoder = new SrsEncoder(flvMuxer, mp4Muxer);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -153,54 +161,48 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 
         // restore data.
         sp = getSharedPreferences("SrsPublisher", MODE_PRIVATE);
-        SrsEncoder.rtmpUrl = sp.getString("rtmpUrl", SrsEncoder.rtmpUrl);
-        SrsEncoder.vbitrate = sp.getInt("vbitrate", SrsEncoder.vbitrate);
-        Log.i(TAG, String.format("init rtmp url %s, vbitrate=%dkbps", SrsEncoder.rtmpUrl, SrsEncoder.vbitrate));
+        rtmpUrl = sp.getString("rtmpUrl", rtmpUrl);
 
         // initialize url.
         final EditText efu = (EditText) findViewById(R.id.url);
-        efu.setText(SrsEncoder.rtmpUrl);
-
-        // initialize video bitrate.
-        final EditText evb = (EditText) findViewById(R.id.vbitrate);
-        evb.setText(String.format("%dkbps", SrsEncoder.vbitrate / 1000));
+        efu.setText(rtmpUrl);
 
         // for camera, @see https://developer.android.com/reference/android/hardware/Camera.html
         final Button btnPublish = (Button) findViewById(R.id.publish);
-        final Button btnStop = (Button) findViewById(R.id.stop);
         final Button btnSwitch = (Button) findViewById(R.id.swCam);
         final Button btnRecord = (Button) findViewById(R.id.record);
         mCameraView = (SurfaceView) findViewById(R.id.preview);
         mCameraView.getHolder().addCallback(this);
         // mCameraView.getHolder().setFormat(SurfaceHolder.SURFACE_TYPE_HARDWARE);
-        btnPublish.setEnabled(true);
-        btnStop.setEnabled(false);
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int vb = Integer.parseInt(evb.getText().toString().replaceAll("kbps", ""));
-                SrsEncoder.vbitrate = vb * 1000;
-                SrsEncoder.rtmpUrl = efu.getText().toString();
-                Log.i(TAG, String.format("RTMP URL changed to %s", SrsEncoder.rtmpUrl));
-                Log.i(TAG, String.format("Video bitrate changed to %skbps", SrsEncoder.vbitrate / 1000));
-                SharedPreferences.Editor editor = sp.edit();
-                editor.putInt("vbitrate", SrsEncoder.vbitrate);
-                editor.putString("rtmpUrl", SrsEncoder.rtmpUrl);
-                editor.commit();
-                btnPublish.setEnabled(false);
-                btnStop.setEnabled(true);
-                startPublish();
-            }
-        });
+                if (btnPublish.getText().toString().contentEquals("publish")) {
+                    rtmpUrl = efu.getText().toString();
+                    Log.i(TAG, String.format("RTMP URL changed to %s", rtmpUrl));
+                    SharedPreferences.Editor editor = sp.edit();
+                    editor.putString("rtmpUrl", rtmpUrl);
+                    editor.commit();
 
-        btnStop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopPublish();
-                btnPublish.setEnabled(true);
-                btnStop.setEnabled(false);
-                btnRecord.setText("record");
+                    try {
+                        flvMuxer.start(rtmpUrl);
+                    } catch (IOException e) {
+                        Log.e(TAG, "start FLV muxer failed.");
+                        e.printStackTrace();
+                        return;
+                    }
+                    flvMuxer.setVideoResolution(mEncoder.VCROP_WIDTH, mEncoder.VCROP_HEIGHT);
+
+                    startEncoder();
+                    btnPublish.setText("stop");
+                } else if (btnPublish.getText().toString().contentEquals("stop")) {
+                    stopEncoder();
+                    flvMuxer.stop();
+                    mp4Muxer.stop();
+                    btnPublish.setText("publish");
+                    btnRecord.setText("record");
+                }
             }
         });
 
@@ -220,13 +222,18 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
             @Override
             public void onClick(View v) {
                 if (btnRecord.getText().toString().contentEquals("record")) {
-                    mEncoder.record();
+                    try {
+                        mp4Muxer.record(new File(recPath));
+                    } catch (IOException e) {
+                        Log.e(TAG, "start MP4 muxer failed.");
+                        e.printStackTrace();
+                    }
                     btnRecord.setText("pause");
                 } else if (btnRecord.getText().toString().contentEquals("pause")) {
-                    mEncoder.pauseRecord();
+                    mp4Muxer.pause();
                     btnRecord.setText("resume");
                 } else if (btnRecord.getText().toString().contentEquals("resume")) {
-                    mEncoder.pauseRecord();
+                    mp4Muxer.resume();
                     btnRecord.setText("pause");
                 }
             }
@@ -240,9 +247,11 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                     @Override
                     public void run() {
                         Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_LONG).show();
-                        btnPublish.setEnabled(true);
-                        btnStop.setEnabled(false);
-                        stopPublish();
+                        stopEncoder();
+                        flvMuxer.stop();
+                        mp4Muxer.stop();
+                        btnPublish.setText("publish");
+                        btnRecord.setText("record");
                     }
                 });
             }
@@ -282,16 +291,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         }
 
         mCamera = Camera.open(mCamId);
-
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        Camera.getCameraInfo(mCamId, info);
-        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT){
-            mDisplayRotation = (mPreviewRotation + 180) % 360;
-            mDisplayRotation = (360 - mDisplayRotation) % 360;
-        } else {
-            mDisplayRotation = mPreviewRotation;
-        }
-
         Camera.Parameters params = mCamera.getParameters();
 		/* preview size  */
         Size size = mCamera.new Size(SrsEncoder.VWIDTH, SrsEncoder.VHEIGHT);
@@ -398,7 +397,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         }
     }
 
-    private void startPublish() {
+    private void startEncoder() {
         int ret = mEncoder.start();
         if (ret < 0) {
             return;
@@ -417,13 +416,13 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         aworker.start();
     }
 
-    private void stopPublish() {
+    private void stopEncorder() {
         stopAudio();
         stopCamera();
         mEncoder.stop();
     }
 
-    private int[] findClosestFpsRange(int expectedFps, List<int[]> fpsRanges) {
+    private static int[] findClosestFpsRange(int expectedFps, List<int[]> fpsRanges) {
         expectedFps *= 1000;
         int[] closestRange = fpsRanges.get(0);
         int measure = Math.abs(closestRange[0] - expectedFps) + Math.abs(closestRange[1] - expectedFps);
@@ -437,6 +436,28 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
             }
         }
         return closestRange;
+    }
+
+    private static String getRandomAlphaString(int length) {
+        String base = "abcdefghijklmnopqrstuvwxyz";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            int number = random.nextInt(base.length());
+            sb.append(base.charAt(number));
+        }
+        return sb.toString();
+    }
+
+    private static String getRandomAlphaDigitString(int length) {
+        String base = "abcdefghijklmnopqrstuvwxyz0123456789";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            int number = random.nextInt(base.length());
+            sb.append(base.charAt(number));
+        }
+        return sb.toString();
     }
 
     @Override
@@ -459,18 +480,20 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         super.onResume();
         final Button btn = (Button) findViewById(R.id.publish);
         btn.setEnabled(true);
+        mp4Muxer.resume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mEncoder.pauseRecord();
-        stopPublish();
+        mp4Muxer.pause();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopPublish();
+        stopEncoder();
+        flvMuxer.stop();
+        mp4Muxer.stop();
     }
 }

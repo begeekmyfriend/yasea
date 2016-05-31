@@ -125,7 +125,7 @@ public class SrsMp4Muxer {
     /**
      * start recording.
      */
-    public void start(File outputFile) throws IOException {
+    public void record(File outputFile) throws IOException {
         mRecFile = outputFile;
         createMovie(mRecFile);
         mHandler.onRecordStarted(mRecFile.getPath());
@@ -168,13 +168,19 @@ public class SrsMp4Muxer {
      */
     public void pause() {
         if (bRecording) {
-            bPaused = !bPaused;
-            if (!bPaused) {
-                needToFindKeyFrame = true;
-                mHandler.onRecordPause("Recording resume");
-            } else {
-                mHandler.onRecordPause("Recording pause");
-            }
+            bPaused = true;
+            mHandler.onRecordPause("Recording pause");
+        }
+    }
+
+    /**
+     * resume recording.
+     */
+    public void resume() {
+        if (bRecording) {
+            bPaused = false;
+            needToFindKeyFrame = true;
+            mHandler.onRecordResume("Recording resume");
         }
     }
 

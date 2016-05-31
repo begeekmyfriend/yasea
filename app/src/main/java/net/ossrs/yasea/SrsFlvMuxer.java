@@ -97,9 +97,10 @@ public class SrsFlvMuxer {
         if (format.getString(MediaFormat.KEY_MIME) == MediaFormat.MIMETYPE_VIDEO_AVC) {
             flv.setVideoTrack(format);
             return VIDEO_TRACK;
+        } else {
+            flv.setAudioTrack(format);
+            return AUDIO_TRACK;
         }
-        flv.setAudioTrack(format);
-        return AUDIO_TRACK;
     }
 
     private void disconnect() {

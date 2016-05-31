@@ -6,15 +6,10 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
-import android.os.Environment;
 import android.util.Log;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Random;
-
-import net.ossrs.yasea.rtmp.RtmpPublisher;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -24,12 +19,9 @@ public class SrsEncoder {
 
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
-    public static String rtmpUrl = "";
-    public static String recPath = "";
-
     public static final int VWIDTH = 640;
     public static final int VHEIGHT = 480;
-    public static int vbitrate = 500 * 1000;  // 500kbps
+    public static final int VBITRATE = 500 * 1000;  // 500kbps
     public static final int VCROP_WIDTH = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static final int VCROP_HEIGHT = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static final int VFPS = 24;
@@ -43,66 +35,46 @@ public class SrsEncoder {
     private SrsFlvMuxer flvMuxer;
     private SrsMp4Muxer mp4Muxer;
 
-    private MediaCodec vencoder;
     private MediaCodecInfo vmci;
-    private MediaCodec.BufferInfo vebi;
+    private MediaCodec vencoder;
     private MediaCodec aencoder;
-    private MediaCodec.BufferInfo aebi;
+    private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
+    private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
     private byte[] mRotatedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
     private byte[] mFlippedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
     private byte[] mCroppedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+
     private boolean mCameraFaceFront = true;
+
     private long mPresentTimeUs;
-    private int vfmt_color;
+
+    private int mVideoColorFormat;
+
     private int videoFlvTrack;
     private int videoMp4Track;
     private int audioFlvTrack;
     private int audioMp4Track;
 
-    public SrsEncoder(RtmpPublisher.EventHandler publisherHandler, SrsMp4Muxer.EventHandler recordHandler) {
-        rtmpUrl = "rtmp://ossrs.net:1935/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
-        recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
+    public SrsEncoder(SrsFlvMuxer flvMuxer, SrsMp4Muxer mp4Muxer) {
+        this.flvMuxer = flvMuxer;
+        this.mp4Muxer = mp4Muxer;
 
-        flvMuxer = new SrsFlvMuxer(publisherHandler);
-        mp4Muxer = new SrsMp4Muxer(recordHandler);
-
-        vfmt_color = chooseVideoEncoder();
-        if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
+        mVideoColorFormat = chooseVideoEncoder();
+        if (mVideoColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
             VFORMAT = ImageFormat.YV12;
-        } else if (vfmt_color == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar) {
+        } else if (mVideoColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar) {
             VFORMAT = ImageFormat.NV21;
         } else {
             throw new IllegalStateException("Unsupported color format!");
         }
     }
 
-    public int record() {
-        try {
-            mp4Muxer.start(new File(recPath));
-        } catch (IOException e) {
-            Log.e(TAG, "start MP4 muxer failed.");
-            e.printStackTrace();
-            return -1;
-        }
-
-        return 0;
-    }
-
     public int start() {
-        try {
-            flvMuxer.start(rtmpUrl);
-        } catch (IOException e) {
-            Log.e(TAG, "start FLV muxer failed.");
-            e.printStackTrace();
-            return -1;
-        }
-        flvMuxer.setVideoResolution(VCROP_WIDTH, VCROP_HEIGHT);
-
         // the referent PTS for video and audio encoder.
         mPresentTimeUs = System.nanoTime() / 1000;
 
-        // aencoder yuv to aac raw stream.
+        // aencoder pcm to aac raw stream.
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
         try {
             aencoder = MediaCodec.createEncoderByType(ACODEC);
@@ -111,7 +83,6 @@ public class SrsEncoder {
             e.printStackTrace();
             return -1;
         }
-        aebi = new MediaCodec.BufferInfo();
 
         // setup the aencoder.
         // @see https://developer.android.com/reference/android/media/MediaCodec.html
@@ -133,14 +104,13 @@ public class SrsEncoder {
             e.printStackTrace();
             return -1;
         }
-        vebi = new MediaCodec.BufferInfo();
 
         // setup the vencoder.
         // Note: landscape to portrait, 90 degree rotation, so we need to switch VWIDTH and VHEIGHT in configuration
         MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VCROP_WIDTH, VCROP_HEIGHT);
-        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vfmt_color);
+        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vbitrate);
+        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, VBITRATE);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
         videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
         vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -153,13 +123,6 @@ public class SrsEncoder {
         aencoder.start();
 
         return 0;
-    }
-
-    public void pauseRecord() {
-        if (mp4Muxer != null) {
-            Log.i(TAG, "pause MP4 muxer");
-            mp4Muxer.pause();
-        }
     }
 
     public void stop() {
@@ -175,16 +138,6 @@ public class SrsEncoder {
             vencoder.stop();
             vencoder.release();
             vencoder = null;
-        }
-
-        if (flvMuxer != null) {
-            Log.i(TAG, "stop FLV muxer");
-            flvMuxer.stop();
-        }
-
-        if (mp4Muxer != null) {
-            Log.i(TAG, "stop MP4 muxer");
-            mp4Muxer.stop();
         }
     }
 
@@ -210,7 +163,7 @@ public class SrsEncoder {
 
     private int preProcessYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
-            switch (vfmt_color) {
+            switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                     cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
                     flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
@@ -225,7 +178,7 @@ public class SrsEncoder {
                     throw new IllegalStateException("Unsupported color format!");
             }
         } else {
-            switch (vfmt_color) {
+            switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                     cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
                     rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, VCROP_HEIGHT, VCROP_WIDTH);
@@ -566,27 +519,5 @@ public class SrsEncoder {
 
         Log.i(TAG, String.format("vencoder %s choose color format 0x%x(%d)", vmci.getName(), matchedColorFormat, matchedColorFormat));
         return matchedColorFormat;
-    }
-
-    private static String getRandomAlphaString(int length) {
-        String base = "abcdefghijklmnopqrstuvwxyz";
-        Random random = new Random();
-        StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < length; i++) {
-            int number = random.nextInt(base.length());
-            sb.append(base.charAt(number));
-        }
-        return sb.toString();
-    }
-
-    private static String getRandomAlphaDigitString(int length) {
-        String base = "abcdefghijklmnopqrstuvwxyz0123456789";
-        Random random = new Random();
-        StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < length; i++) {
-            int number = random.nextInt(base.length());
-            sb.append(base.charAt(number));
-        }
-        return sb.toString();
     }
 }

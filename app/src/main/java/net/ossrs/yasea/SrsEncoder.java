@@ -113,7 +113,7 @@ public class SrsEncoder {
         // setup the vencoder.
         // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
         MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, vCropWidth, vCropHeight);
-        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, vfmt_color);
+        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, VBITRATE);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
@@ -211,7 +211,7 @@ public class SrsEncoder {
 
     private void landscapePreprocessYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
-            switch (vfmt_color) {
+            switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                     cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
                     flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropHeight, vCropWidth);
@@ -226,7 +226,7 @@ public class SrsEncoder {
                     throw new IllegalStateException("Unsupported color format!");
             }
         } else {
-            switch (vfmt_color) {
+            switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                     cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
                     unrotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);

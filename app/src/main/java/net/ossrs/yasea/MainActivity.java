@@ -31,6 +31,10 @@ import net.ossrs.yasea.rtmp.RtmpPublisher;
 public class MainActivity extends Activity implements SurfaceHolder.Callback, Camera.PreviewCallback {
     private static final String TAG = "Yasea";
 
+    Button btnPublish = null;
+    Button btnSwitch = null;
+    Button btnRecord = null;
+
     private AudioRecord mic = null;
     private boolean aloop = false;
     private Thread aworker = null;
@@ -173,9 +177,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         efu.setText(rtmpUrl);
 
         // for camera, @see https://developer.android.com/reference/android/hardware/Camera.html
-        final Button btnPublish = (Button) findViewById(R.id.publish);
-        final Button btnSwitch = (Button) findViewById(R.id.swCam);
-        final Button btnRecord = (Button) findViewById(R.id.record);
+        btnPublish = (Button) findViewById(R.id.publish);
+        btnSwitch = (Button) findViewById(R.id.swCam);
+        btnRecord = (Button) findViewById(R.id.record);
         mCameraView = (SurfaceView) findViewById(R.id.preview);
         mCameraView.getHolder().addCallback(this);
         // mCameraView.getHolder().setFormat(SurfaceHolder.SURFACE_TYPE_HARDWARE);
@@ -421,7 +425,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         aworker.start();
     }
 
-    private void stopEncorder() {
+    private void stopEncoder() {
         stopAudio();
         stopCamera();
         mEncoder.stop();
@@ -505,8 +509,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        stopPublish();
+        stopEncoder();
+        mp4Muxer.stop();
+        btnRecord.setText("record");
         mEncoder.setScreenOrientation(newConfig.orientation);
-        startPublish();
+        startEncoder();
     }
 }

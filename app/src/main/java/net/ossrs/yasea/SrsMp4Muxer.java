@@ -83,7 +83,7 @@ public class SrsMp4Muxer {
     private Thread worker;
     private volatile boolean bRecording = false;
     private volatile boolean bPaused = false;
-    private volatile boolean needToFindKeyFrame = false;
+    private volatile boolean needToFindKeyFrame = true;
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<SrsEsFrame> frameCache = new ConcurrentLinkedQueue<>();
 
@@ -113,9 +113,9 @@ public class SrsMp4Muxer {
      */
     interface EventHandler {
 
-        void onVideoTrackBuilt(String msg);
+        void onRecordPause(String msg);
 
-        void onAudioTrackBuilt(String msg);
+        void onRecordResume(String msg);
 
         void onRecordStarted(String msg);
 
@@ -171,6 +171,9 @@ public class SrsMp4Muxer {
             bPaused = !bPaused;
             if (!bPaused) {
                 needToFindKeyFrame = true;
+                mHandler.onRecordPause("Recording resume");
+            } else {
+                mHandler.onRecordPause("Recording pause");
             }
         }
     }
@@ -693,10 +696,8 @@ public class SrsMp4Muxer {
         public void addTrack(MediaFormat format, boolean isAudio) {
             if (isAudio) {
                 tracks.put(AUDIO_TRACK, new Track(tracks.size(), format, true));
-                mHandler.onAudioTrackBuilt("AAC specific configuration got");
             } else {
                 tracks.put(VIDEO_TRACK, new Track(tracks.size(), format, false));
-                mHandler.onVideoTrackBuilt("H.264 SPS PPS got");
             }
         }
     }

@@ -100,11 +100,25 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         }
     }, new SrsMp4Muxer.EventHandler() {
         @Override
-        public void onVideoTrackBuilt(String msg) {
+        public void onRecordPause(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         @Override
-        public void onAudioTrackBuilt(String msg) {
+        public void onRecordResume(String msg) {
+            mNotifyMsg = msg;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         @Override
@@ -120,7 +134,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 
         @Override
         public void onRecordFinished(String msg) {
-            mNotifyMsg = "File saved: " + msg;
+            mNotifyMsg = "MP4 file saved: " + msg;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

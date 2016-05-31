@@ -7,7 +7,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="net.ossrs.sea.MainActivity">
+    tools:context="net.ossrs.yasea.MainActivity">
 
     <Button
         android:layout_width="wrap_content"
@@ -19,48 +19,29 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="stop"
-        android:id="@+id/stop"
-        android:layout_toRightOf="@id/publish"
-        android:layout_marginTop="0dp" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:text="switch"
         android:id="@+id/swCam"
-        android:layout_alignBottom="@id/stop"
-        android:layout_toRightOf="@id/stop" />
+        android:layout_toRightOf="@id/publish" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="rotate"
-        android:id="@+id/rotate"
+        android:text="record"
+        android:id="@+id/record"
         android:layout_above="@+id/url"
         android:layout_toRightOf="@id/swCam" />
-
-    <EditText
-        android:id="@+id/vbitrate"
-        android:textSize="14dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/publish"
-        android:layout_marginTop="0dp" />
 
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="14dp"
         android:id="@+id/url"
-        android:layout_below="@id/publish"
-        android:layout_above="@+id/frameLayout"
-        android:layout_toRightOf="@id/vbitrate" />
+        android:layout_below="@id/publish" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/vbitrate"
+        android:layout_below="@id/url"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="0dp"
         android:id="@+id/frameLayout">

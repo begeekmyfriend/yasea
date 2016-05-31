@@ -3,19 +3,27 @@ Yet Another Stream Encoder for Android
 
 [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-yasea-green.svg?style=true)](https://android-arsenal.com/details/1/3481)
 
-**yasea** is an RTMP streaming client in pure Java for Android for those who
-hate JNI development. It is based on the source code of both [srs-sea](https://github.com/ossrs/srs-sea)
-and [SimpleRtmp](https://github.com/faucamp/SimpleRtmp) to hard encode video in
-H.264 frome camera and audio from phone in AAC and upload packets to server over
-RTMP. Moreover, hard encoding produces less CPU overhead than software does. And
-the code does not depend on any native library.
+**Yasea** is an Android streaming client written in pure Java. It is based on
+the source of both [srs-sea](https://github.com/ossrs/srs-sea) and [SimpleRtmp](https://github.com/faucamp/SimpleRtmp).
+It uses hard encoder for H.264/AAC and transmits over RTMP. Moreover, it runs
+on Android mini API 16 (Android 4.1).
 
-You may watch the live broadcast at [srs.net](http://www.ossrs.net/players/srs_player.html). Remember to modify the URL by yourself. Have fun!
+Feature
+-------
 
-**NOTE** if you feel high latency, it might be the frame cache of the server and
+- [x] Android mini API 16.
+- [x] H.264/AAC hard encoding.
+- [x] RTMP streaming with state callback handler.
+- [x] Portrait and landscape dynamic orientation.
+- [x] Front and back cameras hot switch.
+- [x] Recording to MP4 while streaming.
+- [ ] Authentication for RTMP server.
+
+Test
+----
+
+You may watch the live broadcasting at [srs.net](http://www.ossrs.net/players/srs_player.html).
+Remember to modify the URL by yourself. Have fun!
+
+**NOTE** if you feel high latency, it might be the frame cache of the server or
 player. So you need to open the player first and then publish to see the effect.
-
-**NOTE2** since this project has been a bit popular, you had better NOT use the
-default provided public URL such as `rtmp://ossrs.net:1935/live/yasea`, try something
-different like `rtmp://ossrs.net:1935/begeekmyfriend/puppydog` to avoid conflict.
-Otherwise the server may well cut off the connection.

@@ -11,6 +11,7 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -35,7 +36,7 @@ public class SrsEncoder {
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
-    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+    private volatile int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     private SrsFlvMuxer flvMuxer;
     private SrsMp4Muxer mp4Muxer;
@@ -46,9 +47,9 @@ public class SrsEncoder {
     private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
-    private byte[] mRotatedFrameBuffer = new byte[vCropWidth * vCropHeight * 3 / 2];
-    private byte[] mFlippedFrameBuffer = new byte[vCropWidth * vCropHeight * 3 / 2];
-    private byte[] mCroppedFrameBuffer = new byte[vCropWidth * vCropHeight * 3 / 2];
+    private byte[] mRotatedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+    private byte[] mFlippedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
+    private byte[] mCroppedFrameBuffer = new byte[VCROP_WIDTH * VCROP_HEIGHT * 3 / 2];
 
     private boolean mCameraFaceFront = true;
 
@@ -60,6 +61,11 @@ public class SrsEncoder {
     private int videoMp4Track;
     private int audioFlvTrack;
     private int audioMp4Track;
+
+    private Thread yuvPreprocessThread = null;
+    private ConcurrentLinkedQueue<byte[]> yuvQueue = new ConcurrentLinkedQueue<>();
+    private final Object yuvLock = new Object();
+    private volatile long yuvCacheNum = 0;
 
     public SrsEncoder(SrsFlvMuxer flvMuxer, SrsMp4Muxer mp4Muxer) {
         this.flvMuxer = flvMuxer;
@@ -127,10 +133,75 @@ public class SrsEncoder {
         vencoder.start();
         aencoder.start();
 
+        // better process YUV data in threading
+        yuvPreprocessThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                while (!Thread.interrupted()) {
+                    while (!yuvQueue.isEmpty()) {
+                        byte[] data = yuvQueue.poll();
+
+                        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                            portraitPreprocessYuvFrame(data);
+                        } else {
+                            landscapePreprocessYuvFrame(data);
+                        }
+
+                        ByteBuffer[] inBuffers = vencoder.getInputBuffers();
+                        ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
+
+                        int inBufferIndex = vencoder.dequeueInputBuffer(-1);
+                        if (inBufferIndex >= 0) {
+                            ByteBuffer bb = inBuffers[inBufferIndex];
+                            bb.clear();
+                            bb.put(mRotatedFrameBuffer, 0, mRotatedFrameBuffer.length);
+                            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+                            vencoder.queueInputBuffer(inBufferIndex, 0, mRotatedFrameBuffer.length, pts, 0);
+                        }
+
+                        for (; ; ) {
+                            int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
+                            if (outBufferIndex >= 0) {
+                                ByteBuffer bb = outBuffers[outBufferIndex];
+                                onEncodedAnnexbFrame(bb, vebi);
+                                vencoder.releaseOutputBuffer(outBufferIndex, false);
+                                yuvCacheNum--;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    // Wait for next yuv
+                    synchronized (yuvLock) {
+                        try {
+                            // isEmpty() may take some time, so time out should be set to wait the next one.
+                            yuvLock.wait(500);
+                        } catch (InterruptedException ex) {
+                            yuvPreprocessThread.interrupt();
+                        }
+                    }
+                }
+            }
+        });
+        yuvPreprocessThread.start();
+
         return 0;
     }
 
     public void stop() {
+        if (yuvPreprocessThread != null) {
+            yuvPreprocessThread.interrupt();
+            try {
+                yuvPreprocessThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                yuvPreprocessThread.interrupt();
+            }
+            yuvPreprocessThread = null;
+            yuvCacheNum = 0;
+        }
+
         if (aencoder != null) {
             Log.i(TAG, "stop aencoder");
             aencoder.stop();
@@ -174,6 +245,60 @@ public class SrsEncoder {
         } catch (Exception e) {
             Log.e(TAG, "muxer write video sample failed.");
             e.printStackTrace();
+        }
+    }
+
+    public void onGetYuvFrame(byte[] data) {
+        if (yuvCacheNum < VGOP) {
+            // Check video frame cache number to judge the networking situation.
+            // Just cache GOP / FPS seconds data according to latency.
+            if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
+                yuvQueue.add(data);
+                yuvCacheNum++;
+                synchronized (yuvLock) {
+                    yuvLock.notifyAll();
+                }
+            } else {
+                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                        new IOException("Network is weak"));
+            }
+        }
+    }
+
+    // when got encoded aac raw stream.
+    private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
+        try {
+            ByteBuffer record = es.duplicate();
+            mp4Muxer.writeSampleData(audioMp4Track, record, bi);
+            flvMuxer.writeSampleData(audioFlvTrack, es, bi);
+        } catch (Exception e) {
+            Log.e(TAG, "muxer write audio sample failed.");
+            e.printStackTrace();
+        }
+    }
+
+    public void onGetPcmFrame(byte[] data, int size) {
+        ByteBuffer[] inBuffers = aencoder.getInputBuffers();
+        ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
+
+        int inBufferIndex = aencoder.dequeueInputBuffer(-1);
+        if (inBufferIndex >= 0) {
+            ByteBuffer bb = inBuffers[inBufferIndex];
+            bb.clear();
+            bb.put(data, 0, size);
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
+        }
+
+        for (; ; ) {
+            int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
+            if (outBufferIndex >= 0) {
+                ByteBuffer bb = outBuffers[outBufferIndex];
+                onEncodedAacFrame(bb, aebi);
+                aencoder.releaseOutputBuffer(outBufferIndex, false);
+            } else {
+                break;
+            }
         }
     }
 
@@ -237,81 +362,6 @@ public class SrsEncoder {
                     break;
                 default:
                     throw new IllegalStateException("Unsupported color format!");
-            }
-        }
-    }
-    
-    public void onGetYuvFrame(byte[] data) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
-            if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                portraitPreprocessYuvFrame(data);
-            } else {
-                landscapePreprocessYuvFrame(data);
-            }
-
-            ByteBuffer[] inBuffers = vencoder.getInputBuffers();
-            ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
-
-            int inBufferIndex = vencoder.dequeueInputBuffer(-1);
-            if (inBufferIndex >= 0) {
-                ByteBuffer bb = inBuffers[inBufferIndex];
-                bb.clear();
-                bb.put(mRotatedFrameBuffer, 0, mRotatedFrameBuffer.length);
-                long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-                vencoder.queueInputBuffer(inBufferIndex, 0, mRotatedFrameBuffer.length, pts, 0);
-            }
-
-            for (; ; ) {
-                int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
-                if (outBufferIndex >= 0) {
-                    ByteBuffer bb = outBuffers[outBufferIndex];
-                    onEncodedAnnexbFrame(bb, vebi);
-                    vencoder.releaseOutputBuffer(outBufferIndex, false);
-                } else {
-                    break;
-                }
-            }
-        } else {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IOException("Network is weak"));
-        }
-    }
-
-    // when got encoded aac raw stream.
-    private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        try {
-            ByteBuffer record = es.duplicate();
-            mp4Muxer.writeSampleData(audioMp4Track, record, bi);
-            flvMuxer.writeSampleData(audioFlvTrack, es, bi);
-        } catch (Exception e) {
-            Log.e(TAG, "muxer write audio sample failed.");
-            e.printStackTrace();
-        }
-    }
-
-    public void onGetPcmFrame(byte[] data, int size) {
-        ByteBuffer[] inBuffers = aencoder.getInputBuffers();
-        ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
-
-        int inBufferIndex = aencoder.dequeueInputBuffer(-1);
-        if (inBufferIndex >= 0) {
-            ByteBuffer bb = inBuffers[inBufferIndex];
-            bb.clear();
-            bb.put(data, 0, size);
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
-        }
-
-        for (; ; ) {
-            int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
-            if (outBufferIndex >= 0) {
-                ByteBuffer bb = outBuffers[outBufferIndex];
-                onEncodedAacFrame(bb, aebi);
-                aencoder.releaseOutputBuffer(outBufferIndex, false);
-            } else {
-                break;
             }
         }
     }

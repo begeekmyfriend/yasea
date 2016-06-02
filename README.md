@@ -27,3 +27,9 @@ Remember to modify the URL by yourself. Have fun!
 
 **NOTE** if you feel high latency, it might be the frame cache of the server or
 player. So you need to open the player first and then publish to see the effect.
+
+Other Branch
+------------
+
+If you want to stay in portrait mode ignoring dynamic orientation change when
+streaming, clone yasea on brach [portrait-forever](https://github.com/begeekmyfriend/yasea/tree/portrait-forever).

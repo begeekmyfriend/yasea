@@ -139,11 +139,7 @@ public class SrsMp4Muxer {
                     while (!frameCache.isEmpty()) {
                         SrsEsFrame frame = frameCache.poll();
                         try {
-                            if (frame.is_video()) {
-                                writeSampleData(VIDEO_TRACK, frame.bb, frame.bi, false);
-                            } else if (frame.is_audio()) {
-                                writeSampleData(AUDIO_TRACK, frame.bb, frame.bi, true);
-                            }
+                            writeSampleData(frame.bb, frame.bi, frame.is_audio());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -188,12 +184,12 @@ public class SrsMp4Muxer {
      * finish recording.
      */
     public void stop() {
-        if (worker != null) {
-            bRecording = false;
-            bPaused = false;
-            needToFindKeyFrame = false;
-            aacSpecConfig = false;
+        bRecording = false;
+        bPaused = false;
+        needToFindKeyFrame = false;
+        aacSpecConfig = false;
 
+		if (worker != null) {
             try {
                 worker.join();
             } catch (InterruptedException e) {
@@ -209,7 +205,6 @@ public class SrsMp4Muxer {
             }
             mHandler.onRecordFinished(mRecFile.getPath());
         }
-
         Log.i(TAG, String.format("SrsMp4Muxer closed"));
     }
 
@@ -788,7 +783,8 @@ public class SrsMp4Muxer {
         recFileSize += fileTypeBox.getSize();
     }
 
-    private void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo, boolean isAudio) throws IOException {
+    private void writeSampleData(ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo, boolean isAudio) throws IOException {
+        int trackIndex = isAudio ? AUDIO_TRACK : VIDEO_TRACK;
         if (!mp4Movie.getTracks().containsKey(trackIndex)) {
             return;
         }

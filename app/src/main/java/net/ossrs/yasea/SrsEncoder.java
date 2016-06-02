@@ -12,6 +12,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -65,7 +66,7 @@ public class SrsEncoder {
     private Thread yuvPreprocessThread = null;
     private ConcurrentLinkedQueue<byte[]> yuvQueue = new ConcurrentLinkedQueue<>();
     private final Object yuvLock = new Object();
-    private volatile long yuvCacheNum = 0;
+    private AtomicInteger yuvCacheNum = new AtomicInteger(0);
 
     public SrsEncoder(SrsFlvMuxer flvMuxer, SrsMp4Muxer mp4Muxer) {
         this.flvMuxer = flvMuxer;
@@ -166,7 +167,7 @@ public class SrsEncoder {
                                 ByteBuffer bb = outBuffers[outBufferIndex];
                                 onEncodedAnnexbFrame(bb, vebi);
                                 vencoder.releaseOutputBuffer(outBufferIndex, false);
-                                yuvCacheNum--;
+                                yuvCacheNum.getAndDecrement();
                             } else {
                                 break;
                             }
@@ -199,7 +200,7 @@ public class SrsEncoder {
                 yuvPreprocessThread.interrupt();
             }
             yuvPreprocessThread = null;
-            yuvCacheNum = 0;
+            yuvCacheNum.set(0);
         }
 
         if (aencoder != null) {
@@ -249,12 +250,12 @@ public class SrsEncoder {
     }
 
     public void onGetYuvFrame(byte[] data) {
-        if (yuvCacheNum < VGOP) {
+        if (yuvCacheNum.get() < VGOP) {
             // Check video frame cache number to judge the networking situation.
             // Just cache GOP / FPS seconds data according to latency.
             if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
                 yuvQueue.add(data);
-                yuvCacheNum++;
+                yuvCacheNum.getAndIncrement();
                 synchronized (yuvLock) {
                     yuvLock.notifyAll();
                 }

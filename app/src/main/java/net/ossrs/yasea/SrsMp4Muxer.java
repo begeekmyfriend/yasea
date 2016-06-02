@@ -39,6 +39,7 @@ import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.AudioSpecificConfig;
 import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.DecoderConfigDescriptor;
 import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.ESDescriptor;
 import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.SLConfigDescriptor;
+import com.googlecode.mp4parser.util.Math;
 import com.googlecode.mp4parser.util.Matrix;
 
 import java.io.File;
@@ -861,20 +862,13 @@ public class SrsMp4Muxer {
         return new FileTypeBox("isom", 0, minorBrands);
     }
 
-    private static long gcd(long a, long b) {
-        if (b == 0) {
-            return a;
-        }
-        return gcd(b, a % b);
-    }
-
     private long getTimescale(Mp4Movie mp4Movie) {
         long timescale = 0;
         if (!mp4Movie.getTracks().isEmpty()) {
             timescale = mp4Movie.getTracks().values().iterator().next().getTimeScale();
         }
         for (Track track : mp4Movie.getTracks().values()) {
-            timescale = gcd(track.getTimeScale(), timescale);
+            timescale = Math.gcd(track.getTimeScale(), timescale);
         }
         return timescale;
     }

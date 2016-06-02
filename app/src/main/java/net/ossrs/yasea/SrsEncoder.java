@@ -231,7 +231,7 @@ public class SrsEncoder {
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
             vCropWidth = VCROP_WIDTH;
             vCropHeight = VCROP_HEIGHT;
-        } else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        } else if (mOrientation == Configuration.ORIENTATION_LANDSCAPE) {
             vCropWidth = VCROP_HEIGHT;
             vCropHeight = VCROP_WIDTH;
         }

@@ -182,7 +182,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         btnRecord = (Button) findViewById(R.id.record);
         mCameraView = (SurfaceView) findViewById(R.id.preview);
         mCameraView.getHolder().addCallback(this);
-        // mCameraView.getHolder().setFormat(SurfaceHolder.SURFACE_TYPE_HARDWARE);
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -477,6 +476,13 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     @Override
     public void surfaceCreated(SurfaceHolder arg0) {
         Log.d(TAG, "surfaceCreated");
+        if (mCamera != null) {
+            try {
+                mCamera.setPreviewDisplay(mCameraView.getHolder());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override

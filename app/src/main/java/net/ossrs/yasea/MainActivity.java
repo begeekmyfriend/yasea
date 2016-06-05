@@ -44,7 +44,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 
     private int mPreviewRotation = 90;
     private int mCamId = Camera.getNumberOfCameras() - 1; // default camera
-    private byte[] mYuvFrameBuffer = new byte[SrsEncoder.VWIDTH * SrsEncoder.VHEIGHT * 3 / 2];
+    private byte[] mYuvFrameBuffer = new byte[SrsEncoder.VPREV_WIDTH * SrsEncoder.VPREV_HEIGHT * 3 / 2];
 
     private String mNotifyMsg;
     private SharedPreferences sp;
@@ -301,7 +301,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         mCamera = Camera.open(mCamId);
         Camera.Parameters params = mCamera.getParameters();
 		/* preview size  */
-        Size size = mCamera.new Size(SrsEncoder.VWIDTH, SrsEncoder.VHEIGHT);
+        Size size = mCamera.new Size(SrsEncoder.VPREV_WIDTH, SrsEncoder.VPREV_HEIGHT);
         if (!params.getSupportedPreviewSizes().contains(size)) {
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
                     new IllegalArgumentException(String.format("Unsupported preview size %dx%d", size.width, size.height)));
@@ -317,8 +317,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         //params.set("orientation", "portrait");
         //params.set("orientation", "landscape");
         //params.setRotation(90);
-        params.setPictureSize(SrsEncoder.VWIDTH, SrsEncoder.VHEIGHT);
-        params.setPreviewSize(SrsEncoder.VWIDTH, SrsEncoder.VHEIGHT);
+        params.setPictureSize(SrsEncoder.VPREV_WIDTH, SrsEncoder.VPREV_HEIGHT);
+        params.setPreviewSize(SrsEncoder.VPREV_WIDTH, SrsEncoder.VPREV_HEIGHT);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewFormat(SrsEncoder.VFORMAT);

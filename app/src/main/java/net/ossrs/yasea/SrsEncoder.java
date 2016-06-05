@@ -22,10 +22,10 @@ public class SrsEncoder {
 
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
-    public static final int VWIDTH = 640;
-    public static final int VHEIGHT = 480;
-    public static final int VCROP_WIDTH = 384;
-    public static final int VCROP_HEIGHT = 640;
+    public static final int VPREV_WIDTH = 1280;
+    public static final int VPREV_HEIGHT = 720;
+    public static final int VCROP_WIDTH = 32 * 9 * 2;
+    public static final int VCROP_HEIGHT = 32 * 16 * 2;
     public static int vCropWidth = VCROP_WIDTH;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vCropHeight = VCROP_HEIGHT;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static final int VBITRATE = 500 * 1000;  // 500kbps
@@ -307,12 +307,12 @@ public class SrsEncoder {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    cropYUV420PlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
                     flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropHeight, vCropWidth);
                     rotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    cropYUV420SemiPlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
                     flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropHeight, vCropWidth);
                     rotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
@@ -322,11 +322,11 @@ public class SrsEncoder {
         } else {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    cropYUV420PlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
                     rotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
+                    cropYUV420SemiPlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropHeight, vCropWidth);
                     rotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropHeight, vCropWidth);
                     break;
                 default:
@@ -339,12 +339,12 @@ public class SrsEncoder {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    cropYUV420PlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
                     flipYUV420PlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropHeight, vCropWidth);
                     unrotateYUV420PlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    cropYUV420SemiPlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
                     flipYUV420SemiPlannerFrame(mCroppedFrameBuffer, mFlippedFrameBuffer, vCropWidth, vCropHeight);
                     unrotateYUV420SemiPlannerFrame(mFlippedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
                     break;
@@ -354,11 +354,11 @@ public class SrsEncoder {
         } else {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    cropYUV420PlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    cropYUV420PlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
                     unrotateYUV420PlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
                     break;
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    cropYUV420SemiPlannerFrame(data, VWIDTH, VHEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
+                    cropYUV420SemiPlannerFrame(data, VPREV_WIDTH, VPREV_HEIGHT, mCroppedFrameBuffer, vCropWidth, vCropHeight);
                     unrotateYUV420SemiPlannerFrame(mCroppedFrameBuffer, mRotatedFrameBuffer, vCropWidth, vCropHeight);
                     break;
                 default:
@@ -379,7 +379,7 @@ public class SrsEncoder {
     // YUY2 -> YUV422SP  yuyv yuyv
     private byte[] cropYUV420SemiPlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
         if (iw < ow || ih < oh) {
-            throw new AssertionError("Crop revolution size must be less than original one");
+            throw new AssertionError("Crop resolution size must be less than original one");
         }
         if (ow % 32 != 0 || oh % 32 != 0) {
             // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
@@ -413,7 +413,7 @@ public class SrsEncoder {
 
     private byte[] cropYUV420PlannerFrame(byte[] input, int iw, int ih, byte[] output, int ow, int oh) {
         if (iw < ow || ih < oh) {
-            throw new AssertionError("Crop revolution size must be less than original one");
+            throw new AssertionError("Crop resolution size must be less than original one");
         }
         if (ow % 32 != 0 || oh % 32 != 0) {
             // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK

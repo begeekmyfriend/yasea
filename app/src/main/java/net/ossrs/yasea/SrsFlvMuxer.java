@@ -94,7 +94,7 @@ public class SrsFlvMuxer {
      * @return The track index for this newly added track.
      */
     public int addTrack(MediaFormat format) {
-        if (format.getString(MediaFormat.KEY_MIME).equalsTo(MediaFormat.MIMETYPE_VIDEO_AVC)) {
+        if (format.getString(MediaFormat.KEY_MIME).contentEquals(SrsEncoder.VCODEC)) {
             flv.setVideoTrack(format);
             return VIDEO_TRACK;
         } else {

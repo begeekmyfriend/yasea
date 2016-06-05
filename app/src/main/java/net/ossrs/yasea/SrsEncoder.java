@@ -22,10 +22,10 @@ public class SrsEncoder {
 
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
-    public static final int VPREV_WIDTH = 1280;
-    public static final int VPREV_HEIGHT = 720;
-    public static final int VCROP_WIDTH = 32 * 9 * 2;
-    public static final int VCROP_HEIGHT = 32 * 16 * 2;
+    public static final int VPREV_WIDTH = 640;
+    public static final int VPREV_HEIGHT = 480;
+    public static final int VCROP_WIDTH = 384;
+    public static final int VCROP_HEIGHT = 640;
     public static int vCropWidth = VCROP_WIDTH;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vCropHeight = VCROP_HEIGHT;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static final int VBITRATE = 500 * 1000;  // 500kbps
@@ -99,7 +99,7 @@ public class SrsEncoder {
         // setup the aencoder.
         // @see https://developer.android.com/reference/android/media/MediaCodec.html
         int ach = ACHANNEL == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
-        MediaFormat audioFormat = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, ASAMPLERATE, ach);
+        MediaFormat audioFormat = MediaFormat.createAudioFormat(ACODEC, ASAMPLERATE, ach);
         audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, ABITRATE);
         audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -119,7 +119,7 @@ public class SrsEncoder {
 
         // setup the vencoder.
         // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
-        MediaFormat videoFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, vCropWidth, vCropHeight);
+        MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vCropWidth, vCropHeight);
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, VBITRATE);

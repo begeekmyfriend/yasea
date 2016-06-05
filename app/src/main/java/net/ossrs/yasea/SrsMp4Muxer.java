@@ -216,7 +216,7 @@ public class SrsMp4Muxer {
      * @return The track index for this newly added track.
      */
     public int addTrack(MediaFormat format) {
-        if (format.getString(MediaFormat.KEY_MIME) == MediaFormat.MIMETYPE_VIDEO_AVC) {
+        if (format.getString(MediaFormat.KEY_MIME).equalsTo(MediaFormat.MIMETYPE_VIDEO_AVC)) {
             videoFormat = format;
             return VIDEO_TRACK;
         } else {

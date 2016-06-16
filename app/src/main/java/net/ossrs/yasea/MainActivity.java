@@ -200,7 +200,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                         e.printStackTrace();
                         return;
                     }
-                    flvMuxer.setVideoResolution(mEncoder.VCROP_WIDTH, mEncoder.VCROP_HEIGHT);
+                    flvMuxer.setVideoResolution(mEncoder.VOUT_WIDTH, mEncoder.VOUT_HEIGHT);
 
                     startEncoder();
                     btnPublish.setText("stop");

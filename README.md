@@ -3,8 +3,8 @@ Yet Another Stream Encoder for Android
 
 [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-yasea-green.svg?style=true)](https://android-arsenal.com/details/1/3481)
 
-**Yasea** is an Android streaming client written in pure Java. It is based on
-the source of both [srs-sea](https://github.com/ossrs/srs-sea) and [SimpleRtmp](https://github.com/faucamp/SimpleRtmp).
+**Yasea** is an Android streaming client. It is based on the source of both
+[srs-sea](https://github.com/ossrs/srs-sea) and [SimpleRtmp](https://github.com/faucamp/SimpleRtmp).
 It uses hard encoder for H.264/AAC and transmits over RTMP. Moreover, it runs
 on Android mini API 16 (Android 4.1).
 

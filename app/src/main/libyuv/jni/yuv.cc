@@ -26,7 +26,7 @@ static struct YuvFrame i420_rotated_frame;
 static struct YuvFrame i420_scaled_frame;
 static struct YuvFrame output_frame;
 
-static void libyuv_setOutputResolution(JNIEnv* env, jobject thiz, jobject output_buffer, jint out_width, jint out_height) {
+static void libyuv_setOutputResolution(JNIEnv* env, jobject thiz, jint out_width, jint out_height) {
     int y_size = out_width * out_height;
 
     if (i420_scaled_frame.width != out_width || i420_scaled_frame.height != out_height) {
@@ -39,17 +39,19 @@ static void libyuv_setOutputResolution(JNIEnv* env, jobject thiz, jobject output
         i420_scaled_frame.v = i420_scaled_frame.u + y_size / 4;
     }
 
-    // Shared memory
-    output_frame.data = (uint8_t *)env->GetDirectBufferAddress(output_buffer);
-    output_frame.y = output_frame.data;
-    output_frame.u = output_frame.y + y_size;
-    output_frame.v = output_frame.u + y_size / 4;
-    output_frame.width = out_width;
-    output_frame.height = out_height;
+    if (output_frame.width != out_width || output_frame.height != out_height) {
+        free(output_frame.data);
+        output_frame.width = out_width;
+        output_frame.height = out_height;
+        output_frame.data = (uint8_t *) malloc(out_width * out_height * 3 / 2);
+        output_frame.y = output_frame.data;
+        output_frame.u = output_frame.y + y_size;
+        output_frame.v = output_frame.u + y_size / 4;
+    }
 }
 
 // For COLOR_FormatYUV420Planar
-static jint libyuv_NV21ToI420(JNIEnv* env, jobject thiz, jbyteArray frame, jint src_width, jint src_height,
+static jbyteArray libyuv_NV21ToI420(JNIEnv* env, jobject thiz, jbyteArray frame, jint src_width, jint src_height,
                                                         jboolean need_flip, jint rotate_degree) {
 	int y_size = src_width * src_height;
     jbyte* input_frame = env->GetByteArrayElements(frame, NULL);
@@ -86,7 +88,7 @@ static jint libyuv_NV21ToI420(JNIEnv* env, jobject thiz, jbyteArray frame, jint 
                              (RotationMode) rotate_degree, FOURCC_NV21);
     if (ret < 0) {
         LIBYUV_LOGE("ConvertToI420 failure");
-        return JNI_ERR;
+        return NULL;
     }
 
     ret = I420Scale(i420_rotated_frame.y, i420_rotated_frame.width,
@@ -100,15 +102,19 @@ static jint libyuv_NV21ToI420(JNIEnv* env, jobject thiz, jbyteArray frame, jint 
                     kFilterNone);
     if (ret < 0) {
          LIBYUV_LOGE("I420Scale failure");
-         return JNI_ERR;
+         return NULL;
     }
 
+    y_size = output_frame.width * output_frame.height;
+    jbyteArray outputFrame = env->NewByteArray(y_size * 3 / 2);
+    env->SetByteArrayRegion(outputFrame, 0, y_size * 3 / 2, (jbyte *) output_frame.data);
+
 	env->ReleaseByteArrayElements(frame, input_frame, JNI_ABORT);
-	return JNI_OK;
+	return outputFrame;
 }
 
 // For COLOR_FormatYUV420SemiPlanar
-static jint libyuv_NV21ToNV12(JNIEnv* env, jobject thiz, jbyteArray frame, jint src_width, jint src_height,
+static jbyteArray libyuv_NV21ToNV12(JNIEnv* env, jobject thiz, jbyteArray frame, jint src_width, jint src_height,
                                                         jboolean need_flip, jint rotate_degree) {
 	int y_size = src_width * src_height;
     jbyte* input_frame = env->GetByteArrayElements(frame, NULL);
@@ -145,7 +151,7 @@ static jint libyuv_NV21ToNV12(JNIEnv* env, jobject thiz, jbyteArray frame, jint 
                              (RotationMode) rotate_degree, FOURCC_NV21);
     if (ret < 0) {
         LIBYUV_LOGE("ConvertToI420 failure");
-        return JNI_ERR;
+        return NULL;
     }
 
     ret = I420Scale(i420_rotated_frame.y, i420_rotated_frame.width,
@@ -159,7 +165,7 @@ static jint libyuv_NV21ToNV12(JNIEnv* env, jobject thiz, jbyteArray frame, jint 
                     kFilterNone);
     if (ret < 0) {
          LIBYUV_LOGE("I420Scale failure");
-         return JNI_ERR;
+         return NULL;
     }
 
     ret = ConvertFromI420(i420_scaled_frame.y, i420_scaled_frame.width,
@@ -170,17 +176,21 @@ static jint libyuv_NV21ToNV12(JNIEnv* env, jobject thiz, jbyteArray frame, jint 
                           FOURCC_NV12);
     if (ret < 0) {
         LIBYUV_LOGE("ConvertFromI420 failure");
-        return JNI_ERR;
+        return NULL;
     }
 
+    y_size = output_frame.width * output_frame.height;
+    jbyteArray outputFrame = env->NewByteArray(y_size * 3 / 2);
+    env->SetByteArrayRegion(outputFrame, 0, y_size * 3 / 2, (jbyte *) output_frame.data);
+
 	env->ReleaseByteArrayElements(frame, input_frame, JNI_ABORT);
-	return JNI_OK;
+	return outputFrame;
 }
 
 static JNINativeMethod libyuv_methods[] = {
-	{ "setOutputResolution", "(Ljava/lang/Object;II)V", (void *)libyuv_setOutputResolution },
-	{ "NV21ToI420", "([BIIZI)I", (void *)libyuv_NV21ToI420 },
-	{ "NV21ToNV12", "([BIIZI)I", (void *)libyuv_NV21ToNV12 },
+	{ "setOutputResolution", "(II)V", (void *)libyuv_setOutputResolution },
+	{ "NV21ToI420", "([BIIZI)[B", (void *)libyuv_NV21ToI420 },
+	{ "NV21ToNV12", "([BIIZI)[B", (void *)libyuv_NV21ToNV12 },
 };
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {

@@ -11,6 +11,9 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.IllegalFormatCodePointException;
+import java.util.IllegalFormatException;
+import java.util.IllegalFormatWidthException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -58,8 +61,6 @@ public class SrsEncoder {
     private int videoMp4Track;
     private int audioFlvTrack;
     private int audioMp4Track;
-    
-    private ByteBuffer outputYuvFrame = ByteBuffer.allocateDirect(VOUT_WIDTH * VOUT_HEIGHT * 3 / 2);
 
     private Thread yuvPreprocessThread = null;
     private ConcurrentLinkedQueue<byte[]> yuvQueue = new ConcurrentLinkedQueue<>();
@@ -90,7 +91,7 @@ public class SrsEncoder {
             throw new IllegalStateException("Unsupported color format!");
         }
 
-        setOutputResolution(outputYuvFrame, VOUT_WIDTH, VOUT_HEIGHT);
+        setOutputResolution(VOUT_WIDTH, VOUT_HEIGHT);
     }
 
     public int start() {
@@ -153,12 +154,14 @@ public class SrsEncoder {
                 while (!Thread.interrupted()) {
                     while (!yuvQueue.isEmpty()) {
                         byte[] data = yuvQueue.poll();
-                        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                            portraitPreprocessYuvFrame(data);
+                        byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
+                                portraitPreprocessYuvFrame(data) : landscapePreprocessYuvFrame(data);
+                        if (processedData != null) {
+                            onProcessedYuvFrame(processedData);
                         } else {
-                            landscapePreprocessYuvFrame(data);
+                            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                                    new IllegalArgumentException("libyuv failure"));
                         }
-                        onoutputYuvFrame();
                     }
                     // Wait for next yuv
                     synchronized (yuvLock) {
@@ -222,10 +225,10 @@ public class SrsEncoder {
             vOutWidth = VOUT_HEIGHT;
             vOutHeight = VOUT_WIDTH;
         }
-        setOutputResolution(outputYuvFrame, vOutWidth, vOutHeight);
+        setOutputResolution(vOutWidth, vOutHeight);
     }
 
-    private void onoutputYuvFrame() {
+    private void onProcessedYuvFrame(byte[] yuvFrame) {
         ByteBuffer[] inBuffers = vencoder.getInputBuffers();
         ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
 
@@ -233,9 +236,9 @@ public class SrsEncoder {
         if (inBufferIndex >= 0) {
             ByteBuffer bb = inBuffers[inBufferIndex];
             bb.clear();
-            bb.put(outputYuvFrame.array(), 0, outputYuvFrame.array().length);
+            bb.put(yuvFrame, 0, yuvFrame.length);
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            vencoder.queueInputBuffer(inBufferIndex, 0, outputYuvFrame.array().length, pts, 0);
+            vencoder.queueInputBuffer(inBufferIndex, 0, yuvFrame.length, pts, 0);
         }
 
         for (; ; ) {
@@ -317,52 +320,44 @@ public class SrsEncoder {
         }
     }
 
-    private void portraitPreprocessYuvFrame(byte[] data) {
+    private byte[] portraitPreprocessYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270);
-                    break;
+                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270);
-                    break;
+                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
         } else {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90);
-                    break;
+                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90);
-                    break;
+                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
         }
     }
 
-    private void landscapePreprocessYuvFrame(byte[] data) {
+    private byte[] landscapePreprocessYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0);
-                    break;
+                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0);
-                    break;
+                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
         } else {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0);
-                    break;
+                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0);
-                    break;
+                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
@@ -430,9 +425,9 @@ public class SrsEncoder {
         return matchedColorFormat;
     }
 
-    private native void setOutputResolution(Object outputFrame, int outWidth, int outHeight);
-    private native int NV21ToI420(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
-    private native int NV21ToNV12(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
+    private native void setOutputResolution(int outWidth, int outHeight);
+    private native byte[] NV21ToI420(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
+    private native byte[] NV21ToNV12(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
 
     static {
         System.loadLibrary("yuv");

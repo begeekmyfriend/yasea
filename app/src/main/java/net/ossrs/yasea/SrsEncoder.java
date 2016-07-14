@@ -34,7 +34,7 @@ public class SrsEncoder {
     public static final int VBITRATE = 500 * 1000;  // 500kbps
     public static final int VFPS = 24;
     public static final int VGOP = 48;
-    public static int VFORMAT = ImageFormat.YV12;
+    public static final int VFORMAT = ImageFormat.NV21;
     public static final int ASAMPLERATE = 44100;
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
     public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
@@ -62,7 +62,7 @@ public class SrsEncoder {
     private int audioFlvTrack;
     private int audioMp4Track;
 
-    private Thread yuvPreprocessThread = null;
+    private Thread videoWorker = null;
     private ConcurrentLinkedQueue<byte[]> yuvQueue = new ConcurrentLinkedQueue<>();
     private final Object yuvLock = new Object();
     private AtomicInteger yuvCacheNum = new AtomicInteger(0);
@@ -83,13 +83,6 @@ public class SrsEncoder {
         this.mp4Muxer = mp4Muxer;
 
         mVideoColorFormat = chooseVideoEncoder();
-        if (mVideoColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) {
-            VFORMAT = ImageFormat.YV12;
-        } else if (mVideoColorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar) {
-            VFORMAT = ImageFormat.NV21;
-        } else {
-            throw new IllegalStateException("Unsupported color format!");
-        }
 
         setOutputResolution(VOUT_WIDTH, VOUT_HEIGHT);
     }
@@ -147,7 +140,7 @@ public class SrsEncoder {
         aencoder.start();
 
         // better process YUV data in threading
-        yuvPreprocessThread = new Thread(new Runnable() {
+        videoWorker = new Thread(new Runnable() {
             @Override
             public void run() {
 
@@ -169,27 +162,27 @@ public class SrsEncoder {
                             // isEmpty() may take some time, so time out should be set to wait the next one.
                             yuvLock.wait(500);
                         } catch (InterruptedException ex) {
-                            yuvPreprocessThread.interrupt();
+                            videoWorker.interrupt();
                         }
                     }
                 }
             }
         });
-        yuvPreprocessThread.start();
+        videoWorker.start();
 
         return 0;
     }
 
     public void stop() {
-        if (yuvPreprocessThread != null) {
-            yuvPreprocessThread.interrupt();
+        if (videoWorker != null) {
+            videoWorker.interrupt();
             try {
-                yuvPreprocessThread.join();
+                videoWorker.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                yuvPreprocessThread.interrupt();
+                videoWorker.interrupt();
             }
-            yuvPreprocessThread = null;
+            videoWorker = null;
             yuvCacheNum.set(0);
         }
 

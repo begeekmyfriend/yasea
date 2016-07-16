@@ -325,6 +325,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
         params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
         params.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);
         params.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
+        if (!params.getSupportedFocusModes().isEmpty()) {
+            params.setFocusMode(params.getSupportedFocusModes().get(0));
+        }
         mCamera.setParameters(params);
 
         mCamera.setDisplayOrientation(mPreviewRotation);

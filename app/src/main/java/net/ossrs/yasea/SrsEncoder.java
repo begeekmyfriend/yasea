@@ -27,7 +27,7 @@ public class SrsEncoder {
     public static final String ACODEC = "audio/mp4a-latm";
     public static final int VPREV_WIDTH = 1280;
     public static final int VPREV_HEIGHT = 720;
-    public static final int VOUT_WIDTH = 360;
+    public static final int VOUT_WIDTH = 368;
     public static final int VOUT_HEIGHT = 640;
     public static int vOutWidth = VOUT_WIDTH;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vOutHeight = VOUT_HEIGHT;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
@@ -52,6 +52,7 @@ public class SrsEncoder {
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
     private boolean mCameraFaceFront = true;
+    private boolean useSoftEncoder = false;
 
     private long mPresentTimeUs;
 
@@ -83,13 +84,28 @@ public class SrsEncoder {
         this.mp4Muxer = mp4Muxer;
 
         mVideoColorFormat = chooseVideoEncoder();
-
-        setOutputResolution(VOUT_WIDTH, VOUT_HEIGHT);
     }
 
-    public int start() {
+    public boolean start() {
         // the referent PTS for video and audio encoder.
         mPresentTimeUs = System.nanoTime() / 1000;
+
+        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+        if (!useSoftEncoder && vOutWidth % 32 != 0 || vOutHeight % 32 != 0) {
+            if (vmci.getName().contains("MTK")) {
+                throw new AssertionError("MTK encoding revolution stride must be 32x");
+            }
+        }
+
+        setOutputResolution(vOutWidth, vOutHeight);
+        setOutputFps(VFPS);
+        setOutputGop(VGOP);
+        setOutputBitrate(VBITRATE);
+
+        if (useSoftEncoder && !openSoftEncoder()) {
+            return false;
+        }
 
         // aencoder pcm to aac raw stream.
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
@@ -98,7 +114,7 @@ public class SrsEncoder {
         } catch (IOException e) {
             Log.e(TAG, "create aencoder failed.");
             e.printStackTrace();
-            return -1;
+            return false;
         }
 
         // setup the aencoder.
@@ -119,7 +135,7 @@ public class SrsEncoder {
         } catch (IOException e) {
             Log.e(TAG, "create vencoder failed.");
             e.printStackTrace();
-            return -1;
+            return false;
         }
 
         // setup the vencoder.
@@ -139,7 +155,7 @@ public class SrsEncoder {
         vencoder.start();
         aencoder.start();
 
-        // better process YUV data in threading
+        // Process YUV data in threading
         videoWorker = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -147,13 +163,22 @@ public class SrsEncoder {
                 while (!Thread.interrupted()) {
                     while (!yuvQueue.isEmpty()) {
                         byte[] data = yuvQueue.poll();
-                        byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
-                                portraitPreprocessYuvFrame(data) : landscapePreprocessYuvFrame(data);
-                        if (processedData != null) {
-                            onProcessedYuvFrame(processedData);
+                        long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+                        if (useSoftEncoder) {
+                            if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                                swPortraitYuvFrame(data, pts);
+                            } else {
+                                swLandscapeYuvFrame(data, pts);
+                            }
                         } else {
-                            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                                    new IllegalArgumentException("libyuv failure"));
+                            byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
+                                                   hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
+                            if (processedData != null) {
+                                onProcessedYuvFrame(processedData, pts);
+                            } else {
+                                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                                        new IllegalArgumentException("libyuv failure"));
+                            }
                         }
                     }
                     // Wait for next yuv
@@ -170,7 +195,7 @@ public class SrsEncoder {
         });
         videoWorker.start();
 
-        return 0;
+        return true;
     }
 
     public void stop() {
@@ -184,6 +209,10 @@ public class SrsEncoder {
             }
             videoWorker = null;
             yuvCacheNum.set(0);
+        }
+
+        if (useSoftEncoder) {
+            closeSoftEncoder();
         }
 
         if (aencoder != null) {
@@ -218,10 +247,19 @@ public class SrsEncoder {
             vOutWidth = VOUT_HEIGHT;
             vOutHeight = VOUT_WIDTH;
         }
+
+        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+        if (!useSoftEncoder && vOutWidth % 32 != 0 || vOutHeight % 32 != 0) {
+            if (vmci.getName().contains("MTK")) {
+                throw new AssertionError("MTK encoding revolution stride must be 32x");
+            }
+        }
+
         setOutputResolution(vOutWidth, vOutHeight);
     }
 
-    private void onProcessedYuvFrame(byte[] yuvFrame) {
+    private void onProcessedYuvFrame(byte[] yuvFrame, long pts) {
         ByteBuffer[] inBuffers = vencoder.getInputBuffers();
         ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
 
@@ -230,7 +268,6 @@ public class SrsEncoder {
             ByteBuffer bb = inBuffers[inBufferIndex];
             bb.clear();
             bb.put(yuvFrame, 0, yuvFrame.length);
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             vencoder.queueInputBuffer(inBufferIndex, 0, yuvFrame.length, pts, 0);
         }
 
@@ -245,6 +282,17 @@ public class SrsEncoder {
                 break;
             }
         }
+    }
+
+    private void onSoftEncodedData(byte[] es, long pts, boolean isKeyFrame) {
+        ByteBuffer bb = ByteBuffer.wrap(es);
+        vebi.offset = 0;
+        vebi.size = es.length;
+        vebi.presentationTimeUs = pts;
+        //vebi.presentationTimeUs = System.nanoTime() / 1000 - mPresentTimeUs;
+        vebi.flags = isKeyFrame ? MediaCodec.BUFFER_FLAG_KEY_FRAME : 0;
+        onEncodedAnnexbFrame(bb, vebi);
+        yuvCacheNum.getAndDecrement();
     }
 
     // when got encoded h264 es stream.
@@ -313,7 +361,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] portraitPreprocessYuvFrame(byte[] data) {
+    private byte[] hwPortraitYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
@@ -335,7 +383,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] landscapePreprocessYuvFrame(byte[] data) {
+    private byte[] hwLandscapeYuvFrame(byte[] data) {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
@@ -354,6 +402,22 @@ public class SrsEncoder {
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
+        }
+    }
+
+    private void swPortraitYuvFrame(byte[] data, long pts) {
+        if (mCameraFaceFront) {
+            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270, pts);
+        } else {
+            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90, pts);
+        }
+    }
+
+    private void swLandscapeYuvFrame(byte[] data, long pts) {
+        if (mCameraFaceFront) {
+            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0, pts);
+        } else {
+            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0, pts);
         }
     }
 
@@ -419,10 +483,17 @@ public class SrsEncoder {
     }
 
     private native void setOutputResolution(int outWidth, int outHeight);
+    private native void setOutputFps(int fps);
+    private native void setOutputGop(int gop);
+    private native void setOutputBitrate(int bitrate);
     private native byte[] NV21ToI420(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
     private native byte[] NV21ToNV12(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
+    private native int NV21SoftEncode(byte[] yuvFrame, int width, int height, boolean flip, int rotate, long pts);
+    private native boolean openSoftEncoder();
+    private native void closeSoftEncoder();
 
     static {
         System.loadLibrary("yuv");
+        System.loadLibrary("enc");
     }
 }

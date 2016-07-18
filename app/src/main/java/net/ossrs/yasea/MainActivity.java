@@ -409,8 +409,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     }
 
     private void startEncoder() {
-        int ret = mEncoder.start();
-        if (ret < 0) {
+        if (!mEncoder.start()) {
             return;
         }
 

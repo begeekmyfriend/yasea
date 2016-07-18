@@ -594,19 +594,19 @@ public class SrsMp4Muxer {
             }
         }
 
-        public void addSample(long offset, MediaCodec.BufferInfo bufferInfo) {
-            long delta = bufferInfo.presentationTimeUs - lastPresentationTimeUs;
+        public void addSample(long offset, MediaCodec.BufferInfo bi) {
+            long delta = bi.presentationTimeUs - lastPresentationTimeUs;
             if (delta < 0) {
                 return;
             }
-            boolean isSyncFrame = !isAudio && (bufferInfo.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
-            samples.add(new Sample(offset, bufferInfo.size));
+            boolean isSyncFrame = !isAudio && (bi.flags & MediaCodec.BUFFER_FLAG_SYNC_FRAME) != 0;
+            samples.add(new Sample(offset, bi.size));
             if (syncSamples != null && isSyncFrame) {
                 syncSamples.add(samples.size());
             }
 
             delta = (delta * timeScale + 500000L) / 1000000L;
-            lastPresentationTimeUs = bufferInfo.presentationTimeUs;
+            lastPresentationTimeUs = bi.presentationTimeUs;
             if (!first) {
                 sampleDurations.add(sampleDurations.size() - 1, delta);
                 duration += delta;
@@ -690,9 +690,9 @@ public class SrsMp4Muxer {
             return tracks;
         }
 
-        public void addSample(int trackIndex, long offset, MediaCodec.BufferInfo bufferInfo) {
+        public void addSample(int trackIndex, long offset, MediaCodec.BufferInfo bi) {
             Track track = tracks.get(trackIndex);
-            track.addSample(offset, bufferInfo);
+            track.addSample(offset, bi);
         }
 
         public void addTrack(MediaFormat format, boolean isAudio) {
@@ -784,7 +784,7 @@ public class SrsMp4Muxer {
         recFileSize += fileTypeBox.getSize();
     }
 
-    private void writeSampleData(ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo, boolean isAudio) throws IOException {
+    private void writeSampleData(ByteBuffer byteBuf, MediaCodec.BufferInfo bi, boolean isAudio) throws IOException {
         int trackIndex = isAudio ? AUDIO_TRACK : VIDEO_TRACK;
         if (!mp4Movie.getTracks().containsKey(trackIndex)) {
             return;
@@ -798,13 +798,13 @@ public class SrsMp4Muxer {
             mdat.first = false;
         }
 
-        mp4Movie.addSample(trackIndex, recFileSize, bufferInfo);
-        byteBuf.position(bufferInfo.offset + (isAudio ? 0 : 4));
-        byteBuf.limit(bufferInfo.offset + bufferInfo.size);
+        mp4Movie.addSample(trackIndex, recFileSize, bi);
+        byteBuf.position(bi.offset + (isAudio ? 0 : 4));
+        byteBuf.limit(bi.offset + bi.size);
         if (!isAudio) {
             ByteBuffer size = ByteBuffer.allocateDirect(4);
             size.position(0);
-            size.putInt(bufferInfo.size - 4);
+            size.putInt(bi.size - 4);
             size.position(0);
             recFileSize += fc.write(size);
         }

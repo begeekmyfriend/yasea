@@ -238,6 +238,14 @@ public class SrsEncoder {
         }
     }
 
+    public void swithToSoftEncoder() {
+        useSoftEncoder = true;
+    }
+
+    public void swithToHardEncoder() {
+        useSoftEncoder = false;
+    }
+
     public void setScreenOrientation(int orientation) {
         mOrientation = orientation;
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {

@@ -32,8 +32,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     private static final String TAG = "Yasea";
 
     Button btnPublish = null;
-    Button btnSwitch = null;
+    Button btnSwitchCamera = null;
     Button btnRecord = null;
+    Button btnSwitchEncoder = null;
 
     private AudioRecord mic = null;
     private boolean aloop = false;
@@ -178,8 +179,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
 
         // for camera, @see https://developer.android.com/reference/android/hardware/Camera.html
         btnPublish = (Button) findViewById(R.id.publish);
-        btnSwitch = (Button) findViewById(R.id.swCam);
+        btnSwitchCamera = (Button) findViewById(R.id.swCam);
         btnRecord = (Button) findViewById(R.id.record);
+        btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
         mCameraView = (SurfaceView) findViewById(R.id.preview);
         mCameraView.getHolder().addCallback(this);
 
@@ -203,18 +205,26 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                     flvMuxer.setVideoResolution(mEncoder.VOUT_WIDTH, mEncoder.VOUT_HEIGHT);
 
                     startEncoder();
+
+                    if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
+                        Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getApplicationContext(), "Use soft encoder", Toast.LENGTH_SHORT).show();
+                    }
                     btnPublish.setText("stop");
+                    btnSwitchEncoder.setEnabled(false);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     stopEncoder();
                     flvMuxer.stop();
                     mp4Muxer.stop();
                     btnPublish.setText("publish");
                     btnRecord.setText("record");
+                    btnSwitchEncoder.setEnabled(true);
                 }
             }
         });
 
-        btnSwitch.setOnClickListener(new View.OnClickListener() {
+        btnSwitchCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mCamera != null && mEncoder != null) {
@@ -243,6 +253,21 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                 } else if (btnRecord.getText().toString().contentEquals("resume")) {
                     mp4Muxer.resume();
                     btnRecord.setText("pause");
+                }
+            }
+        });
+
+        btnSwitchEncoder.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mEncoder != null) {
+                    if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
+                        mEncoder.swithToHardEncoder();
+                        btnSwitchEncoder.setText("hard enc");
+                    } else if (btnSwitchEncoder.getText().toString().contentEquals("hard enc")) {
+                        mEncoder.swithToSoftEncoder();
+                        btnSwitchEncoder.setText("soft enc");
+                    }
                 }
             }
         });

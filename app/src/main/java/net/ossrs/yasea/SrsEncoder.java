@@ -11,11 +11,6 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.IllegalFormatCodePointException;
-import java.util.IllegalFormatException;
-import java.util.IllegalFormatWidthException;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -62,11 +57,6 @@ public class SrsEncoder {
     private int videoMp4Track;
     private int audioFlvTrack;
     private int audioMp4Track;
-
-    private Thread videoWorker = null;
-    private ConcurrentLinkedQueue<byte[]> yuvQueue = new ConcurrentLinkedQueue<>();
-    private final Object yuvLock = new Object();
-    private AtomicInteger yuvCacheNum = new AtomicInteger(0);
 
     // Y, U (Cb) and V (Cr)
     // yuv420                     yuv yuv yuv yuv
@@ -154,63 +144,10 @@ public class SrsEncoder {
         // start device and encoder.
         vencoder.start();
         aencoder.start();
-
-        // Process YUV data in threading
-        videoWorker = new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                while (!Thread.interrupted()) {
-                    while (!yuvQueue.isEmpty()) {
-                        byte[] data = yuvQueue.poll();
-                        long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-                        if (useSoftEncoder) {
-                            if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                                swPortraitYuvFrame(data, pts);
-                            } else {
-                                swLandscapeYuvFrame(data, pts);
-                            }
-                        } else {
-                            byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
-                                                   hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
-                            if (processedData != null) {
-                                onProcessedYuvFrame(processedData, pts);
-                            } else {
-                                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                                        new IllegalArgumentException("libyuv failure"));
-                            }
-                        }
-                    }
-                    // Wait for next yuv
-                    synchronized (yuvLock) {
-                        try {
-                            // isEmpty() may take some time, so time out should be set to wait the next one.
-                            yuvLock.wait(500);
-                        } catch (InterruptedException ex) {
-                            videoWorker.interrupt();
-                        }
-                    }
-                }
-            }
-        });
-        videoWorker.start();
-
         return true;
     }
 
     public void stop() {
-        if (videoWorker != null) {
-            videoWorker.interrupt();
-            try {
-                videoWorker.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                videoWorker.interrupt();
-            }
-            videoWorker = null;
-            yuvCacheNum.set(0);
-        }
-
         if (useSoftEncoder) {
             closeSoftEncoder();
         }
@@ -285,7 +222,6 @@ public class SrsEncoder {
                 ByteBuffer bb = outBuffers[outBufferIndex];
                 onEncodedAnnexbFrame(bb, vebi);
                 vencoder.releaseOutputBuffer(outBufferIndex, false);
-                yuvCacheNum.getAndDecrement();
             } else {
                 break;
             }
@@ -300,7 +236,6 @@ public class SrsEncoder {
         //vebi.presentationTimeUs = System.nanoTime() / 1000 - mPresentTimeUs;
         vebi.flags = isKeyFrame ? MediaCodec.BUFFER_FLAG_KEY_FRAME : 0;
         onEncodedAnnexbFrame(bb, vebi);
-        yuvCacheNum.getAndDecrement();
     }
 
     // when got encoded h264 es stream.
@@ -316,19 +251,29 @@ public class SrsEncoder {
     }
 
     public void onGetYuvFrame(byte[] data) {
-        if (yuvCacheNum.get() < VGOP) {
-            // Check video frame cache number to judge the networking situation.
-            // Just cache GOP / FPS seconds data according to latency.
-            if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
-                yuvQueue.add(data);
-                yuvCacheNum.getAndIncrement();
-                synchronized (yuvLock) {
-                    yuvLock.notifyAll();
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            if (useSoftEncoder) {
+                if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                    swPortraitYuvFrame(data, pts);
+                } else {
+                    swLandscapeYuvFrame(data, pts);
                 }
             } else {
-                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                        new IOException("Network is weak"));
+                byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
+                        hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
+                if (processedData != null) {
+                    onProcessedYuvFrame(processedData, pts);
+                } else {
+                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                            new IllegalArgumentException("libyuv failure"));
+                }
             }
+        } else {
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                    new IOException("Network is weak"));
         }
     }
 

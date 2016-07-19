@@ -262,10 +262,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
             public void onClick(View v) {
                 if (mEncoder != null) {
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
-                        mEncoder.swithToHardEncoder();
+                        mEncoder.swithToSoftEncoder();
                         btnSwitchEncoder.setText("hard enc");
                     } else if (btnSwitchEncoder.getText().toString().contentEquals("hard enc")) {
-                        mEncoder.swithToSoftEncoder();
+                        mEncoder.swithToHardEncoder();
                         btnSwitchEncoder.setText("soft enc");
                     }
                 }

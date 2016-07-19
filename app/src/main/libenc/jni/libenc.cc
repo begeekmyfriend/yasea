@@ -36,7 +36,7 @@ typedef struct x264_context {
     int fps;
     int gop;
     // output
-    int pts;
+    int64_t pts;
     int dts;
     bool is_key_frame;
 } x264_context;

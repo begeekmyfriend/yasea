@@ -91,6 +91,11 @@ public class SrsEncoder {
         setOutputResolution(vOutWidth, vOutHeight);
         setOutputFps(VFPS);
         setOutputGop(VGOP);
+        // Unfortunately for some android phone, the output fps is less than 10 limited by the
+        // capacity of poor cheap chips even with x264. So for the sake of quick appearance of
+        // the first picture on the player, a spare lower GOP value is suggested. But note that
+        // lower GOP will produce more I frames and therefore more streaming data flow.
+        // setOutputGop(15);
         setOutputBitrate(VBITRATE);
 
         if (useSoftEncoder && !openSoftEncoder()) {

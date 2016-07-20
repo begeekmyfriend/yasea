@@ -26,9 +26,7 @@ typedef struct x264_context {
     x264_param_t params;
     x264_t *encoder;
     x264_picture_t picture;
-    // sei buffer
-    uint8_t sei[256];
-    int sei_size;
+    bool global_nal_header;
     // input
     int width;
     int height;
@@ -196,21 +194,21 @@ static int encode_nals(const x264_nal_t *nals, int nnal) {
     int i;
     uint8_t *p = h264_es;
 
-    /* Write the SEI as part of the first frame. */
-    if (x264_ctx.sei_size > 0 && nnal > 0) {
-        memcpy(p, x264_ctx.sei, x264_ctx.sei_size);
-        p += x264_ctx.sei_size;
-        x264_ctx.sei_size = 0;
-    }
-
     for (i = 0; i < nnal; i++) {
-        if (nals[i].i_type != NAL_SEI) {
-            memcpy(p, nals[i].p_payload, nals[i].i_payload);
-            p += nals[i].i_payload;
-        }
+        memcpy(p, nals[i].p_payload, nals[i].i_payload);
+        p += nals[i].i_payload;
     }
 
     return p - h264_es;
+}
+
+static int encode_global_nal_header() {
+    int nnal;
+    x264_nal_t *nals;
+
+    x264_ctx.global_nal_header = false;
+    x264_encoder_headers(x264_ctx.encoder, &nals, &nnal);
+    return encode_nals(nals, nnal);
 }
 
 static int x264_encode(struct YuvFrame *i420_frame, long pts) {
@@ -250,7 +248,7 @@ static jint libenc_NV21SoftEncode(JNIEnv* env, jobject thiz, jbyteArray frame, j
         return JNI_ERR;
     }
 
-    int es_len = x264_encode(&i420_scaled_frame, pts);
+    int es_len = x264_ctx.global_nal_header ? encode_global_nal_header() : x264_encode(&i420_scaled_frame, pts);
     if (es_len <= 0) {
         LIBENC_LOGE("Fail to encode nalu");
         return JNI_ERR;
@@ -285,11 +283,14 @@ static jboolean libenc_openSoftEncoder(JNIEnv* env, jobject thiz) {
     // Presetting
     x264_param_default_preset(&x264_ctx.params, "veryfast", "zerolatency");
 
+    x264_ctx.params.b_repeat_headers = 0;
+    x264_ctx.global_nal_header = true;
+
     // Resolution
     x264_ctx.params.i_width = x264_ctx.width;
     x264_ctx.params.i_height = x264_ctx.height;
 
-    // Default setting i_rc_method as X264_RC_CRF which is better than X264_RC_ABR
+    // Default setting of i_rc_method as X264_RC_CRF which is better than X264_RC_ABR
     //x264_ctx.params.rc.i_bitrate = x264_ctx.bitrate;  // kbps
     //x264_ctx.params.rc.i_rc_method = X264_RC_ABR;
 

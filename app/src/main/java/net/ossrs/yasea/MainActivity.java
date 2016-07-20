@@ -285,6 +285,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
                         mp4Muxer.stop();
                         btnPublish.setText("publish");
                         btnRecord.setText("record");
+                        btnSwitchEncoder.setEnabled(true);
                     }
                 });
             }

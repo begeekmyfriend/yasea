@@ -280,19 +280,19 @@ static void libenc_closeSoftEncoder(JNIEnv* env, jobject thiz) {
 }
 
 static jboolean libenc_openSoftEncoder(JNIEnv* env, jobject thiz) {
-    // Presetting
-    x264_param_default_preset(&x264_ctx.params, "veryfast", "zerolatency");
+    // presetting
+    x264_param_default_preset(&x264_ctx.params, "superfast", "zerolatency");
 
     x264_ctx.params.b_repeat_headers = 0;
     x264_ctx.global_nal_header = true;
 
-    // Resolution
+    // resolution
     x264_ctx.params.i_width = x264_ctx.width;
     x264_ctx.params.i_height = x264_ctx.height;
 
-    // Default setting of i_rc_method as X264_RC_CRF which is better than X264_RC_ABR
-    //x264_ctx.params.rc.i_bitrate = x264_ctx.bitrate;  // kbps
-    //x264_ctx.params.rc.i_rc_method = X264_RC_ABR;
+    // bitrate
+    x264_ctx.params.rc.i_bitrate = x264_ctx.bitrate;  // kbps
+    x264_ctx.params.rc.i_rc_method = X264_RC_ABR;
 
     // fps
     x264_ctx.params.i_fps_num = x264_ctx.fps;

@@ -985,7 +985,7 @@ elif [ "$thread" != "no" ] ; then
             cc_check pthread.h -lc "pthread_create(0,0,0,0);" && thread="posix" && libpthread="-lc"
             ;;
         *)
-            if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
+            if cc_check pthread.h -lc "pthread_create(0,0,0,0);" ; then
                thread="posix"
                libpthread="-lpthread"
             else
@@ -997,9 +997,7 @@ fi
 if [ "$thread" = "posix" ]; then
     LDFLAGS="$LDFLAGS $libpthread"
     define HAVE_POSIXTHREAD
-    if [ "$SYS" = "LINUX" ] && cc_check sched.h "-D_GNU_SOURCE -Werror" "cpu_set_t p_aff; return CPU_COUNT(&p_aff);" ; then
-        define HAVE_CPU_COUNT
-    fi
+    define HAVE_CPU_COUNT
 fi
 [ "$thread" != "no" ] && define HAVE_THREAD
 

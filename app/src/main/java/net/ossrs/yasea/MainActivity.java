@@ -43,6 +43,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     private SurfaceView mCameraView = null;
     private Camera mCamera = null;
 
+    private int videoFrameCount;
+    private long lastTimeMillis;
     private int mPreviewRotation = 90;
     private int mCamId = Camera.getNumberOfCameras() - 1; // default camera
     private byte[] mYuvFrameBuffer = new byte[SrsEncoder.VPREV_WIDTH * SrsEncoder.VPREV_HEIGHT * 3 / 2];
@@ -379,6 +381,17 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Ca
     }
 
     private void onGetYuvFrame(byte[] data) {
+        // Calculate YUV sampling FPS
+        if (videoFrameCount == 0) {
+            lastTimeMillis = System.nanoTime() / 1000000;
+            videoFrameCount++;
+        } else {
+            if (++videoFrameCount >= 48) {
+                long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
+                Log.i(TAG, String.format("Sampling fps: %f", (double) videoFrameCount * 1000 / diffTimeMillis));
+                videoFrameCount = 0;
+            }
+        }
         mEncoder.onGetYuvFrame(data);
     }
 

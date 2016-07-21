@@ -463,9 +463,6 @@ public class SrsMp4Muxer {
                 }
 
                 tbb.size = bb.position() - pos;
-                if (bb.position() < bi.size) {
-                    Log.i(TAG, String.format("annexb multiple match ok, pts=%d", bi.presentationTimeUs / 1000));
-                }
                 break;
             }
 

@@ -752,11 +752,6 @@ public class SrsFlvMuxer {
                 }
 
                 tbb.size = bb.position() - pos;
-                if (bb.position() < bi.size) {
-                    Log.i(TAG, String.format("annexb multiple match ok, pts=%d", bi.presentationTimeUs / 1000));
-                    SrsFlvMuxer.srs_print_bytes(TAG, tbbs, 16);
-                    SrsFlvMuxer.srs_print_bytes(TAG, bb.slice(), 16);
-                }
                 break;
             }
 

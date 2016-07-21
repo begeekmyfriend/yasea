@@ -3,10 +3,8 @@ Yet Another Stream Encoder for Android
 
 [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-yasea-green.svg?style=true)](https://android-arsenal.com/details/1/3481)
 
-**Yasea** is an Android streaming client. It is based on the source of both
-[srs-sea](https://github.com/ossrs/srs-sea) and [SimpleRtmp](https://github.com/faucamp/SimpleRtmp).
-It uses hard encoder for H.264/AAC and transmits over RTMP. Moreover, it runs
-on Android mini API 16 (Android 4.1).
+**Yasea** is an Android streaming client. It encodes YUV and PCM data from
+camera and microphone to H.264/AAC, encapsulates in FLV and transmits over RTMP.
 
 Feature
 -------
@@ -33,3 +31,11 @@ Other Branch
 
 If you want to stay in portrait mode ignoring dynamic orientation change when
 streaming, clone yasea on brach [portrait-forever](https://github.com/begeekmyfriend/yasea/tree/portrait-forever).
+
+Thanks
+------
+
+- [srs-sea](https://github.com/ossrs/srs-sea)
+- [SimpleRtmp](https://github.com/faucamp/SimpleRtmp)
+- [x264](http://www.videolan.org/developers/x264.html)
+- [mp4parser](https://android.googlesource.com/platform/external/mp4parser)

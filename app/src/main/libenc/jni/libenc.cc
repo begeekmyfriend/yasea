@@ -33,6 +33,7 @@ typedef struct x264_context {
     int bitrate;
     int fps;
     int gop;
+    char preset[16];
     // output
     int64_t pts;
     int dts;
@@ -105,20 +106,25 @@ static bool nv21_to_i420(jbyte *nv21_frame, jint src_width, jint src_height,
     return true;
 }
 
-static void libenc_setOutputBitrate(JNIEnv* env, jobject thiz, jint bitrate) {
-    // Default setting i_rc_method as X264_RC_CRF which is better than X264_RC_ABR
+static void libenc_setEncoderBitrate(JNIEnv* env, jobject thiz, jint bitrate) {
     x264_ctx.bitrate = bitrate / 1000;  // kbps
 }
 
-static void libenc_setOutputFps(JNIEnv* env, jobject thiz, jint fps) {
+static void libenc_setEncoderFps(JNIEnv* env, jobject thiz, jint fps) {
     x264_ctx.fps = fps;
 }
 
-static void libenc_setOutputGop(JNIEnv* env, jobject thiz, jint gop_size) {
+static void libenc_setEncoderGop(JNIEnv* env, jobject thiz, jint gop_size) {
     x264_ctx.gop = gop_size;
 }
 
-static void libenc_setOutputResolution(JNIEnv* env, jobject thiz, jint out_width, jint out_height) {
+static void libenc_setEncoderPreset(JNIEnv* env, jobject thiz, jstring preset) {
+    const char *enc_preset = env->GetStringUTFChars(preset, NULL);
+    strcpy(x264_ctx.preset, enc_preset);
+    env->ReleaseStringUTFChars(preset, enc_preset);
+}
+
+static void libenc_setEncoderResolution(JNIEnv* env, jobject thiz, jint out_width, jint out_height) {
     int y_size = out_width * out_height;
 
     if (i420_scaled_frame.width != out_width || i420_scaled_frame.height != out_height) {
@@ -316,10 +322,11 @@ static jboolean libenc_openSoftEncoder(JNIEnv* env, jobject thiz) {
 }
 
 static JNINativeMethod libenc_methods[] = {
-    { "setOutputResolution", "(II)V", (void *)libenc_setOutputResolution },
-    { "setOutputFps", "(I)V", (void *)libenc_setOutputFps },
-    { "setOutputGop", "(I)V", (void *)libenc_setOutputGop },
-    { "setOutputBitrate", "(I)V", (void *)libenc_setOutputBitrate },
+    { "setEncoderResolution", "(II)V", (void *)libenc_setEncoderResolution },
+    { "setEncoderFps", "(I)V", (void *)libenc_setEncoderFps },
+    { "setEncoderGop", "(I)V", (void *)libenc_setEncoderGop },
+    { "setEncoderBitrate", "(I)V", (void *)libenc_setEncoderBitrate },
+    { "setEncoderPreset", "(Ljava/lang/String;)V", (void *)libenc_setEncoderPreset },
     { "NV21ToI420", "([BIIZI)[B", (void *)libenc_NV21ToI420 },
     { "NV21ToNV12", "([BIIZI)[B", (void *)libenc_NV21ToNV12 },
     { "openSoftEncoder", "()Z", (void *)libenc_openSoftEncoder },

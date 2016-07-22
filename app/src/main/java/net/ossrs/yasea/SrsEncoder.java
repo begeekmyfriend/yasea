@@ -88,15 +88,16 @@ public class SrsEncoder {
             }
         }
 
-        setOutputResolution(vOutWidth, vOutHeight);
-        setOutputFps(VFPS);
-        setOutputGop(VGOP);
+        setEncoderResolution(vOutWidth, vOutHeight);
+        setEncoderFps(VFPS);
+        setEncoderGop(VGOP);
         // Unfortunately for some android phone, the output fps is less than 10 limited by the
         // capacity of poor cheap chips even with x264. So for the sake of quick appearance of
         // the first picture on the player, a spare lower GOP value is suggested. But note that
         // lower GOP will produce more I frames and therefore more streaming data flow.
-        // setOutputGop(15);
-        setOutputBitrate(VBITRATE);
+        // setEncoderGop(15);
+        setEncoderBitrate(VBITRATE);
+        setEncoderPreset("veryfast");
 
         if (useSoftEncoder && !openSoftEncoder()) {
             return false;
@@ -206,7 +207,7 @@ public class SrsEncoder {
             }
         }
 
-        setOutputResolution(vOutWidth, vOutHeight);
+        setEncoderResolution(vOutWidth, vOutHeight);
     }
 
     private void onProcessedYuvFrame(byte[] yuvFrame, long pts) {
@@ -440,10 +441,11 @@ public class SrsEncoder {
         return matchedColorFormat;
     }
 
-    private native void setOutputResolution(int outWidth, int outHeight);
-    private native void setOutputFps(int fps);
-    private native void setOutputGop(int gop);
-    private native void setOutputBitrate(int bitrate);
+    private native void setEncoderResolution(int outWidth, int outHeight);
+    private native void setEncoderFps(int fps);
+    private native void setEncoderGop(int gop);
+    private native void setEncoderBitrate(int bitrate);
+    private native void setEncoderPreset(String preset);
     private native byte[] NV21ToI420(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
     private native byte[] NV21ToNV12(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
     private native int NV21SoftEncode(byte[] yuvFrame, int width, int height, boolean flip, int rotate, long pts);

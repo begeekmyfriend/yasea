@@ -131,6 +131,11 @@ public class SrsMp4Muxer {
         createMovie(mRecFile);
         mHandler.onRecordStarted(mRecFile.getPath());
 
+        if (!spsList.isEmpty() && !ppsList.isEmpty()) {
+            mp4Movie.addTrack(videoFormat, false);
+        }
+        mp4Movie.addTrack(audioFormat, true);
+
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -187,8 +192,9 @@ public class SrsMp4Muxer {
     public void stop() {
         bRecording = false;
         bPaused = false;
-        needToFindKeyFrame = false;
+        needToFindKeyFrame = true;
         aacSpecConfig = false;
+        frameCache.clear();
 
 		if (worker != null) {
             try {
@@ -315,17 +321,12 @@ public class SrsMp4Muxer {
                     continue;
                 }
             }
-
-            if (!spsList.isEmpty() && !ppsList.isEmpty()) {
-                mp4Movie.addTrack(videoFormat, false);
-            }
         }
     }
 
     public void writeAudioSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
         if (!aacSpecConfig) {
             aacSpecConfig = true;
-            mp4Movie.addTrack(audioFormat, true);
         } else {
             writeFrameByte(AUDIO_TRACK, bb, bi, false);
         }
@@ -611,6 +612,13 @@ public class SrsMp4Muxer {
             first = false;
         }
 
+        public void clearSample() {
+            first = true;
+            samples.clear();
+            syncSamples.clear();
+            sampleDurations.clear();
+        }
+
         public ArrayList<Sample> getSamples() {
             return samples;
         }
@@ -699,12 +707,16 @@ public class SrsMp4Muxer {
                 tracks.put(VIDEO_TRACK, new Track(tracks.size(), format, false));
             }
         }
+
+        public void removeTrack(int trackIndex) {
+            tracks.remove(trackIndex);
+        }
     }
 
     public class InterleaveChunkMdat implements Box {
         private boolean first = true;
         private ContainerBox parent;
-        private ByteBuffer header;
+        private ByteBuffer header = ByteBuffer.allocateDirect(16);
         private long contentSize = 1024 * 1024 * 1024;
 
         public ContainerBox getParent() {
@@ -740,7 +752,7 @@ public class SrsMp4Muxer {
         }
 
         public void getBox(WritableByteChannel writableByteChannel) throws IOException {
-            header = ByteBuffer.allocate(16);
+            header.rewind();
             long size = getSize();
             if (isSmallBox(size)) {
                 IsoTypeWriter.writeUInt32(header, size);

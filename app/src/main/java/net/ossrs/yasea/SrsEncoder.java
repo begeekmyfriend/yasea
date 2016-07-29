@@ -1,7 +1,6 @@
 package net.ossrs.yasea;
 
 import android.content.res.Configuration;
-import android.graphics.ImageFormat;
 import android.media.AudioFormat;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
@@ -20,22 +19,21 @@ public class SrsEncoder {
 
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
-    public static final int VPREV_WIDTH = 1280;
-    public static final int VPREV_HEIGHT = 720;
-    public static final int VOUT_WIDTH = 384;
-    public static final int VOUT_HEIGHT = 640;
-    public static int vOutWidth = VOUT_WIDTH;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
-    public static int vOutHeight = VOUT_HEIGHT;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static final int VBITRATE = 500 * 1000;  // 500kbps
+    public static String x264Preset = "veryfast";
+    public static int vPrevWidth = 1280;
+    public static int vPrevHeight = 720;
+    public static int vPortraitWidth = 384;
+    public static int vPortraitHeight = 640;
+    public static int vOutWidth = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+    public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
+    public static int vBitrate = 500 * 1000;  // 500kbps
     public static final int VFPS = 24;
     public static final int VGOP = 48;
-    public static final int VFORMAT = ImageFormat.NV21;
     public static final int ASAMPLERATE = 44100;
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
-    public static final int AFORMAT = AudioFormat.ENCODING_PCM_16BIT;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
-    private volatile int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     private SrsFlvMuxer flvMuxer;
     private SrsMp4Muxer mp4Muxer;
@@ -69,14 +67,23 @@ public class SrsEncoder {
     // NV16 -> YUV422SP  yyyy uv uv
     // YUY2 -> YUV422SP  yuyv yuyv
 
-    public SrsEncoder(SrsFlvMuxer flvMuxer, SrsMp4Muxer mp4Muxer) {
-        this.flvMuxer = flvMuxer;
-        this.mp4Muxer = mp4Muxer;
-
+    public SrsEncoder() {
         mVideoColorFormat = chooseVideoEncoder();
     }
 
+    public void setFlvMuxer(SrsFlvMuxer flvMuxer) {
+        this.flvMuxer = flvMuxer;
+    }
+
+    public void setMp4Muxer(SrsMp4Muxer mp4Muxer) {
+        this.mp4Muxer = mp4Muxer;
+    }
+
     public boolean start() {
+        if (flvMuxer == null || mp4Muxer == null) {
+            return false;
+        }
+
         // the referent PTS for video and audio encoder.
         mPresentTimeUs = System.nanoTime() / 1000;
 
@@ -91,13 +98,13 @@ public class SrsEncoder {
         setEncoderResolution(vOutWidth, vOutHeight);
         setEncoderFps(VFPS);
         setEncoderGop(VGOP);
-        // Unfortunately for some android phone, the output fps is less than 10 limited by the
+        // Unfortunately for some android phone, the output fps is less than 10 lSrsted by the
         // capacity of poor cheap chips even with x264. So for the sake of quick appearance of
         // the first picture on the player, a spare lower GOP value is suggested. But note that
         // lower GOP will produce more I frames and therefore more streaming data flow.
         // setEncoderGop(15);
-        setEncoderBitrate(VBITRATE);
-        setEncoderPreset("veryfast");
+        setEncoderBitrate(vBitrate);
+        setEncoderPreset(x264Preset);
 
         if (useSoftEncoder && !openSoftEncoder()) {
             return false;
@@ -139,7 +146,7 @@ public class SrsEncoder {
         MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vOutWidth, vOutHeight);
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
         videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, VBITRATE);
+        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
         videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
         vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -189,16 +196,65 @@ public class SrsEncoder {
         useSoftEncoder = false;
     }
 
+    public boolean isSoftEncoder() {
+        return useSoftEncoder;
+    }
+
+    public void setPreviewResolution(int width, int height) {
+        vPrevWidth = width;
+        vPrevHeight = height;
+    }
+
+    public void setPortraitResolution(int width, int height) {
+        vOutWidth = width;
+        vOutHeight = height;
+        vPortraitWidth = width;
+        vPortraitHeight = height;
+    }
+
+    public void setLandscapeResolution(int width, int height) {
+        vOutWidth = width;
+        vOutHeight = height;
+        vPortraitWidth = height;
+        vPortraitHeight = width;
+    }
+
+    public void setVideoHDMode() {
+        vBitrate = 1200 * 1000;  // 1200 kbps
+        x264Preset = "veryfast";
+    }
+
+    public void setVideoSmoothMode() {
+        vBitrate = 500 * 1000;  // 500 kbps
+        x264Preset = "superfast";
+    }
+
+    public int getPreviewWidth() {
+        return vPrevWidth;
+    }
+
+    public int getPreviewHeight() {
+        return vPrevHeight;
+    }
+
+    public int getOutputWidth() {
+        return vOutWidth;
+    }
+
+    public int getOutputHeight() {
+        return vOutHeight;
+    }
+
     public void setScreenOrientation(int orientation) {
         mOrientation = orientation;
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-            vOutWidth = VOUT_WIDTH;
-            vOutHeight = VOUT_HEIGHT;
+            vOutWidth = vPortraitWidth;
+            vOutHeight = vPortraitHeight;
         } else if (mOrientation == Configuration.ORIENTATION_LANDSCAPE) {
-            vOutWidth = VOUT_HEIGHT;
-            vOutHeight = VOUT_WIDTH;
+            vOutWidth = vPortraitHeight;
+            vOutHeight = vPortraitWidth;
         }
-
+        
         // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
         // Since Y component is quadruple size as U and V component, the stride must be set as 32x
         if (!useSoftEncoder && vOutWidth % 32 != 0 || vOutHeight % 32 != 0) {
@@ -239,7 +295,6 @@ public class SrsEncoder {
         vebi.offset = 0;
         vebi.size = es.length;
         vebi.presentationTimeUs = pts;
-        //vebi.presentationTimeUs = System.nanoTime() / 1000 - mPresentTimeUs;
         vebi.flags = isKeyFrame ? MediaCodec.BUFFER_FLAG_KEY_FRAME : 0;
         onEncodedAnnexbFrame(bb, vebi);
     }
@@ -324,18 +379,18 @@ public class SrsEncoder {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270);
+                    return NV21ToI420(data, vPrevWidth, vPrevHeight, true, 270);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270);
+                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, true, 270);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
         } else {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90);
+                    return NV21ToI420(data, vPrevWidth, vPrevHeight, false, 90);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90);
+                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, false, 90);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
@@ -346,18 +401,18 @@ public class SrsEncoder {
         if (mCameraFaceFront) {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0);
+                    return NV21ToI420(data, vPrevWidth, vPrevHeight, true, 0);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0);
+                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, true, 0);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
         } else {
             switch (mVideoColorFormat) {
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0);
+                    return NV21ToI420(data, vPrevWidth, vPrevHeight, false, 0);
                 case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0);
+                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, false, 0);
                 default:
                     throw new IllegalStateException("Unsupported color format!");
             }
@@ -366,17 +421,17 @@ public class SrsEncoder {
 
     private void swPortraitYuvFrame(byte[] data, long pts) {
         if (mCameraFaceFront) {
-            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, true, 270, pts);
+            NV21SoftEncode(data, vPrevWidth, vPrevHeight, true, 270, pts);
         } else {
-            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, false, 90, pts);
+            NV21SoftEncode(data, vPrevWidth, vPrevHeight, false, 90, pts);
         }
     }
 
     private void swLandscapeYuvFrame(byte[] data, long pts) {
         if (mCameraFaceFront) {
-            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, true, 0, pts);
+            NV21SoftEncode(data, vPrevWidth, vPrevHeight, true, 0, pts);
         } else {
-            NV21SoftEncode(data, VPREV_WIDTH, VPREV_HEIGHT, false, 0, pts);
+            NV21SoftEncode(data, vPrevWidth, vPrevHeight, false, 0, pts);
         }
     }
 

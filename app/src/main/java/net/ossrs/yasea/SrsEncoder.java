@@ -187,6 +187,14 @@ public class SrsEncoder {
             mCameraFaceFront = true;
         }
     }
+    
+    public void setCameraFront() {
+        mCameraFaceFront = true;
+    }
+
+    public void setCameraBack() {
+        mCameraFaceFront = false;
+    }    
 
     public void swithToSoftEncoder() {
         useSoftEncoder = true;

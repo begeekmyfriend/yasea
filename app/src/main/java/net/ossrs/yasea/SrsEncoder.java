@@ -319,7 +319,7 @@ public class SrsEncoder {
         }
     }
 
-    public void onGetYuvFrame(byte[] data) {
+    public void onGetYuvFrame(byte[] data) throws IllegalArgumentException, IOException{
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
@@ -336,13 +336,11 @@ public class SrsEncoder {
                 if (processedData != null) {
                     onProcessedYuvFrame(processedData, pts);
                 } else {
-                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                            new IllegalArgumentException("libyuv failure"));
+                    throw new IllegalArgumentException("libyuv failure");
                 }
             }
         } else {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IOException("Network is weak"));
+            throw new IOException("Network is weak");
         }
     }
 

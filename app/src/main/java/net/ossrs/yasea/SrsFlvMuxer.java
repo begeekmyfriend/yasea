@@ -226,6 +226,10 @@ public class SrsFlvMuxer {
 
         Log.i(TAG, String.format("SrsFlvMuxer closed"));
     }
+    
+    public boolean isConnected() {
+        return connected;
+    }    
 
     /**
      * send the annexb frame to SRS over RTMP.

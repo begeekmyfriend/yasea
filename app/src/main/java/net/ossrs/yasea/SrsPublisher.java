@@ -27,6 +27,7 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
     private SurfaceView mCameraView;
     private Camera mCamera;
 
+    private boolean sendAudioOnly = false;
     private int videoFrameCount;
     private long lastTimeMillis;
     private int mPreviewRotation = 90;
@@ -162,6 +163,10 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
         mEncoder.setVideoSmoothMode();
     }
 
+    public void setSendAudioOnly(boolean flag) {
+        sendAudioOnly = flag;
+    }    
+
     public void switchCameraFace(int id) {
         mCamId = id;
         stopCamera();
@@ -257,7 +262,10 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
                 videoFrameCount = 0;
             }
         }
-        mEncoder.onGetYuvFrame(data);
+
+        if (!sendAudioOnly) {
+            mEncoder.onGetYuvFrame(data);
+        }
     }
 
     private void startAudio() {

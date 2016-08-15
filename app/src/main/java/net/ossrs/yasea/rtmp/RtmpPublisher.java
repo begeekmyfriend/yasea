@@ -39,15 +39,17 @@ public interface RtmpPublisher {
      * publish a video content packet to server
      *
      * @param data video stream byte array
+     * @param dts video stream decoding timestamp
      */
-    void publishVideoData(byte[] data) throws IllegalStateException;
+    void publishVideoData(byte[] data, int dts) throws IllegalStateException;
 
     /**
      * publish an audio content packet to server
      *
      * @param data audio stream byte array
+     * @param dts audio stream decoding timestamp
      */
-    void publishAudioData(byte[] data) throws IllegalStateException;
+    void publishAudioData(byte[] data, int dts) throws IllegalStateException;
 
     /**
      * obtain event handler in publisher

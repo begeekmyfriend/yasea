@@ -373,7 +373,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     }
 
     @Override
-    public void publishAudioData(byte[] data) throws IllegalStateException {
+    public void publishAudioData(byte[] data, int dts) throws IllegalStateException {
         if (!fullyConnected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
@@ -385,13 +385,14 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         }
         Audio audio = new Audio();
         audio.setData(data);
+        audio.getHeader().setAbsoluteTimestamp(dts);
         audio.getHeader().setMessageStreamId(currentStreamId);
         writeThread.send(audio);
         mHandler.onRtmpAudioStreaming("audio streaming");
     }
 
     @Override
-    public void publishVideoData(byte[] data) throws IllegalStateException {
+    public void publishVideoData(byte[] data, int dts) throws IllegalStateException {
         if (!fullyConnected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
@@ -403,6 +404,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         }
         Video video = new Video();
         video.setData(data);
+        video.getHeader().setAbsoluteTimestamp(dts);
         video.getHeader().setMessageStreamId(currentStreamId);
         writeThread.send(video);
         videoFrameCacheNumber.getAndIncrement();

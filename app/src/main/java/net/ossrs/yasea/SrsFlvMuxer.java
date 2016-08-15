@@ -132,14 +132,14 @@ public class SrsFlvMuxer {
         }
 
         if (frame.is_video()) {
-            publisher.publishVideoData(frame.flvData.array(), frame.dts);
+            publisher.publishVideoData(frame.flvTag.array(), frame.dts);
         } else if (frame.is_audio()) {
-            publisher.publishAudioData(frame.flvData.array(), frame.dts);
+            publisher.publishAudioData(frame.flvTag.array(), frame.dts);
         }
 
         if (frame.is_keyframe()) {
             Log.i(TAG, String.format("worker: send frame type=%d, dts=%d, size=%dB",
-                    frame.type, frame.dts, frame.flvData.array().length));
+                    frame.type, frame.dts, frame.flvTag.array().length));
         }
     }
 
@@ -515,7 +515,7 @@ public class SrsFlvMuxer {
      */
     class SrsFlvFrame {
         // the tag bytes.
-        public ByteBuffer flvData;
+        public ByteBuffer flvTag;
         // the codec type for audio/aac and video/avc for instance.
         public int avc_aac_type;
         // the frame type, keyframe or not.
@@ -1008,25 +1008,8 @@ public class SrsFlvMuxer {
 
         private void rtmp_write_packet(int type, int dts, int frame_type, int avc_aac_type, SrsFlvFrameBytes tag) {
             SrsFlvFrame frame = new SrsFlvFrame();
-            frame.flvData = ByteBuffer.allocate(tag.size);
-            // Reserved UB [2]
-            // Filter UB [1]
-            // TagType UB [5]
-            // DataSize UI24
-            //int size = (tag.size & 0x00FFFFFF) | ((type & 0x1F) << 24);
-            //frame.flvData.putInt(size);
-            // Timestamp UI24
-            // TimestampExtended UI8
-            //int timestamp = ((dts << 8) & 0xFFFFFF00) | ((dts >> 24) & 0x000000FF);
-            //frame.flvData.putInt(timestamp);
-            // StreamID UI24 Always 0.
-            //frame.flvData.put((byte) 0);
-            //frame.flvData.put((byte) 0);
-            //frame.flvData.put((byte) 0);
-            // write the flv tag data.
-            frame.flvData.put(tag.data.array());
-            // write the 4B previous tag size.
-            //frame.flvData.putInt(tag.size + 11);
+            frame.flvTag = ByteBuffer.allocate(tag.size);
+            frame.flvTag.put(tag.data.array());
             frame.type = type;
             frame.dts = dts;
             frame.frame_type = frame_type;

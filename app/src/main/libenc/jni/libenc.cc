@@ -50,8 +50,8 @@ static struct YuvFrame i420_rotated_frame;
 static struct YuvFrame i420_scaled_frame;
 static struct YuvFrame nv12_frame;
 
-static bool nv21_to_i420(jbyte *nv21_frame, jint src_width, jint src_height,
-                         jboolean need_flip, jint rotate_degree) {
+static bool convert_to_i420(jbyte *src_frame, jint src_width, jint src_height,
+                            jboolean need_flip, jint rotate_degree, int format) {
     int y_size = src_width * src_height;
 
     if (rotate_degree % 180 == 0) {
@@ -76,14 +76,14 @@ static bool nv21_to_i420(jbyte *nv21_frame, jint src_width, jint src_height,
         }
     }
 
-    jint ret = ConvertToI420((uint8_t *) nv21_frame, y_size,
+    jint ret = ConvertToI420((uint8_t *) src_frame, y_size,
                              i420_rotated_frame.y, i420_rotated_frame.width,
                              i420_rotated_frame.u, i420_rotated_frame.width / 2,
                              i420_rotated_frame.v, i420_rotated_frame.width / 2,
                              0, 0,
                              src_width, src_height,
                              src_width, src_height,
-                             (RotationMode) rotate_degree, FOURCC_NV21);
+                             (RotationMode) rotate_degree, format);
     if (ret < 0) {
         LIBENC_LOGE("ConvertToI420 failure");
         return false;
@@ -156,7 +156,7 @@ static jbyteArray libenc_NV21ToI420(JNIEnv* env, jobject thiz, jbyteArray frame,
                                     jint src_height, jboolean need_flip, jint rotate_degree) {
     jbyte* nv21_frame = env->GetByteArrayElements(frame, NULL);
 
-    if (!nv21_to_i420(nv21_frame, src_width, src_height, need_flip, rotate_degree)) {
+    if (!convert_to_i420(nv21_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_NV21)) {
         return NULL;
     }
 
@@ -173,7 +173,7 @@ static jbyteArray libenc_NV21ToNV12(JNIEnv* env, jobject thiz, jbyteArray frame,
                                     jint src_height, jboolean need_flip, jint rotate_degree) {
     jbyte* nv21_frame = env->GetByteArrayElements(frame, NULL);
 
-    if (!nv21_to_i420(nv21_frame, src_width, src_height, need_flip, rotate_degree)) {
+    if (!convert_to_i420(nv21_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_NV21)) {
         return NULL;
     }
 
@@ -193,6 +193,51 @@ static jbyteArray libenc_NV21ToNV12(JNIEnv* env, jobject thiz, jbyteArray frame,
     env->SetByteArrayRegion(nv12Frame, 0, y_size * 3 / 2, (jbyte *) nv12_frame.data);
 
     env->ReleaseByteArrayElements(frame, nv21_frame, JNI_ABORT);
+    return nv12Frame;
+}
+
+// For COLOR_FormatYUV420Planar
+static jbyteArray libenc_RGBAToI420(JNIEnv* env, jobject thiz, jbyteArray frame, jint src_width,
+                                    jint src_height, jboolean need_flip, jint rotate_degree) {
+    jbyte* rgba_frame = env->GetByteArrayElements(frame, NULL);
+
+    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_RGBA)) {
+        return NULL;
+    }
+
+    int y_size = i420_scaled_frame.width * i420_scaled_frame.height;
+    jbyteArray i420Frame = env->NewByteArray(y_size * 3 / 2);
+    env->SetByteArrayRegion(i420Frame, 0, y_size * 3 / 2, (jbyte *) i420_scaled_frame.data);
+
+    env->ReleaseByteArrayElements(frame, rgba_frame, JNI_ABORT);
+    return i420Frame;
+}
+
+// For COLOR_FormatYUV420SemiPlanar
+static jbyteArray libenc_RGBAToNV12(JNIEnv* env, jobject thiz, jbyteArray frame, jint src_width,
+                                    jint src_height, jboolean need_flip, jint rotate_degree) {
+    jbyte* rgba_frame = env->GetByteArrayElements(frame, NULL);
+
+    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_RGBA)) {
+        return NULL;
+    }
+
+    int ret = ConvertFromI420(i420_scaled_frame.y, i420_scaled_frame.width,
+                              i420_scaled_frame.u, i420_scaled_frame.width / 2,
+                              i420_scaled_frame.v, i420_scaled_frame.width / 2,
+                              nv12_frame.data, nv12_frame.width,
+                              nv12_frame.width, nv12_frame.height,
+                              FOURCC_NV12);
+    if (ret < 0) {
+        LIBENC_LOGE("ConvertFromI420 failure");
+        return NULL;
+    }
+
+    int y_size = nv12_frame.width * nv12_frame.height;
+    jbyteArray nv12Frame = env->NewByteArray(y_size * 3 / 2);
+    env->SetByteArrayRegion(nv12Frame, 0, y_size * 3 / 2, (jbyte *) nv12_frame.data);
+
+    env->ReleaseByteArrayElements(frame, rgba_frame, JNI_ABORT);
     return nv12Frame;
 }
 
@@ -250,7 +295,7 @@ static jint libenc_NV21SoftEncode(JNIEnv* env, jobject thiz, jbyteArray frame, j
                                   jint src_height, jboolean need_flip, jint rotate_degree, jlong pts) {
     jbyte* nv21_frame = env->GetByteArrayElements(frame, NULL);
 
-    if (!nv21_to_i420(nv21_frame, src_width, src_height, need_flip, rotate_degree)) {
+    if (!convert_to_i420(nv21_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_NV21)) {
         return JNI_ERR;
     }
 
@@ -268,6 +313,31 @@ static jint libenc_NV21SoftEncode(JNIEnv* env, jobject thiz, jbyteArray frame, j
     env->CallVoidMethod(thiz, mid, outputFrame, x264_ctx.pts, x264_ctx.is_key_frame);
 
     env->ReleaseByteArrayElements(frame, nv21_frame, JNI_ABORT);
+    return JNI_OK;
+}
+
+static jint libenc_RGBASoftEncode(JNIEnv* env, jobject thiz, jbyteArray frame, jint src_width,
+                                  jint src_height, jboolean need_flip, jint rotate_degree, jlong pts) {
+    jbyte* rgba_frame = env->GetByteArrayElements(frame, NULL);
+
+    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_RGBA)) {
+        return JNI_ERR;
+    }
+
+    int es_len = x264_ctx.global_nal_header ? encode_global_nal_header() : x264_encode(&i420_scaled_frame, pts);
+    if (es_len <= 0) {
+        LIBENC_LOGE("Fail to encode nalu");
+        return JNI_ERR;
+    }
+
+    jbyteArray outputFrame = env->NewByteArray(es_len);
+    env->SetByteArrayRegion(outputFrame, 0, es_len, (jbyte *) h264_es);
+
+    jclass clz = env->GetObjectClass(thiz);
+    jmethodID mid = env->GetMethodID(clz, "onSoftEncodedData", "([BJZ)V");
+    env->CallVoidMethod(thiz, mid, outputFrame, x264_ctx.pts, x264_ctx.is_key_frame);
+
+    env->ReleaseByteArrayElements(frame, rgba_frame, JNI_ABORT);
     return JNI_OK;
 }
 
@@ -329,9 +399,12 @@ static JNINativeMethod libenc_methods[] = {
     { "setEncoderPreset", "(Ljava/lang/String;)V", (void *)libenc_setEncoderPreset },
     { "NV21ToI420", "([BIIZI)[B", (void *)libenc_NV21ToI420 },
     { "NV21ToNV12", "([BIIZI)[B", (void *)libenc_NV21ToNV12 },
+    { "RGBAToI420", "([BIIZI)[B", (void *)libenc_RGBAToI420 },
+    { "RGBAToNV12", "([BIIZI)[B", (void *)libenc_RGBAToNV12 },
     { "openSoftEncoder", "()Z", (void *)libenc_openSoftEncoder },
     { "closeSoftEncoder", "()V", (void *)libenc_closeSoftEncoder },
     { "NV21SoftEncode", "([BIIZIJ)I", (void *)libenc_NV21SoftEncode },
+    { "RGBASoftEncode", "([BIIZIJ)I", (void *)libenc_RGBASoftEncode },
 };
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {

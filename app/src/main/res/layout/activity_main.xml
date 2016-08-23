@@ -5,13 +5,13 @@
     android:layout_height="fill_parent"
     tools:context="net.ossrs.yasea.MainActivity">
 
-    <SurfaceView
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+    <net.ossrs.yasea.SrsCameraView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/glsurfaceview_camera"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:id="@+id/preview"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />

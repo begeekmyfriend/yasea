@@ -98,7 +98,7 @@ public class SrsEncoder {
         setEncoderResolution(vOutWidth, vOutHeight);
         setEncoderFps(VFPS);
         setEncoderGop(VGOP);
-        // Unfortunately for some android phone, the output fps is less than 10 lSrsted by the
+        // Unfortunately for some android phone, the output fps is less than 10 limited by the
         // capacity of poor cheap chips even with x264. So for the sake of quick appearance of
         // the first picture on the player, a spare lower GOP value is suggested. But note that
         // lower GOP will produce more I frames and therefore more streaming data flow.
@@ -180,21 +180,13 @@ public class SrsEncoder {
         }
     }
 
-    public void swithCameraFace() {
-        if (mCameraFaceFront) {
-            mCameraFaceFront = false;
-        } else {
-            mCameraFaceFront = true;
-        }
-    }
-    
-    public void setCameraFront() {
+    public void setCameraFrontFace() {
         mCameraFaceFront = true;
     }
 
-    public void setCameraBack() {
+    public void setCameraBackFace() {
         mCameraFaceFront = false;
-    }    
+    }
 
     public void swithToSoftEncoder() {
         useSoftEncoder = true;
@@ -319,33 +311,6 @@ public class SrsEncoder {
         }
     }
 
-    public void onGetYuvFrame(byte[] data) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                    swPortraitYuvFrame(data, pts);
-                } else {
-                    swLandscapeYuvFrame(data, pts);
-                }
-            } else {
-                byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
-                        hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
-                } else {
-                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                            new IllegalArgumentException("libyuv failure"));
-                }
-            }
-        } else {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IOException("Network is weak"));
-        }
-    }
-
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         try {
@@ -380,6 +345,33 @@ public class SrsEncoder {
             } else {
                 break;
             }
+        }
+    }
+
+    public void onGetYuvFrame(byte[] data) {
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            if (useSoftEncoder) {
+                if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                    swPortraitYuvFrame(data, pts);
+                } else {
+                    swLandscapeYuvFrame(data, pts);
+                }
+            } else {
+                byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
+                        hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
+                if (processedData != null) {
+                    onProcessedYuvFrame(processedData, pts);
+                } else {
+                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                            new IllegalArgumentException("libyuv failure"));
+                }
+            }
+        } else {
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                    new IOException("Network is weak"));
         }
     }
 
@@ -441,6 +433,43 @@ public class SrsEncoder {
         } else {
             NV21SoftEncode(data, vPrevWidth, vPrevHeight, false, 0, pts);
         }
+    }
+
+    public void onGetRgbaFrame(byte[] data, int width, int height) {
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            if (useSoftEncoder) {
+                swRgbaFrame(data, width, height, pts);
+            } else {
+                byte[] processedData = hwRgbaFrame(data, width, height);
+                if (processedData != null) {
+                    onProcessedYuvFrame(processedData, pts);
+                } else {
+                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                            new IllegalArgumentException("libyuv failure"));
+                }
+            }
+        } else {
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                    new IOException("Network is weak"));
+        }
+    }
+
+    private byte[] hwRgbaFrame(byte[] data, int width, int height) {
+        switch (mVideoColorFormat) {
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                return RGBAToI420(data, width, height, true, 180);
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                return RGBAToNV12(data, width, height, true, 180);
+            default:
+                throw new IllegalStateException("Unsupported color format!");
+        }
+    }
+
+    private void swRgbaFrame(byte[] data, int width, int height, long pts) {
+        RGBASoftEncode(data, width, height, true, 180, pts);
     }
 
     // choose the video encoder by name.
@@ -511,7 +540,10 @@ public class SrsEncoder {
     private native void setEncoderPreset(String preset);
     private native byte[] NV21ToI420(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
     private native byte[] NV21ToNV12(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
+    private native byte[] RGBAToI420(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
+    private native byte[] RGBAToNV12(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
     private native int NV21SoftEncode(byte[] yuvFrame, int width, int height, boolean flip, int rotate, long pts);
+    private native int RGBASoftEncode(byte[] yuvFrame, int width, int height, boolean flip, int rotate, long pts);
     private native boolean openSoftEncoder();
     private native void closeSoftEncoder();
 

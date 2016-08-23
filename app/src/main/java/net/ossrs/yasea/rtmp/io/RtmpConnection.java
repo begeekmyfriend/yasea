@@ -71,6 +71,8 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private AmfNumber serverId;
     private int videoWidth;
     private int videoHeight;
+    private int mConnectTimeout = 30000;  //网络连接超时
+    private int mSocketTimeout = 60000;   //网络收发数据超时
 
     public RtmpConnection(RtmpPublisher.EventHandler handler) {
         mHandler = handler;
@@ -109,7 +111,8 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         Log.d(TAG, "connect() called. Host: " + host + ", port: " + port + ", appName: " + appName + ", publishPath: " + streamName);
         socket = new Socket();
         SocketAddress socketAddress = new InetSocketAddress(host, port);
-        socket.connect(socketAddress, 3000);
+        socket.connect(socketAddress, mConnectTimeout);
+        socket.setSoTimeout(mSocketTimeout);
         BufferedInputStream in = new BufferedInputStream(socket.getInputStream());
         BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
         Log.d(TAG, "connect(): socket connection established, doing handhake...");

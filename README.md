@@ -16,6 +16,7 @@ Feature
 - [x] Portrait and landscape dynamic orientation.
 - [x] Front and back cameras hot switch.
 - [x] Recording to MP4 while streaming.
+- [x] Beautiful filters with GPUImage.
 
 Test
 ----
@@ -37,5 +38,6 @@ Thanks
 
 - [srs-sea](https://github.com/ossrs/srs-sea)
 - [SimpleRtmp](https://github.com/faucamp/SimpleRtmp)
+- [MagicCamera](https://github.com/begeekmyfriend/MagicCamera)
 - [x264](http://www.videolan.org/developers/x264.html)
 - [mp4parser](https://android.googlesource.com/platform/external/mp4parser)

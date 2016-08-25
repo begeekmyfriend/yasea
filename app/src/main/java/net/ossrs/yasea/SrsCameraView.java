@@ -82,8 +82,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         GLES20.glDisable(GL10.GL_DITHER);
         GLES20.glClearColor(0, 0, 0, 0);
-        GLES20.glEnable(GL10.GL_CULL_FACE);
-        GLES20.glEnable(GL10.GL_DEPTH_TEST);
 
         cameraInputFilter = new MagicCameraInputFilter();
         cameraInputFilter.init();
@@ -106,14 +104,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         surfaceWidth = width;
         surfaceHeight = height;
         cameraInputFilter.onDisplaySizeChanged(surfaceWidth, surfaceHeight);
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        super.surfaceDestroyed(holder);
-        stopCamera();
-        deleteTextures();
-        cameraInputFilter.destroyFramebuffers();
     }
 
     @Override

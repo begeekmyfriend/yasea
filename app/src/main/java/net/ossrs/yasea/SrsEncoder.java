@@ -17,8 +17,8 @@ import java.nio.ByteBuffer;
 public class SrsEncoder {
     private static final String TAG = "SrsEncoder";
 
-    public static final String VCODEC = "video/avc";
-    public static final String ACODEC = "audio/mp4a-latm";
+    public static final String VCODEC = MediaFormat.MIMETYPE_VIDEO_AVC;
+    public static final String ACODEC = MediaFormat.MIMETYPE_AUDIO_AAC;
     public static String x264Preset = "veryfast";
     public static int vPrevWidth = 1280;
     public static int vPrevHeight = 720;

@@ -44,6 +44,8 @@ public class SrsEncoder {
     private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
+    private EventHandler mHandler;
+    private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
     private boolean useSoftEncoder = false;
 
@@ -55,6 +57,13 @@ public class SrsEncoder {
     private int videoMp4Track;
     private int audioFlvTrack;
     private int audioMp4Track;
+
+    public interface EventHandler {
+
+        void onNetworkResume(String msg);
+
+        void onNetworkWeak(String msg);
+    }
 
     // Y, U (Cb) and V (Cr)
     // yuv420                     yuv yuv yuv yuv
@@ -77,6 +86,10 @@ public class SrsEncoder {
 
     public void setMp4Muxer(SrsMp4Muxer mp4Muxer) {
         this.mp4Muxer = mp4Muxer;
+    }
+
+    public void setNetworkEventHandler(EventHandler handler) {
+        mHandler = handler;
     }
 
     public boolean start() {
@@ -340,9 +353,14 @@ public class SrsEncoder {
                             new IllegalArgumentException("libyuv failure"));
                 }
             }
+
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
+                mHandler.onNetworkResume("Network resume");
+            }
         } else {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IOException("Network is weak"));
+            mHandler.onNetworkWeak("Network weak");
+            networkWeakTriggered = true;
         }
     }
 

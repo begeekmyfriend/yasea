@@ -318,6 +318,10 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
         mEncoder.setMp4Muxer(mMp4Muxer);
     }
 
+    public void setNetworkEventHandler(SrsEncoder.EventHandler handler) {
+        mEncoder.setNetworkEventHandler(handler);
+    }
+
     public void setSurfaceView(SurfaceView surfaceView) {
         mCameraView = surfaceView;
         mCameraView.getHolder().addCallback(this);

@@ -33,6 +33,8 @@ public class SrsEncoder {
     public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
+    private EventHandler mHandler;
+    private boolean onNetworkWeakTriggered = false;
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     private SrsFlvMuxer flvMuxer;
@@ -56,6 +58,13 @@ public class SrsEncoder {
     private int audioFlvTrack;
     private int audioMp4Track;
 
+    interface EventHandler {
+
+        void onNetworkResume(String msg);
+
+        void onNetworkWeak(String msg);
+    }
+
     // Y, U (Cb) and V (Cr)
     // yuv420                     yuv yuv yuv yuv
     // yuv420p (planar)   yyyy*2 uu vv
@@ -77,6 +86,10 @@ public class SrsEncoder {
 
     public void setMp4Muxer(SrsMp4Muxer mp4Muxer) {
         this.mp4Muxer = mp4Muxer;
+    }
+
+    public void setNetworkEventHandler(EventHandler handler) {
+        mHandler = handler;
     }
 
     public boolean start() {
@@ -369,9 +382,14 @@ public class SrsEncoder {
                             new IllegalArgumentException("libyuv failure"));
                 }
             }
+
+            if (onNetworkWeakTriggered) {
+                onNetworkWeakTriggered = false;
+                mHandler.onNetworkResume("Network resume");
+            }
         } else {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IOException("Network is weak"));
+            mHandler.onNetworkWeak("Network weak");
+            onNetworkWeakTriggered = true;
         }
     }
 
@@ -451,9 +469,14 @@ public class SrsEncoder {
                             new IllegalArgumentException("libyuv failure"));
                 }
             }
+
+            if (onNetworkWeakTriggered) {
+                onNetworkWeakTriggered = false;
+                mHandler.onNetworkResume("Network resume");
+            }
         } else {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IOException("Network is weak"));
+            mHandler.onNetworkWeak("Network weak");
+            onNetworkWeakTriggered = true;
         }
     }
 

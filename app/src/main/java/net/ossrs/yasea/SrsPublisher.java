@@ -268,4 +268,8 @@ public class SrsPublisher {
         mMp4Muxer = new SrsMp4Muxer(handler);
         mEncoder.setMp4Muxer(mMp4Muxer);
     }
+
+    public void setNetworkEventHandler(SrsEncoder.EventHandler handler) {
+        mEncoder.setNetworkEventHandler(handler);
+    }
 }

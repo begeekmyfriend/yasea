@@ -228,6 +228,28 @@ public class MainActivity extends Activity {
             }
         });
 
+        mPublisher.setNetworkEventHandler(new SrsEncoder.EventHandler() {
+            @Override
+            public void onNetworkResume(final String msg) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkWeak(final String msg) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread thread, Throwable ex) {

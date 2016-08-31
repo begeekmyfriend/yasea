@@ -18,6 +18,10 @@ public class SrsRtmpPublisher implements RtmpPublisher {
     public SrsRtmpPublisher(RtmpPublisher.EventHandler handler) {
         rtmpConnection = new RtmpConnection(handler);
     }
+    
+    public void setTimeoutPublish(int time){
+        rtmpConnection.setTimeoutPublish(time);
+    }    
 
     @Override
     public void connect(String url) throws IOException {

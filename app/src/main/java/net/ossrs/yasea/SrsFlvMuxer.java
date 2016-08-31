@@ -125,6 +125,10 @@ public class SrsFlvMuxer {
             sequenceHeaderOk = false;
         }
     }
+    
+    public void setTimeoutPublish(int time){
+        publisher.setTimeoutPublish(time);
+    }    
 
     private void sendFlvTag(SrsFlvFrame frame) throws IllegalStateException, IOException {
         if (!connected || frame == null) {

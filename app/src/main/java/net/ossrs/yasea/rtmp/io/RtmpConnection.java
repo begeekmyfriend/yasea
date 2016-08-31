@@ -71,6 +71,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
     private AmfNumber serverId;
     private int videoWidth;
     private int videoHeight;
+    private int  timeoutPublish = 5000;
 
     public RtmpConnection(RtmpPublisher.EventHandler handler) {
         mHandler = handler;
@@ -220,12 +221,16 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
         // Waiting for "NetStream.Publish.Start" response.
         synchronized (publishLock) {
             try {
-                publishLock.wait(5000);
+                publishLock.wait(timeoutPublish);
             } catch (InterruptedException ex) {
                 // do nothing
             }
         }
     }
+    
+    public void setTimeoutPublish(int time){
+        timeoutPublish = time;
+    }    
 
     private void fmlePublish() throws IllegalStateException {
         if (!fullyConnected) {

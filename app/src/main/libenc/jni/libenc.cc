@@ -217,7 +217,7 @@ static int encode_global_nal_header() {
     return encode_nals(nals, nnal);
 }
 
-static int x264_encode(struct YuvFrame *i420_frame, long pts) {
+static int x264_encode(struct YuvFrame *i420_frame, int64_t pts) {
     int out_len, nnal;
     x264_nal_t *nal;
     x264_picture_t pic_out;

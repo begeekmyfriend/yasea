@@ -520,6 +520,7 @@ public class RtmpConnection implements RtmpPublisher, PacketRxHandler {
                 onMetaData();
                 // We can now publish AV data
                 publishPermitted = true;
+                mHandler.onPublished("published");
                 synchronized (publishLock) {
                     publishLock.notifyAll();
                 }

@@ -102,5 +102,7 @@ public interface RtmpPublisher {
         void onRtmpDisconnected(String msg);
 
         void onRtmpOutputFps(double fps);
+        
+        void onPublished(String msg);
     }
 }

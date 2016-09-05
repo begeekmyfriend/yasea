@@ -53,6 +53,7 @@ public class SrsFlvMuxer {
     private final Object txFrameLock = new Object();
 
     private SrsFlv flv = new SrsFlv();
+    private boolean needToFindKeyFrame = true;
     private boolean sequenceHeaderOk = false;
     private SrsFlvFrame videoSequenceHeader;
     private SrsFlvFrame audioSequenceHeader;
@@ -157,10 +158,7 @@ public class SrsFlvMuxer {
                     while (!frameCache.isEmpty()) {
                         SrsFlvFrame frame = frameCache.poll();
                         try {
-                            // only connect when got keyframe.
-                            if (frame.is_keyframe()) {
-                                connect(rtmpUrl);
-                            }
+                            connect(rtmpUrl);
                             // when sequence header required,
                             // adjust the dts by the current frame and sent it.
                             if (!sequenceHeaderOk) {
@@ -221,9 +219,11 @@ public class SrsFlvMuxer {
                 e.printStackTrace();
                 worker.interrupt();
             }
+            frameCache.clear();
             worker = null;
         }
 
+        needToFindKeyFrame = true;
         Log.i(TAG, String.format("SrsFlvMuxer closed"));
     }
 
@@ -1015,9 +1015,19 @@ public class SrsFlvMuxer {
             frame.frame_type = frame_type;
             frame.avc_aac_type = avc_aac_type;
 
-            frameCache.add(frame);
-            synchronized (txFrameLock) {
-                txFrameLock.notifyAll();
+            if (needToFindKeyFrame) {
+                if (frame.is_keyframe()) {
+                    needToFindKeyFrame = false;
+                    frameCache.add(frame);
+                    synchronized (txFrameLock) {
+                        txFrameLock.notifyAll();
+                    }
+                }
+            } else {
+                frameCache.add(frame);
+                synchronized (txFrameLock) {
+                    txFrameLock.notifyAll();
+                }
             }
         }
     }

@@ -46,13 +46,13 @@ import net.ossrs.yasea.rtmp.RtmpPublisher;
  */
 public class SrsFlvMuxer {
     private volatile boolean connected = false;
-    private String rtmpUrl;
     private SrsRtmpPublisher publisher;
 
     private Thread worker;
     private final Object txFrameLock = new Object();
 
     private SrsFlv flv = new SrsFlv();
+    private boolean needToFindKeyFrame = true;
     private boolean sequenceHeaderOk = false;
     private SrsFlvFrame videoSequenceHeader;
     private SrsFlvFrame audioSequenceHeader;
@@ -115,14 +115,19 @@ public class SrsFlvMuxer {
         Log.i(TAG, "worker: disconnect SRS ok.");
     }
 
-    private void connect(String url) throws IllegalStateException, IOException {
-        if (!connected) {
-            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
-            publisher.connect(url);
-            publisher.publish("live");
-            Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
-            connected = true;
-            sequenceHeaderOk = false;
+    private void connect(String url) {
+        try {
+            if (!connected) {
+                Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
+                publisher.connect(url);
+                publisher.publish("live");
+                Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
+                connected = true;
+                sequenceHeaderOk = false;
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ioe);
         }
     }
 
@@ -146,21 +151,18 @@ public class SrsFlvMuxer {
     /**
      * start to the remote SRS for remux.
      */
-    public void start(String url) throws IOException {
-        rtmpUrl = url;
+    public void start(final String rtmpUrl) throws IOException {
 
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
+                connect(rtmpUrl);
+
                 while (!Thread.interrupted()) {
                     // Keep at least one audio and video frame in cache to ensure monotonically increasing.
                     while (!frameCache.isEmpty()) {
                         SrsFlvFrame frame = frameCache.poll();
                         try {
-                            // only connect when got keyframe.
-                            if (frame.is_keyframe()) {
-                                connect(rtmpUrl);
-                            }
                             // when sequence header required,
                             // adjust the dts by the current frame and sent it.
                             if (!sequenceHeaderOk) {
@@ -221,9 +223,11 @@ public class SrsFlvMuxer {
                 e.printStackTrace();
                 worker.interrupt();
             }
+            frameCache.clear();
             worker = null;
         }
 
+        needToFindKeyFrame = true;
         Log.i(TAG, String.format("SrsFlvMuxer closed"));
     }
 
@@ -1015,9 +1019,19 @@ public class SrsFlvMuxer {
             frame.frame_type = frame_type;
             frame.avc_aac_type = avc_aac_type;
 
-            frameCache.add(frame);
-            synchronized (txFrameLock) {
-                txFrameLock.notifyAll();
+            if (needToFindKeyFrame) {
+                if (frame.is_keyframe()) {
+                    needToFindKeyFrame = false;
+                    frameCache.add(frame);
+                    synchronized (txFrameLock) {
+                        txFrameLock.notifyAll();
+                    }
+                }
+            } else {
+                frameCache.add(frame);
+                synchronized (txFrameLock) {
+                    txFrameLock.notifyAll();
+                }
             }
         }
     }

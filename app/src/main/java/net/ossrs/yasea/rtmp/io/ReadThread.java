@@ -20,9 +20,9 @@ public class ReadThread extends Thread {
 
     private RtmpDecoder rtmpDecoder;
     private InputStream in;
-    private PacketRxHandler packetRxHandler;
+    private RtmpConnection.PacketRxHandler packetRxHandler;
 
-    public ReadThread(RtmpSessionInfo rtmpSessionInfo, InputStream in, PacketRxHandler packetRxHandler) {
+    public ReadThread(RtmpSessionInfo rtmpSessionInfo, InputStream in, RtmpConnection.PacketRxHandler packetRxHandler) {
         super("RtmpReadThread");
         this.in = in;
         this.packetRxHandler = packetRxHandler;

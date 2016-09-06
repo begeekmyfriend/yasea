@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
                     btnSwitchEncoder.setEnabled(false);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
+                    mPublisher.stopRecord();
 
                     btnPublish.setText("publish");
                     btnRecord.setText("record");
@@ -223,6 +224,28 @@ public class MainActivity extends Activity {
                     @Override
                     public void run() {
                         Toast.makeText(getApplicationContext(), "MP4 file saved: " + msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+
+        mPublisher.setNetworkEventHandler(new SrsEncoder.EventHandler() {
+            @Override
+            public void onNetworkResume(final String msg) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onNetworkWeak(final String msg) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }

@@ -46,7 +46,6 @@ import net.ossrs.yasea.rtmp.RtmpPublisher;
  */
 public class SrsFlvMuxer {
     private volatile boolean connected = false;
-    private String rtmpUrl;
     private SrsRtmpPublisher publisher;
 
     private Thread worker;
@@ -116,14 +115,19 @@ public class SrsFlvMuxer {
         Log.i(TAG, "worker: disconnect SRS ok.");
     }
 
-    private void connect(String url) throws IllegalStateException, IOException {
-        if (!connected) {
-            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
-            publisher.connect(url);
-            publisher.publish("live");
-            Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
-            connected = true;
-            sequenceHeaderOk = false;
+    private void connect(String url) {
+        try {
+            if (!connected) {
+                Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
+                publisher.connect(url);
+                publisher.publish("live");
+                Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
+                connected = true;
+                sequenceHeaderOk = false;
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ioe);
         }
     }
 
@@ -147,18 +151,18 @@ public class SrsFlvMuxer {
     /**
      * start to the remote SRS for remux.
      */
-    public void start(String url) throws IOException {
-        rtmpUrl = url;
+    public void start(final String rtmpUrl) throws IOException {
 
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
+                connect(rtmpUrl);
+
                 while (!Thread.interrupted()) {
                     // Keep at least one audio and video frame in cache to ensure monotonically increasing.
                     while (!frameCache.isEmpty()) {
                         SrsFlvFrame frame = frameCache.poll();
                         try {
-                            connect(rtmpUrl);
                             // when sequence header required,
                             // adjust the dts by the current frame and sent it.
                             if (!sequenceHeaderOk) {

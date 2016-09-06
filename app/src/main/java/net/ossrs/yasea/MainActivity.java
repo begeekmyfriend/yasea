@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
                     btnSwitchEncoder.setEnabled(false);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
+                    mPublisher.stopRecord();
 
                     btnPublish.setText("publish");
                     btnRecord.setText("record");

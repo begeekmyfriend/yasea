@@ -317,7 +317,7 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
     }
 
     public void switchMute() {
-        AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        AudioManager audioManager = (AudioManager) mCameraView.getContext().getSystemService(Context.AUDIO_SERVICE);
         int oldMode = audioManager.getMode();
         audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
         boolean isMute = !audioManager.isMicrophoneMute();

@@ -1,9 +1,8 @@
 package net.ossrs.yasea;
 
 import android.content.Context;
-import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioRecord;
-import android.media.MediaRecorder;
 
 import net.ossrs.yasea.rtmp.RtmpPublisher;
 
@@ -71,6 +70,11 @@ public class SrsPublisher {
 
     public void startEncode() {
         if (!mEncoder.start()) {
+            return;
+        }
+
+        mic = mEncoder.chooseAudioRecord();
+        if (mic == null) {
             return;
         }
 
@@ -222,20 +226,16 @@ public class SrsPublisher {
 
     private void startAudio() {
         if (mic != null) {
-            return;
-        }
+            mic.startRecording();
 
-        int bufferSize = 2 * AudioRecord.getMinBufferSize(SrsEncoder.ASAMPLERATE, SrsEncoder.ACHANNEL, AudioFormat.ENCODING_PCM_16BIT);
-        mic = new AudioRecord(MediaRecorder.AudioSource.MIC, SrsEncoder.ASAMPLERATE, SrsEncoder.ACHANNEL, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
-        mic.startRecording();
-
-        byte pcmBuffer[] = new byte[4096];
-        while (aloop && !Thread.interrupted()) {
-            int size = mic.read(pcmBuffer, 0, pcmBuffer.length);
-            if (size <= 0) {
-                break;
+            byte pcmBuffer[] = new byte[4096];
+            while (aloop && !Thread.interrupted()) {
+                int size = mic.read(pcmBuffer, 0, pcmBuffer.length);
+                if (size <= 0) {
+                    break;
+                }
+                mEncoder.onGetPcmFrame(pcmBuffer, size);
             }
-            mEncoder.onGetPcmFrame(pcmBuffer, size);
         }
     }
 
@@ -258,6 +258,15 @@ public class SrsPublisher {
             mic.release();
             mic = null;
         }
+    }
+
+    public void switchMute() {
+        AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        int oldMode = audioManager.getMode();
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+        boolean isMute = !audioManager.isMicrophoneMute();
+        audioManager.setMicrophoneMute(isMute);
+        audioManager.setMode(oldMode);
     }
 
     public void setPublishEventHandler(RtmpPublisher.EventHandler handler) {

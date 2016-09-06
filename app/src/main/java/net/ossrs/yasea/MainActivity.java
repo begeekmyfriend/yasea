@@ -67,7 +67,7 @@ public class MainActivity extends Activity {
                     Log.i(TAG, String.format("RTMP URL changed to %s", rtmpUrl));
                     SharedPreferences.Editor editor = sp.edit();
                     editor.putString("rtmpUrl", rtmpUrl);
-                    editor.commit();
+                    editor.apply();
 
                     mPublisher.setPreviewResolution(1280, 720);
                     mPublisher.setOutputResolution(384, 640);

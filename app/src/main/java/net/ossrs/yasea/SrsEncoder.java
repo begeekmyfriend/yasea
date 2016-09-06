@@ -2,14 +2,17 @@ package net.ossrs.yasea;
 
 import android.content.res.Configuration;
 import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
+import android.media.MediaRecorder;
 import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Leo Ma on 4/1/2016.
@@ -30,7 +33,7 @@ public class SrsEncoder {
     public static final int VFPS = 24;
     public static final int VGOP = 48;
     public static final int ASAMPLERATE = 44100;
-    public static final int ACHANNEL = AudioFormat.CHANNEL_IN_STEREO;
+    public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
     private EventHandler mHandler;
@@ -135,7 +138,7 @@ public class SrsEncoder {
 
         // setup the aencoder.
         // @see https://developer.android.com/reference/android/media/MediaCodec.html
-        int ach = ACHANNEL == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
+        int ach = aChannelConfig == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
         MediaFormat audioFormat = MediaFormat.createAudioFormat(ACODEC, ASAMPLERATE, ach);
         audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, ABITRATE);
         audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
@@ -364,7 +367,8 @@ public class SrsEncoder {
     public void onGetYuvFrame(byte[] data) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
-        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -456,7 +460,8 @@ public class SrsEncoder {
     public void onGetRgbaFrame(byte[] data, int width, int height) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
-        if (flvMuxer.getVideoFrameCacheNumber().get() < VGOP) {
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 swRgbaFrame(data, width, height, pts);
@@ -493,6 +498,23 @@ public class SrsEncoder {
 
     private void swRgbaFrame(byte[] data, int width, int height, long pts) {
         RGBASoftEncode(data, width, height, true, 180, pts);
+    }
+
+    public AudioRecord chooseAudioRecord() {
+        int minBufferSize = AudioRecord.getMinBufferSize(SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT);
+        AudioRecord mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
+        if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
+            mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
+            if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
+                mic = null;
+            } else {
+                SrsEncoder.aChannelConfig = AudioFormat.CHANNEL_IN_MONO;
+            }
+        } else {
+            SrsEncoder.aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
+        }
+
+        return mic;
     }
 
     // choose the video encoder by name.

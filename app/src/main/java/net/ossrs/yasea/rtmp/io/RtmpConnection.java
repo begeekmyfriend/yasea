@@ -535,7 +535,7 @@ public class RtmpConnection implements RtmpPublisher {
             Log.d(TAG, "handleRxInvoke: Got result for invoked method: " + method);
             if ("connect".equals(method)) {
                 // Capture server ip/pid/id information if any
-                String serverInfo = onXmlyServerInfo(invoke);
+                String serverInfo = onSrsServerInfo(invoke);
                 mHandler.onRtmpConnected("connected" + serverInfo);
                 // We can now send createStream commands
                 connecting = false;
@@ -576,7 +576,7 @@ public class RtmpConnection implements RtmpPublisher {
         }
     }
 
-    private String onXmlyServerInfo(Command invoke) {
+    private String onSrsServerInfo(Command invoke) {
         // SRS server special information
         AmfObject objData = (AmfObject) invoke.getData().get(1);
         if ((objData).getProperty("data") instanceof AmfObject) {

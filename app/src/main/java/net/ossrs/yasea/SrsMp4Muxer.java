@@ -112,7 +112,7 @@ public class SrsMp4Muxer {
     /**
      * MP4 recording event handler.
      */
-    interface EventHandler {
+    public interface EventHandler {
 
         void onRecordPause(String msg);
 

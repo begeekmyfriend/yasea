@@ -79,8 +79,8 @@ public class SrsFlvMuxer {
 
     /**
      * set video resolution for publisher
-     * @param width
-     * @param height
+     * @param width width
+     * @param height height
      */
     public void setVideoResolution(int width, int height) {
         if (publisher != null) {
@@ -228,7 +228,7 @@ public class SrsFlvMuxer {
         }
 
         needToFindKeyFrame = true;
-        Log.i(TAG, String.format("SrsFlvMuxer closed"));
+        Log.i(TAG, "SrsFlvMuxer closed");
     }
 
     /**
@@ -244,10 +244,12 @@ public class SrsFlvMuxer {
             ));
         }
 
-        if (VIDEO_TRACK == trackIndex) {
-            flv.writeVideoSample(byteBuf, bufferInfo);
-        } else {
-            flv.writeAudioSample(byteBuf, bufferInfo);
+        if (connected) {
+            if (VIDEO_TRACK == trackIndex) {
+                flv.writeVideoSample(byteBuf, bufferInfo);
+            } else {
+                flv.writeAudioSample(byteBuf, bufferInfo);
+            }
         }
     }
 

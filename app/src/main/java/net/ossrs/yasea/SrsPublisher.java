@@ -31,7 +31,7 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
     private int videoFrameCount;
     private long lastTimeMillis;
     private int mPreviewRotation = 90;
-    private int mCamId = Camera.getNumberOfCameras() - 1;
+    private int mCamId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private double mSamplingFps;
     private byte[] mYuvPreviewFrame;
 

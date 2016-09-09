@@ -244,12 +244,10 @@ public class SrsFlvMuxer {
             ));
         }
 
-        if (connected) {
-            if (VIDEO_TRACK == trackIndex) {
-                flv.writeVideoSample(byteBuf, bufferInfo);
-            } else {
-                flv.writeAudioSample(byteBuf, bufferInfo);
-            }
+        if (VIDEO_TRACK == trackIndex) {
+            flv.writeVideoSample(byteBuf, bufferInfo);
+        } else {
+            flv.writeAudioSample(byteBuf, bufferInfo);
         }
     }
 

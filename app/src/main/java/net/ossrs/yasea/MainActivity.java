@@ -72,7 +72,7 @@ public class MainActivity extends Activity {
 
                     mPublisher.setPreviewResolution(1280, 720);
                     mPublisher.setOutputResolution(384, 640);
-                    mPublisher.setVideoHDMode();
+                    mPublisher.setVideoSmoothMode();
                     mPublisher.startPublish(rtmpUrl);
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {

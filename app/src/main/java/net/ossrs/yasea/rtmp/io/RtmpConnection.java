@@ -414,7 +414,8 @@ public class RtmpConnection implements RtmpPublisher {
         video.getHeader().setAbsoluteTimestamp(dts);
         video.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(video);
-        videoFrameCacheNumber.getAndIncrement();
+        videoFrameCacheNumber.decrementAndGet();
+        calcFps();
         mHandler.onRtmpVideoStreaming("video streaming");
     }
 
@@ -430,10 +431,6 @@ public class RtmpConnection implements RtmpPublisher {
             Log.d(TAG, "wrote packet: " + rtmpPacket + ", size: " + rtmpPacket.getHeader().getPacketLength());
             if (rtmpPacket instanceof Command) {
                 rtmpSessionInfo.addInvokedCommand(((Command) rtmpPacket).getTransactionId(), ((Command) rtmpPacket).getCommandName());
-            }
-            if (rtmpPacket instanceof Video) {
-                getVideoFrameCacheNumber().getAndDecrement();
-                calcFps();
             }
             outputStream.flush();
         } catch (SocketException se) {

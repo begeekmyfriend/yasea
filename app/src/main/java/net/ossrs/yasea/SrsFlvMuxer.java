@@ -73,14 +73,14 @@ public class SrsFlvMuxer {
     /**
      * get cached video frame number in publisher
      */
-    public final AtomicInteger getVideoFrameCacheNumber() {
+    public AtomicInteger getVideoFrameCacheNumber() {
         return publisher == null ? null : publisher.getVideoFrameCacheNumber();
     }
 
     /**
      * set video resolution for publisher
-     * @param width
-     * @param height
+     * @param width width
+     * @param height height
      */
     public void setVideoResolution(int width, int height) {
         if (publisher != null) {
@@ -228,7 +228,7 @@ public class SrsFlvMuxer {
         }
 
         needToFindKeyFrame = true;
-        Log.i(TAG, String.format("SrsFlvMuxer closed"));
+        Log.i(TAG, "SrsFlvMuxer closed");
     }
 
     /**
@@ -244,10 +244,12 @@ public class SrsFlvMuxer {
             ));
         }
 
-        if (VIDEO_TRACK == trackIndex) {
-            flv.writeVideoSample(byteBuf, bufferInfo);
-        } else {
-            flv.writeAudioSample(byteBuf, bufferInfo);
+        if (connected) {
+            if (VIDEO_TRACK == trackIndex) {
+                flv.writeVideoSample(byteBuf, bufferInfo);
+            } else {
+                flv.writeAudioSample(byteBuf, bufferInfo);
+            }
         }
     }
 
@@ -1002,10 +1004,6 @@ public class SrsFlvMuxer {
             int avc_packet_type = SrsCodecVideoAVCType.NALU;
             SrsFlvFrameBytes flv_tag = avc.mux_avc2flv(ibps, frame_type, avc_packet_type, dts, pts);
 
-            if (frame_type == SrsCodecVideoAVCFrame.KeyFrame) {
-                //Log.i(TAG, String.format("flv: keyframe %dB, dts=%d", flv_tag.size, dts));
-            }
-
             // the timestamp in rtmp message header is dts.
             rtmp_write_packet(SrsCodecFlvTag.Video, dts, frame_type, avc_packet_type, flv_tag);
         }
@@ -1022,17 +1020,21 @@ public class SrsFlvMuxer {
             if (needToFindKeyFrame) {
                 if (frame.is_keyframe()) {
                     needToFindKeyFrame = false;
-                    frameCache.add(frame);
-                    synchronized (txFrameLock) {
-                        txFrameLock.notifyAll();
-                    }
+                    flvFrameCacheAdd(frame);
                 }
             } else {
-                frameCache.add(frame);
-                synchronized (txFrameLock) {
-                    txFrameLock.notifyAll();
-                }
+                flvFrameCacheAdd(frame);
             }
+        }
+        
+        private void flvFrameCacheAdd(SrsFlvFrame frame) {
+            frameCache.add(frame);
+            if (frame.is_video()) {
+                getVideoFrameCacheNumber().incrementAndGet();
+            }
+            synchronized (txFrameLock) {
+                txFrameLock.notifyAll();
+            }            
         }
     }
 }

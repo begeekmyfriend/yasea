@@ -59,7 +59,7 @@ public class SrsRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public final AtomicInteger getVideoFrameCacheNumber() {
+    public AtomicInteger getVideoFrameCacheNumber() {
         return rtmpConnection.getVideoFrameCacheNumber();
     }
 

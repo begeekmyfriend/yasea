@@ -7,6 +7,7 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
 import net.ossrs.yasea.rtmp.RtmpPublisher;
 
@@ -192,8 +193,9 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
         Camera.Parameters params = mCamera.getParameters();
         Camera.Size size = mCamera.new Size(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
         if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IllegalArgumentException(String.format("Unsupported resolution %dx%d", size.width, size.height)));
+            Toast.makeText(mCameraView.getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
+            stopEncode();
+            return;
         }
 
         mYuvPreviewFrame = new byte[mEncoder.getPreviewWidth() * mEncoder.getPreviewHeight() * 3 / 2];

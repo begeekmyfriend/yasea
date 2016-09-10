@@ -78,7 +78,10 @@ public class SrsPublisher {
             return;
         }
 
-        mCameraView.startCamera();
+        if (mCameraView.startCamera() < 0) {
+            mEncoder.stop();
+            return;
+        }
         mCameraView.setFilter(filterType);
 
         aworker = new Thread(new Runnable() {

@@ -8,6 +8,7 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
+import android.widget.Toast;
 
 import com.seu.magicfilter.base.MagicCameraInputFilter;
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -48,7 +49,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private IntBuffer mGLPreviewIntBuffer;
     private ByteBuffer mGLPreviewByteBuffer;
     private byte[] mYuvPreviewBuffer;
-    private int mCamId = 1;
+    private int mCamId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private int mPreviewRotation = 90;
 
     private Thread worker;
@@ -194,12 +195,12 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         return mCamId;
     }
 
-    public void startCamera() {
+    public int startCamera() {
         if (mCamera != null) {
-            return;
+            return -1;
         }
         if (mCamId > (Camera.getNumberOfCameras() - 1) || mCamId < 0) {
-            return;
+            return -1;
         }
 
         worker = new Thread(new Runnable() {
@@ -230,8 +231,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         Camera.Parameters params = mCamera.getParameters();
         Camera.Size size = mCamera.new Size(previewWidth, previewHeight);
         if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IllegalArgumentException(String.format("Unsupported resolution %dx%d", size.width, size.height)));
+            Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
+            stopCamera();
+            return -1;
         }
 
         if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {

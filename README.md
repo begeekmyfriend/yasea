@@ -23,8 +23,7 @@ Test
 You may watch the live broadcasting at [srs.net](http://www.ossrs.net/players/srs_player.html).
 Remember to modify the URL by yourself. Have fun!
 
-**NOTE** if you feel high latency, it might be the frame cache of the server or
-player. So you need to open the player first and then publish to see the effect.
+**NOTE** if you feel high latency, please check your bandwidth limits and player buffering.
 
 Other Branch
 ------------

@@ -120,7 +120,6 @@ public class SrsPublisher {
             stopEncode();
             mFlvMuxer.stop();
         }
-        stopRecord();
     }
 
     public void startRecord(String recPath) {

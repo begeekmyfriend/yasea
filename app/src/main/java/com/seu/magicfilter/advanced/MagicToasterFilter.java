@@ -2,10 +2,10 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
-import net.ossrs.yasea.SrsPublisher;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicToasterFilter extends GPUImageFilter{
@@ -60,11 +60,11 @@ public class MagicToasterFilter extends GPUImageFilter{
 		setFloat(mGLStrengthLocation, 1.0f);
 	    runOnDraw(new Runnable(){
 		    public void run(){
-		    	inputTextureHandles[0] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/toastermetal.png");
-				inputTextureHandles[1] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/toastersoftlight.png");
-				inputTextureHandles[2] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/toastercurves.png");
-				inputTextureHandles[3] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/toasteroverlaymapwarm.png");
-				inputTextureHandles[4] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/toastercolorshift.png");
+				inputTextureHandles[0] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastermetal.png");
+				inputTextureHandles[1] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastersoftlight.png");
+				inputTextureHandles[2] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastercurves.png");
+				inputTextureHandles[3] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toasteroverlaymapwarm.png");
+				inputTextureHandles[4] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastercolorshift.png");
 		    }
 	    });
 	}

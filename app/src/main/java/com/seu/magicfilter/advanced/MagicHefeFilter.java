@@ -2,10 +2,10 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
-import net.ossrs.yasea.SrsPublisher;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicHefeFilter extends GPUImageFilter{
@@ -59,10 +59,10 @@ public class MagicHefeFilter extends GPUImageFilter{
 		setFloat(mGLStrengthLocation, 1.0f);
 	    runOnDraw(new Runnable(){
 		    public void run(){
-		    	inputTextureHandles[0] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/edgeburn.png");
-				inputTextureHandles[1] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/hefemap.png");
-				inputTextureHandles[2] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/hefemetal.png");
-				inputTextureHandles[3] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/hefesoftlight.png");
+				inputTextureHandles[0] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/edgeburn.png");
+				inputTextureHandles[1] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/hefemap.png");
+				inputTextureHandles[2] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/hefemetal.png");
+				inputTextureHandles[3] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/hefesoftlight.png");
 		    }
 	    });
 	}

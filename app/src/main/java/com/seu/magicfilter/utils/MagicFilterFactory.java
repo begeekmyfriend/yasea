@@ -1,5 +1,7 @@
 package com.seu.magicfilter.utils;
 
+import android.content.Context;
+
 import com.seu.magicfilter.advanced.MagicAmaroFilter;
 import com.seu.magicfilter.advanced.MagicAntiqueFilter;
 import com.seu.magicfilter.advanced.MagicBeautyFilter;
@@ -53,7 +55,13 @@ import com.seu.magicfilter.base.gpuimage.GPUImageSharpenFilter;
 public class MagicFilterFactory{
 	
 	private static MagicFilterType filterType = MagicFilterType.NONE;
-	
+
+	private static Context mContext;
+
+	public static void initContext(Context context) {
+		mContext = context;
+	}
+
 	public static GPUImageFilter initFilters(MagicFilterType type) {
 		filterType = type;
 		switch (type) {
@@ -159,7 +167,11 @@ public class MagicFilterFactory{
 		}
 	}
 	
-	public MagicFilterType getCurrentFilterType(){
+	public static MagicFilterType getCurrentFilterType(){
 		return filterType;
+	}
+
+	public static Context getCurrentContext(){
+		return mContext;
 	}
 }

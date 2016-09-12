@@ -4,10 +4,10 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
-import net.ossrs.yasea.SrsPublisher;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicHealthyFilter extends GPUImageFilter{
@@ -98,7 +98,7 @@ public class MagicHealthyFilter extends GPUImageFilter{
 		          arrayOfByte[(3 + i * 4)] = -1;
 		        }
 		        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 256, 1, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(arrayOfByte));
-		        mMaskGrey1TextureId = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/healthy_mask_1.jpg");
+		        mMaskGrey1TextureId = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/healthy_mask_1.jpg");
 		    }
 	    });
 	}

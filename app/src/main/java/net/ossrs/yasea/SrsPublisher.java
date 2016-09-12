@@ -16,7 +16,6 @@ import java.io.IOException;
  */
 public class SrsPublisher {
     private static final String TAG = "SrsPublisher";
-    private static Context mContext;
 
     private AudioRecord mic;
     private boolean aloop = false;
@@ -36,7 +35,6 @@ public class SrsPublisher {
 
     public SrsPublisher(SrsCameraView view) {
         mCameraView = view;
-        mContext = mCameraView.getContext();
         mEncoder = new SrsEncoder();
         mCameraView.setPreviewResolution(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
         mCameraView.setPreviewCallback(new SrsCameraView.PreviewCallback() {
@@ -172,9 +170,6 @@ public class SrsPublisher {
         return mSamplingFps;
     }
 
-    public static Context getContext() {
-        return mContext;
-    }
     public int getCamraId() {
         return mCameraView.getCameraId();
     }
@@ -263,7 +258,7 @@ public class SrsPublisher {
     }
 
     public void switchMute() {
-        AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        AudioManager audioManager = (AudioManager) mCameraView.getContext().getSystemService(Context.AUDIO_SERVICE);
         int oldMode = audioManager.getMode();
         audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
         boolean isMute = !audioManager.isMicrophoneMute();

@@ -4,10 +4,10 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
-import net.ossrs.yasea.SrsPublisher;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicCalmFilter extends GPUImageFilter{
@@ -118,8 +118,8 @@ public class MagicCalmFilter extends GPUImageFilter{
 		          arrayOfByte[(3 + (2048 + k * 4))] = -1;
 		        }
 		        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 256, 3, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(arrayOfByte));
-		        mMaskGrey1TextureId = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/calm_mask1.jpg");
-		        mMaskGrey2TextureId = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/calm_mask2.jpg");
+		        mMaskGrey1TextureId = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/calm_mask1.jpg");
+		        mMaskGrey2TextureId = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/calm_mask2.jpg");
 		    }
 	    });
 	}

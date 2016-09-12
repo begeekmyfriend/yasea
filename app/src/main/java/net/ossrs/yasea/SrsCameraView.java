@@ -77,6 +77,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         setEGLContextClientVersion(2);
         setRenderer(this);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+
+        MagicFilterFactory.initContext(context);
     }
 
     @Override
@@ -277,7 +279,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         }
         mCamera.startPreview();
 
-	return true;
+        return true;
     }
 
     public void stopCamera() {

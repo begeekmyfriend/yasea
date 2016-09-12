@@ -2,10 +2,10 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
-import net.ossrs.yasea.SrsPublisher;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicBrooklynFilter extends GPUImageFilter{
@@ -59,9 +59,9 @@ public class MagicBrooklynFilter extends GPUImageFilter{
 		setFloat(mGLStrengthLocation, 1.0f);
 	    runOnDraw(new Runnable(){
 		    public void run(){
-		    	inputTextureHandles[0] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/brooklynCurves1.png");
-				inputTextureHandles[1] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/filter_map_first.png");
-				inputTextureHandles[2] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/brooklynCurves2.png");
+				inputTextureHandles[0] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brooklynCurves1.png");
+				inputTextureHandles[1] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/filter_map_first.png");
+				inputTextureHandles[2] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brooklynCurves2.png");
 		    }
 	    });
 	}

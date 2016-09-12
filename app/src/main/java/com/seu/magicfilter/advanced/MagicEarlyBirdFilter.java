@@ -2,10 +2,10 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
-import net.ossrs.yasea.SrsPublisher;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicEarlyBirdFilter extends GPUImageFilter{
@@ -60,11 +60,11 @@ public class MagicEarlyBirdFilter extends GPUImageFilter{
 		setFloat(mGLStrengthLocation, 1.0f);
 	    runOnDraw(new Runnable(){
 		    public void run(){
-		    	inputTextureHandles[0] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/earlybirdcurves.png");
-				inputTextureHandles[1] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/earlybirdoverlaymap_new.png");
-				inputTextureHandles[2] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/vignettemap_new.png");
-				inputTextureHandles[3] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/earlybirdblowout.png");
-				inputTextureHandles[4] = OpenGlUtils.loadTexture(SrsPublisher.getContext(), "filter/earlybirdmap.png");
+				inputTextureHandles[0] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/earlybirdcurves.png");
+				inputTextureHandles[1] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/earlybirdoverlaymap_new.png");
+				inputTextureHandles[2] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/vignettemap_new.png");
+				inputTextureHandles[3] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/earlybirdblowout.png");
+				inputTextureHandles[4] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/earlybirdmap.png");
 		    }
 	    });
 	}

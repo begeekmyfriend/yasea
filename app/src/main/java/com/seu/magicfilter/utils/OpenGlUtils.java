@@ -211,7 +211,7 @@ public class OpenGlUtils {
 	}
 	
 	public static String readShaderFromRawResource(final int resourceId){
-		final InputStream inputStream = SrsPublisher.getContext().getResources().openRawResource(resourceId);
+		final InputStream inputStream = MagicFilterFactory.getCurrentContext().getResources().openRawResource(resourceId);
 		final InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
 		final BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
 

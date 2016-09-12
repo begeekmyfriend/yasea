@@ -78,7 +78,7 @@ public class SrsPublisher {
             return;
         }
 
-        if (mCameraView.startCamera() < 0) {
+        if (!mCameraView.startCamera()) {
             mEncoder.stop();
             return;
         }

@@ -1024,7 +1024,7 @@ public class SrsFlvMuxer {
                 flvFrameCacheAdd(frame);
             }
         }
-        
+
         private void flvFrameCacheAdd(SrsFlvFrame frame) {
             frameCache.add(frame);
             if (frame.is_video()) {
@@ -1032,7 +1032,7 @@ public class SrsFlvMuxer {
             }
             synchronized (txFrameLock) {
                 txFrameLock.notifyAll();
-            }            
+            }
         }
     }
 }

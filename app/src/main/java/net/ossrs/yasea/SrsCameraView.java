@@ -195,12 +195,12 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         return mCamId;
     }
 
-    public int startCamera() {
+    public boolean startCamera() {
         if (mCamera != null) {
-            return -1;
+            return false;
         }
         if (mCamId > (Camera.getNumberOfCameras() - 1) || mCamId < 0) {
-            return -1;
+            return false;
         }
 
         worker = new Thread(new Runnable() {
@@ -233,7 +233,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
             Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
             stopCamera();
-            return -1;
+            return false;
         }
 
         if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
@@ -276,6 +276,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             e.printStackTrace();
         }
         mCamera.startPreview();
+
+	return true;
     }
 
     public void stopCamera() {

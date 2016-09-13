@@ -17,8 +17,6 @@ import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.util.Log;
 
-import net.ossrs.yasea.SrsPublisher;
-
 public class OpenGlUtils {
 	public static final int NO_TEXTURE = -1;
 	public static final int NOT_INIT = -1;	

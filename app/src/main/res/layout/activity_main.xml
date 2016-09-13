@@ -5,7 +5,7 @@
     android:layout_height="fill_parent"
     tools:context="net.ossrs.yasea.MainActivity">
 
-    <SurfaceView
+    <net.ossrs.yasea.SrsCameraView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_alignParentBottom="true"

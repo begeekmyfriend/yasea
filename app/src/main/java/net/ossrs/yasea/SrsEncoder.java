@@ -196,12 +196,12 @@ public class SrsEncoder {
         }
     }
 
-    public void swithCameraFace() {
-        if (mCameraFaceFront) {
-            mCameraFaceFront = false;
-        } else {
-            mCameraFaceFront = true;
-        }
+    public void setCameraFrontFace() {
+        mCameraFaceFront = true;
+    }
+
+    public void setCameraBackFace() {
+        mCameraFaceFront = false;
     }
     
     public void setCameraFront() {

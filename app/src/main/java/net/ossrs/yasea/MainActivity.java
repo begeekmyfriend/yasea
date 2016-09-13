@@ -4,12 +4,12 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -28,11 +28,12 @@ public class MainActivity extends Activity {
     Button btnRecord = null;
     Button btnSwitchEncoder = null;
 
+    private String mNotifyMsg;
     private SharedPreferences sp;
     private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
     private String recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
 
-    private SrsPublisher mPublisher = new SrsPublisher();
+    private SrsPublisher mPublisher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +58,7 @@ public class MainActivity extends Activity {
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
 
-        mPublisher.setSurfaceView((SurfaceView) findViewById(R.id.preview));
+        mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.preview));
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,8 +96,8 @@ public class MainActivity extends Activity {
         btnSwitchCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mPublisher.getNumberOfCameras() > 0) {
-                    mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % mPublisher.getNumberOfCameras());
+                if (Camera.getNumberOfCameras() > 0) {
+                    mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % Camera.getNumberOfCameras());
                 }
             }
         });
@@ -133,49 +134,53 @@ public class MainActivity extends Activity {
 
         mPublisher.setPublishEventHandler(new RtmpPublisher.EventHandler() {
             @Override
-            public void onRtmpConnecting(final String msg) {
+            public void onRtmpConnecting(String msg) {
+                mNotifyMsg = msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
-            public void onRtmpConnected(final String msg) {
+            public void onRtmpConnected(String msg) {
+                mNotifyMsg = msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
-            public void onRtmpVideoStreaming(final String msg) {
+            public void onRtmpVideoStreaming(String msg) {
             }
 
             @Override
-            public void onRtmpAudioStreaming(final String msg) {
+            public void onRtmpAudioStreaming(String msg) {
             }
 
             @Override
-            public void onRtmpStopped(final String msg) {
+            public void onRtmpStopped(String msg) {
+                mNotifyMsg = msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
-            public void onRtmpDisconnected(final String msg) {
+            public void onRtmpDisconnected(String msg) {
+                mNotifyMsg = msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -188,41 +193,45 @@ public class MainActivity extends Activity {
 
         mPublisher.setRecordEventHandler(new SrsMp4Muxer.EventHandler() {
             @Override
-            public void onRecordPause(final String msg) {
+            public void onRecordPause(String msg) {
+                mNotifyMsg = msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
-            public void onRecordResume(final String msg) {
+            public void onRecordResume(String msg) {
+                mNotifyMsg = msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
-            public void onRecordStarted(final String msg) {
+            public void onRecordStarted(String msg) {
+                mNotifyMsg = "Recording file: " + msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), "Recording file: " + msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
-            public void onRecordFinished(final String msg) {
+            public void onRecordFinished(String msg) {
+                mNotifyMsg = "MP4 file saved: " + msg;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), "MP4 file saved: " + msg, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -253,11 +262,11 @@ public class MainActivity extends Activity {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread thread, Throwable ex) {
-                final String msg = ex.getMessage();
+                mNotifyMsg = ex.getMessage();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), mNotifyMsg, Toast.LENGTH_LONG).show();
                         mPublisher.stopPublish();
                         mPublisher.stopRecord();
                         btnPublish.setText("publish");

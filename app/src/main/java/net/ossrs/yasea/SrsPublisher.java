@@ -174,10 +174,6 @@ public class SrsPublisher {
         return mCameraView.getCameraId();
     }
 
-    public int getNumberOfCameras() {
-        return mCameraView.getNumberOfCameras();
-    }
-
     public void setPreviewResolution(int width, int height) {
         mEncoder.setPreviewResolution(width, height);
     }

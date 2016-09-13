@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -96,8 +97,8 @@ public class MainActivity extends Activity {
         btnSwitchCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mPublisher.getNumberOfCameras() > 0) {
-                    mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % mPublisher.getNumberOfCameras());
+                if (Camera.getNumberOfCameras() > 0) {
+                    mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % Camera.getNumberOfCameras());
                 }
             }
         });

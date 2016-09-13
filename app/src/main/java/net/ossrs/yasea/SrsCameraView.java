@@ -7,7 +7,6 @@ import android.hardware.Camera;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
-import android.view.SurfaceHolder;
 import android.widget.Toast;
 
 import com.seu.magicfilter.base.MagicCameraInputFilter;
@@ -139,10 +138,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public void onPreviewFrame(byte[] data, Camera camera) {
         mPrevCb.onGetYuvFrame(data);
         camera.addCallbackBuffer(mYuvPreviewBuffer);
-    }
-
-    public int getNumberOfCameras() {
-        return mCamera != null ? mCamera.getNumberOfCameras() : -1;
     }
 
     public void setPreviewCallback(PreviewCallback cb) {

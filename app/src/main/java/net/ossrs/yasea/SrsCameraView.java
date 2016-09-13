@@ -77,7 +77,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         setRenderer(this);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 
-        MagicFilterFactory.initContext(context);
+        MagicFilterFactory.initContext(context.getApplicationContext());
     }
 
     @Override

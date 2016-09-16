@@ -27,6 +27,8 @@ public class SrsEncoder {
     public static int vPrevHeight = 720;
     public static int vPortraitWidth = 384;
     public static int vPortraitHeight = 640;
+    public static int vLandscapeWidth = 640;
+    public static int vLandscapeHeight = 384;
     public static int vOutWidth = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static int vBitrate = 500 * 1000;  // 500kbps
@@ -231,8 +233,8 @@ public class SrsEncoder {
     public void setLandscapeResolution(int width, int height) {
         vOutWidth = width;
         vOutHeight = height;
-        vPortraitWidth = height;
-        vPortraitHeight = width;
+        vLandscapeWidth = width;
+        vLandscapeHeight = height;
     }
 
     public void setVideoHDMode() {
@@ -267,8 +269,8 @@ public class SrsEncoder {
             vOutWidth = vPortraitWidth;
             vOutHeight = vPortraitHeight;
         } else if (mOrientation == Configuration.ORIENTATION_LANDSCAPE) {
-            vOutWidth = vPortraitHeight;
-            vOutHeight = vPortraitWidth;
+            vOutWidth = vLandscapeWidth;
+            vOutHeight = vLandscapeHeight;
         }
         
         // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK

@@ -169,7 +169,11 @@ public class SrsPublisher {
     }
 
     public void setOutputResolution(int width, int height) {
-        mEncoder.setPortraitResolution(width, height);
+        if (width <= height) {
+            mEncoder.setPortraitResolution(width, height);
+        } else {
+            mEncoder.setLandscapeResolution(width, height);
+        }
     }
 
     public void setScreenOrientation(int orientation) {

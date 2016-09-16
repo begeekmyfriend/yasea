@@ -236,6 +236,8 @@ public class SrsEncoder {
         vOutHeight = height;
         vPortraitWidth = width;
         vPortraitHeight = height;
+        vLandscapeWidth = height;
+        vLandscapeHeight = width;
     }
 
     public void setLandscapeResolution(int width, int height) {
@@ -243,6 +245,8 @@ public class SrsEncoder {
         vOutHeight = height;
         vLandscapeWidth = width;
         vLandscapeHeight = height;
+        vPortraitWidth = height;
+        vPortraitHeight = width;
     }
 
     public void setVideoHDMode() {

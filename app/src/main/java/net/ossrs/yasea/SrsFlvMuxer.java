@@ -204,6 +204,7 @@ public class SrsFlvMuxer {
                         }
                     }
                 }
+                disconnect();
             }
         });
         worker.start();
@@ -213,8 +214,6 @@ public class SrsFlvMuxer {
      * stop the muxer, disconnect RTMP connection from SRS.
      */
     public void stop() {
-        disconnect();
-
         if (worker != null) {
             worker.interrupt();
             try {

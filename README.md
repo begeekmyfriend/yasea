@@ -42,4 +42,4 @@ Thanks
 Sponsor
 -------
 
-- [dotEngine](https://dot.cc) -- A brilliant multimedia communication service vendor with open cross-platform SDK([github](https://github.com/dotEngine)).
+- [dotEngine](https://dot.cc) -- A brilliant realtime multimedia communication service vendor with open cross-platform SDK ([github](https://github.com/dotEngine)).

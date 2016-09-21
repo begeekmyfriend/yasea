@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import android.os.NetworkOnMainThreadException;
 import android.util.Log;
 
 import net.ossrs.yasea.rtmp.RtmpPublisher;
@@ -433,6 +434,8 @@ public class RtmpConnection implements RtmpPublisher {
                 rtmpSessionInfo.addInvokedCommand(((Command) rtmpPacket).getTransactionId(), ((Command) rtmpPacket).getCommandName());
             }
             outputStream.flush();
+        } catch (NetworkOnMainThreadException e) {
+            // Ignore
         } catch (SocketException se) {
             if (!socketExceptionCause.contentEquals(se.getMessage())) {
                 socketExceptionCause = se.getMessage();

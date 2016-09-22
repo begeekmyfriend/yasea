@@ -20,7 +20,7 @@ Feature
 Test
 ----
 
-You may watch the live broadcasting at [srs.net](http://www.ossrs.net/players/srs_player.html).
+You may build your own private RTMP server [srs](https://github.com/ossrs/srs/tree/2.0release).
 Remember to modify the URL by yourself. Have fun!
 
 **NOTE** if you feel high latency, please check your bandwidth limits and player buffering.

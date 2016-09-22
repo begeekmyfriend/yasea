@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.ossrs.yasea.rtmp.RtmpPublisher;
+import net.ossrs.yasea.rtmp.DefaultRtmpPublisher;
 
 /**
  * Created by winlin on 5/2/15.
@@ -46,7 +46,7 @@ import net.ossrs.yasea.rtmp.RtmpPublisher;
  */
 public class SrsFlvMuxer {
     private volatile boolean connected = false;
-    private SrsRtmpPublisher publisher;
+    private DefaultRtmpPublisher publisher;
 
     private Thread worker;
     private final Object txFrameLock = new Object();
@@ -66,8 +66,8 @@ public class SrsFlvMuxer {
      * constructor.
      * @param handler the rtmp event handler.
      */
-    public SrsFlvMuxer(RtmpPublisher.EventHandler handler) {
-        publisher = new SrsRtmpPublisher(handler);
+    public SrsFlvMuxer(DefaultRtmpPublisher.EventHandler handler) {
+        publisher = new DefaultRtmpPublisher(handler);
     }
 
     /**

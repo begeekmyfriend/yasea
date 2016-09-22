@@ -116,7 +116,7 @@ public class SrsEncoder {
         setEncoderResolution(vOutWidth, vOutHeight);
         setEncoderFps(VFPS);
         setEncoderGop(VGOP);
-        // Unfortunately for some android phone, the output fps is less than 10 lSrsted by the
+        // Unfortunately for some android phone, the output fps is less than 10 limited by the
         // capacity of poor cheap chips even with x264. So for the sake of quick appearance of
         // the first picture on the player, a spare lower GOP value is suggested. But note that
         // lower GOP will produce more I frames and therefore more streaming data flow.
@@ -205,14 +205,6 @@ public class SrsEncoder {
     public void setCameraBackFace() {
         mCameraFaceFront = false;
     }
-    
-    public void setCameraFront() {
-        mCameraFaceFront = true;
-    }
-
-    public void setCameraBack() {
-        mCameraFaceFront = false;
-    }    
 
     public void swithToSoftEncoder() {
         useSoftEncoder = true;
@@ -341,39 +333,6 @@ public class SrsEncoder {
         }
     }
 
-    public void onGetYuvFrame(byte[] data) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                    swPortraitYuvFrame(data, pts);
-                } else {
-                    swLandscapeYuvFrame(data, pts);
-                }
-            } else {
-                byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
-                        hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
-                } else {
-                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                            new IllegalArgumentException("libyuv failure"));
-                }
-            }
-
-            if (networkWeakTriggered) {
-                networkWeakTriggered = false;
-                mHandler.onNetworkResume("Network resume");
-            }
-        } else {
-            mHandler.onNetworkWeak("Network weak");
-            networkWeakTriggered = true;
-        }
-    }
-
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         try {
@@ -408,6 +367,39 @@ public class SrsEncoder {
             } else {
                 break;
             }
+        }
+    }
+
+    public void onGetYuvFrame(byte[] data) {
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            if (useSoftEncoder) {
+                if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                    swPortraitYuvFrame(data, pts);
+                } else {
+                    swLandscapeYuvFrame(data, pts);
+                }
+            } else {
+                byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
+                        hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
+                if (processedData != null) {
+                    onProcessedYuvFrame(processedData, pts);
+                } else {
+                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
+                            new IllegalArgumentException("libyuv failure"));
+                }
+            }
+
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
+                mHandler.onNetworkResume("Network resume");
+            }
+        } else {
+            mHandler.onNetworkWeak("Network weak");
+            networkWeakTriggered = true;
         }
     }
 

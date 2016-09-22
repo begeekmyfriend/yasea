@@ -112,7 +112,6 @@ public class SrsFlvMuxer {
         publisher.shutdown();
         connected = false;
         sequenceHeaderOk = false;
-        Log.i(TAG, "worker: disconnect SRS ok.");
     }
 
     private void connect(String url) {
@@ -223,7 +222,12 @@ public class SrsFlvMuxer {
                 worker.interrupt();
             }
             frameCache.clear();
+            // Note: the indicators had better be reset in main thread again since the asynchronous
+            // disconnection operations might has no chance to be invoked for the thread not alive.
+            connected = false;
+            sequenceHeaderOk = false;
             worker = null;
+            Log.i(TAG, "worker: disconnect SRS ok.");
         }
 
         needToFindKeyFrame = true;

@@ -55,6 +55,8 @@ public class RtmpConnection implements RtmpPublisher {
     private String tcUrl;
     private String pageUrl;
     private Socket socket;
+    private String srsServerInfo = "";
+    private String socketExceptionCause = "";
     private RtmpSessionInfo rtmpSessionInfo = new RtmpSessionInfo();
     private RtmpDecoder rtmpDecoder = new RtmpDecoder(rtmpSessionInfo);
     private BufferedInputStream inputStream;
@@ -71,7 +73,6 @@ public class RtmpConnection implements RtmpPublisher {
     private AmfString serverIpAddr;
     private AmfNumber serverPid;
     private AmfNumber serverId;
-    private String socketExceptionCause = "";
     private int videoWidth;
     private int videoHeight;
     private int videoFrameCount;
@@ -225,6 +226,11 @@ public class RtmpConnection implements RtmpPublisher {
                 // do nothing
             }
         }
+        if (!publishPermitted) {
+            shutdown();  // suicide and reset all...
+        } else {
+            mHandler.onRtmpConnected("connected" + srsServerInfo);
+        }
     }
 
     private void fmlePublish() throws IllegalStateException {
@@ -282,7 +288,7 @@ public class RtmpConnection implements RtmpPublisher {
             throw new IllegalStateException("No current stream object exists");
         }
         if (!publishPermitted) {
-            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+            throw new IllegalStateException("Not get _result(Netstream.Publish.Start)");
         }
         Log.d(TAG, "closeStream(): setting current stream ID to 0");
         Command closeStream = new Command("closeStream", 0);
@@ -305,10 +311,14 @@ public class RtmpConnection implements RtmpPublisher {
         }
 
         // shutdown rxPacketHandler
-        try {
-            rxPacketHandler.join();
-        } catch (InterruptedException ie) {
+        if (rxPacketHandler != null) {
             rxPacketHandler.interrupt();
+            try {
+                rxPacketHandler.join();
+            } catch (InterruptedException ie) {
+                rxPacketHandler.interrupt();
+            }
+            rxPacketHandler = null;
         }
 
         // shutdown socket as well as its input and output stream
@@ -320,9 +330,9 @@ public class RtmpConnection implements RtmpPublisher {
                 Log.e(TAG, "shutdown(): failed to close socket", ex);
             }
         }
-        mHandler.onRtmpDisconnected("disconnected");
 
         reset();
+        mHandler.onRtmpDisconnected("disconnected");
     }
 
     private void reset() {
@@ -353,7 +363,7 @@ public class RtmpConnection implements RtmpPublisher {
             throw new IllegalStateException("No current stream object exists");
         }
         if (!publishPermitted) {
-            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+            throw new IllegalStateException("Not get _result(Netstream.Publish.Start)");
         }
         Audio audio = new Audio();
         audio.setData(data);
@@ -372,7 +382,7 @@ public class RtmpConnection implements RtmpPublisher {
             throw new IllegalStateException("No current stream object exists");
         }
         if (!publishPermitted) {
-            throw new IllegalStateException("Not get the _result(Netstream.Publish.Start)");
+            throw new IllegalStateException("Not get _result(Netstream.Publish.Start)");
         }
         Video video = new Video();
         video.setData(data);
@@ -505,8 +515,7 @@ public class RtmpConnection implements RtmpPublisher {
             Log.d(TAG, "handleRxInvoke: Got result for invoked method: " + method);
             if ("connect".equals(method)) {
                 // Capture server ip/pid/id information if any
-                String serverInfo = onSrsServerInfo(invoke);
-                mHandler.onRtmpConnected("connected" + serverInfo);
+                srsServerInfo = onSrsServerInfo(invoke);
                 // We can now send createStream commands
                 connecting = false;
                 fullyConnected = true;
@@ -533,6 +542,7 @@ public class RtmpConnection implements RtmpPublisher {
             Log.d(TAG, "handleRxInvoke(): 'onFCPublish'");
         } else if (commandName.equals("onStatus")) {
             String code = ((AmfString) ((AmfObject) invoke.getData().get(1)).getProperty("code")).getValue();
+            Log.d(TAG, "handleRxInvoke(): onStatus " + code);
             if (code.equals("NetStream.Publish.Start")) {
                 onMetaData();
                 // We can now publish AV data

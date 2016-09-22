@@ -40,13 +40,17 @@ public class SrsPublisher {
             @Override
             public void onGetYuvFrame(byte[] data) {
                 calcSamplingFps();
-                mEncoder.onGetYuvFrame(data);
+                if (!sendAudioOnly) {
+                    mEncoder.onGetYuvFrame(data);
+                }
             }
 
             @Override
             public void onGetRgbaFrame(byte[] data, int width, int height) {
                 calcSamplingFps();
-                mEncoder.onGetRgbaFrame(data, width, height);
+                if (!sendAudioOnly) {
+                    mEncoder.onGetRgbaFrame(data, width, height);
+                }
             }
         });
     }

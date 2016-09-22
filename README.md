@@ -21,7 +21,7 @@ Feature
 Test
 ----
 
-You may watch the live broadcasting at [srs.net](http://www.ossrs.net/players/srs_player.html).
+You may build your own private RTMP server [srs](https://github.com/ossrs/srs/tree/2.0release).
 Remember to modify the URL by yourself. Have fun!
 
 **NOTE** if you feel high latency, please check your bandwidth limits and player buffering.
@@ -40,3 +40,8 @@ Thanks
 - [MagicCamera](https://github.com/begeekmyfriend/MagicCamera)
 - [x264](http://www.videolan.org/developers/x264.html)
 - [mp4parser](https://android.googlesource.com/platform/external/mp4parser)
+
+Sponsor
+-------
+
+- [dotEngine](https://dot.cc) -- A brilliant realtime multimedia communication service vendor with open cross-platform SDK ([github](https://github.com/dotEngine)).

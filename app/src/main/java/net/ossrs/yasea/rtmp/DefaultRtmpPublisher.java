@@ -1,9 +1,8 @@
-package net.ossrs.yasea;
+package net.ossrs.yasea.rtmp;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.ossrs.yasea.rtmp.RtmpPublisher;
 import net.ossrs.yasea.rtmp.io.RtmpConnection;
 
 /**
@@ -11,11 +10,11 @@ import net.ossrs.yasea.rtmp.io.RtmpConnection;
  * 
  * @author francois, leoma
  */
-public class SrsRtmpPublisher implements RtmpPublisher {
+public class DefaultRtmpPublisher implements RtmpPublisher {
 
     private RtmpConnection rtmpConnection;
 
-    public SrsRtmpPublisher(RtmpPublisher.EventHandler handler) {
+    public DefaultRtmpPublisher(RtmpPublisher.EventHandler handler) {
         rtmpConnection = new RtmpConnection(handler);
     }
 

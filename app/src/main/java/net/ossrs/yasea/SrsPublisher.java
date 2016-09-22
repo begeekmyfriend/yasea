@@ -35,7 +35,6 @@ public class SrsPublisher {
 
     public SrsPublisher(SrsCameraView view) {
         mCameraView = view;
-        mEncoder = new SrsEncoder();
         mCameraView.setPreviewResolution(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
         mCameraView.setPreviewCallback(new SrsCameraView.PreviewCallback() {
             @Override
@@ -163,9 +162,11 @@ public class SrsPublisher {
     public int getPreviewWidth() {
         return mEncoder.getPreviewWidth();
     }
+
     public int getPreviewHeight() {
         return mEncoder.getPreviewHeight();
     }
+
     public double getmSamplingFps() {
         return mSamplingFps;
     }

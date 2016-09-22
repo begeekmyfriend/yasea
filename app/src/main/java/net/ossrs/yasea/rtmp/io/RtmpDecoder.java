@@ -19,7 +19,6 @@ import net.ossrs.yasea.rtmp.packets.WindowAckSize;
 import net.ossrs.yasea.rtmp.packets.Acknowledgement;
 
 /**
- *
  * @author francois
  */
 public class RtmpDecoder {
@@ -35,29 +34,25 @@ public class RtmpDecoder {
     public RtmpPacket readPacket(InputStream in) throws IOException {
 
         RtmpHeader header = RtmpHeader.readHeader(in, rtmpSessionInfo);
-        RtmpPacket rtmpPacket;
-        Log.d(TAG, "readPacket(): header.messageType: " + header.getMessageType());
+        // Log.d(TAG, "readPacket(): header.messageType: " + header.getMessageType());
 
         ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(header.getChunkStreamId());
-
         chunkStreamInfo.setPrevHeaderRx(header);
 
         if (header.getPacketLength() > rtmpSessionInfo.getRxChunkSize()) {
-            //Log.d(TAG, "readPacket(): packet size (" + header.getPacketLength() + ") is bigger than chunk size (" + rtmpSessionInfo.getChunkSize() + "); storing chunk data");
-            // This packet consists of more than one chunk; store the chunks in the chunk stream until everything is read
+            // If the packet consists of more than one chunk,
+            // store the chunks in the chunk stream until everything is read
             if (!chunkStreamInfo.storePacketChunk(in, rtmpSessionInfo.getRxChunkSize())) {
-                Log.d(TAG, " readPacket(): returning null because of incomplete packet");
-                return null; // packet is not yet complete
+                // return null because of incomplete packet
+                return null;
             } else {
-                Log.d(TAG, " readPacket(): stored chunks complete packet; reading packet");
+                // stored chunks complete packet, get the input stream of the chunk stream
                 in = chunkStreamInfo.getStoredPacketInputStream();
             }
-        } else {
-            //Log.d(TAG, "readPacket(): packet size (" + header.getPacketLength() + ") is LESS than chunk size (" + rtmpSessionInfo.getChunkSize() + "); reading packet fully");
         }
 
+        RtmpPacket rtmpPacket;
         switch (header.getMessageType()) {
-
             case SET_CHUNK_SIZE:
                 SetChunkSize setChunkSize = new SetChunkSize(header);
                 setChunkSize.readBody(in);

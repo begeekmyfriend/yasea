@@ -38,8 +38,6 @@ public class SrsEncoder {
     public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
-    private EventHandler mHandler;
-    private boolean onNetworkWeakTriggered = false;
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     private SrsFlvMuxer flvMuxer;
@@ -51,6 +49,8 @@ public class SrsEncoder {
     private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
+    private EventHandler mHandler;
+    private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
     private boolean useSoftEncoder = false;
 
@@ -63,7 +63,7 @@ public class SrsEncoder {
     private int audioFlvTrack;
     private int audioMp4Track;
 
-    interface EventHandler {
+    public interface EventHandler {
 
         void onNetworkResume(String msg);
 
@@ -393,13 +393,13 @@ public class SrsEncoder {
                 }
             }
 
-            if (onNetworkWeakTriggered) {
-                onNetworkWeakTriggered = false;
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
                 mHandler.onNetworkResume("Network resume");
             }
         } else {
             mHandler.onNetworkWeak("Network weak");
-            onNetworkWeakTriggered = true;
+            networkWeakTriggered = true;
         }
     }
 
@@ -481,13 +481,13 @@ public class SrsEncoder {
                 }
             }
 
-            if (onNetworkWeakTriggered) {
-                onNetworkWeakTriggered = false;
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
                 mHandler.onNetworkResume("Network resume");
             }
         } else {
             mHandler.onNetworkWeak("Network weak");
-            onNetworkWeakTriggered = true;
+            networkWeakTriggered = true;
         }
     }
 

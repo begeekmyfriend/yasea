@@ -12,18 +12,24 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author francois, leo
  */
 public interface RtmpPublisher {
-    
-    void connect(String url) throws IOException;
+    /**
+     * Issues an RTMP "connect" command and wait for the response.
+     *
+     * @param url specify the RTMP url
+     * @return If succeeded return true else return false
+     * @throws IOException if a network/IO error occurs
+     */
+    boolean connect(String url) throws IOException;
     
     /**
      * Issues an RTMP "publish" command and write the media content stream packets (audio and video). 
      * 
      * @param publishType specify the way to publish raw RTMP packets among "live", "record" and "append"
-     * @return An outputStream allowing you to write the incoming media content data
+     * @return If succeeded return true else return false
      * @throws IllegalStateException if the client is not connected to a RTMP server
      * @throws IOException if a network/IO error occurs
      */
-    void publish(String publishType) throws IllegalStateException, IOException;
+    boolean publish(String publishType) throws IllegalStateException, IOException;
      
     /**
      * Stops and closes the current RTMP stream

@@ -114,20 +114,20 @@ public class SrsFlvMuxer {
         sequenceHeaderOk = false;
     }
 
-    private void connect(String url) {
+    private boolean connect(String url) {
         try {
             if (!connected) {
                 Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
-                publisher.connect(url);
-                publisher.publish("live");
-                Log.i(TAG, String.format("worker: connect to RTMP server by url=%s\n", url));
-                connected = true;
+                if (publisher.connect(url)) {
+                    connected = publisher.publish("live");
+                }
                 sequenceHeaderOk = false;
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ioe);
         }
+        return connected;
     }
 
     private void sendFlvTag(SrsFlvFrame frame) throws IllegalStateException, IOException {
@@ -155,7 +155,9 @@ public class SrsFlvMuxer {
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
-                connect(rtmpUrl);
+                if (!connect(rtmpUrl)) {
+                    return;
+                }
 
                 while (!Thread.interrupted()) {
                     // Keep at least one audio and video frame in cache to ensure monotonically increasing.
@@ -203,7 +205,6 @@ public class SrsFlvMuxer {
                         }
                     }
                 }
-                disconnect();
             }
         });
         worker.start();
@@ -213,6 +214,13 @@ public class SrsFlvMuxer {
      * stop the muxer, disconnect RTMP connection from SRS.
      */
     public void stop() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                disconnect();
+            }
+        }).start();
+
         if (worker != null) {
             worker.interrupt();
             try {
@@ -222,10 +230,6 @@ public class SrsFlvMuxer {
                 worker.interrupt();
             }
             frameCache.clear();
-            // Note: the indicators had better be reset in main thread again since the asynchronous
-            // disconnection operations might has no chance to be invoked for the thread not alive.
-            connected = false;
-            sequenceHeaderOk = false;
             worker = null;
             Log.i(TAG, "worker: disconnect SRS ok.");
         }

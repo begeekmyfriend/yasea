@@ -62,8 +62,7 @@ public class RtmpConnection implements RtmpPublisher {
     private BufferedInputStream inputStream;
     private BufferedOutputStream outputStream;
     private Thread rxPacketHandler;
-    private volatile boolean connecting = false;
-    private volatile boolean fullyConnected = false;
+    private volatile boolean connected = false;
     private volatile boolean publishPermitted = false;
     private final Object connectingLock = new Object();
     private final Object publishLock = new Object();
@@ -94,7 +93,7 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     @Override
-    public void connect(String url) throws IOException {
+    public boolean connect(String url) throws IOException {
         int port;
         String host;
         Matcher matcher = rtmpUrlPattern.matcher(url);
@@ -137,12 +136,12 @@ public class RtmpConnection implements RtmpPublisher {
         });
         rxPacketHandler.start();
 
-        rtmpConnect();
+        return rtmpConnect();
     }
 
-    private void rtmpConnect() throws IllegalStateException {
-        if (fullyConnected || connecting) {
-            throw new IllegalStateException("Already connected or connecting to RTMP server");
+    private boolean rtmpConnect() throws IllegalStateException {
+        if (connected) {
+            throw new IllegalStateException("Already connected to RTMP server");
         }
 
         // Mark session timestamp of all chunk stream information on connection.
@@ -166,29 +165,29 @@ public class RtmpConnection implements RtmpPublisher {
         args.setProperty("objectEncoding", 0);
         invoke.addData(args);
         sendRtmpPacket(invoke);
-
-        connecting = true;
         mHandler.onRtmpConnecting("connecting");
+
+        synchronized (connectingLock) {
+            try {
+                connectingLock.wait(5000);
+            } catch (InterruptedException ex) {
+                // do nothing
+            }
+        }
+        if (!connected) {
+            shutdown();
+        }
+        return connected;
     }
 
     @Override
-    public void publish(String type) throws IllegalStateException, IOException {
-        if (connecting) {
-            synchronized (connectingLock) {
-                try {
-                    connectingLock.wait(5000);
-                } catch (InterruptedException ex) {
-                    // do nothing
-                }
-            }
-        }
-
+    public boolean publish(String type) throws IllegalStateException, IOException {
         publishType = type;
-        createStream();
+        return createStream();
     }
 
-    private void createStream() {
-        if (!fullyConnected) {
+    private boolean createStream() {
+        if (!connected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
         if (currentStreamId != 0) {
@@ -226,15 +225,16 @@ public class RtmpConnection implements RtmpPublisher {
                 // do nothing
             }
         }
-        if (!publishPermitted) {
-            shutdown();  // suicide and reset all...
-        } else {
+        if (publishPermitted) {
             mHandler.onRtmpConnected("connected" + srsServerInfo);
+        } else {
+            shutdown();
         }
+        return publishPermitted;
     }
 
     private void fmlePublish() throws IllegalStateException {
-        if (!fullyConnected) {
+        if (!connected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
         if (currentStreamId == 0) {
@@ -253,7 +253,7 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     private void onMetaData() throws IllegalStateException {
-        if (!fullyConnected) {
+        if (!connected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
         if (currentStreamId == 0) {
@@ -281,7 +281,7 @@ public class RtmpConnection implements RtmpPublisher {
 
     @Override
     public void closeStream() throws IllegalStateException {
-        if (!fullyConnected) {
+        if (!connected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
         if (currentStreamId == 0) {
@@ -336,8 +336,7 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     private void reset() {
-        connecting = false;
-        fullyConnected = false;
+        connected = false;
         publishPermitted = false;
         tcUrl = null;
         swfUrl = null;
@@ -356,7 +355,7 @@ public class RtmpConnection implements RtmpPublisher {
 
     @Override
     public void publishAudioData(byte[] data, int dts) throws IllegalStateException {
-        if (!fullyConnected) {
+        if (!connected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
         if (currentStreamId == 0) {
@@ -375,7 +374,7 @@ public class RtmpConnection implements RtmpPublisher {
 
     @Override
     public void publishVideoData(byte[] data, int dts) throws IllegalStateException {
-        if (!fullyConnected) {
+        if (!connected) {
             throw new IllegalStateException("Not connected to RTMP server");
         }
         if (currentStreamId == 0) {
@@ -517,8 +516,7 @@ public class RtmpConnection implements RtmpPublisher {
                 // Capture server ip/pid/id information if any
                 srsServerInfo = onSrsServerInfo(invoke);
                 // We can now send createStream commands
-                connecting = false;
-                fullyConnected = true;
+                connected = true;
                 synchronized (connectingLock) {
                     connectingLock.notifyAll();
                 }

@@ -19,8 +19,8 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public void connect(String url) throws IOException {
-        rtmpConnection.connect(url);
+    public boolean connect(String url) throws IOException {
+        return rtmpConnection.connect(url);
     }
 
     @Override
@@ -29,11 +29,11 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public void publish(String publishType) throws IllegalStateException, IOException {
+    public boolean publish(String publishType) throws IllegalStateException, IOException {
         if (publishType == null) {
             throw new IllegalStateException("No publish type specified");
         }
-        rtmpConnection.publish(publishType);
+        return rtmpConnection.publish(publishType);
     }
 
     @Override

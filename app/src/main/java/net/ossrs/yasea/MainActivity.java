@@ -59,6 +59,7 @@ public class MainActivity extends Activity {
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
+        mPublisher.setPreviewResolution(1280, 720);
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -70,7 +71,6 @@ public class MainActivity extends Activity {
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
 
-                    mPublisher.setPreviewResolution(1280, 720);
                     mPublisher.setOutputResolution(384, 640);
                     mPublisher.setVideoSmoothMode();
                     mPublisher.setMagicFilterType(MagicFilterType.BEAUTY);

@@ -35,7 +35,6 @@ public class SrsPublisher {
 
     public SrsPublisher(SrsCameraView view) {
         mCameraView = view;
-        mCameraView.setPreviewResolution(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
         mCameraView.setPreviewCallback(new SrsCameraView.PreviewCallback() {
             @Override
             public void onGetYuvFrame(byte[] data) {
@@ -180,6 +179,7 @@ public class SrsPublisher {
     }
 
     public void setPreviewResolution(int width, int height) {
+        mCameraView.setPreviewResolution(width, height);
         mEncoder.setPreviewResolution(width, height);
     }
 

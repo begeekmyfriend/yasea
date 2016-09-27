@@ -330,9 +330,10 @@ public class RtmpConnection implements RtmpPublisher {
                 Log.e(TAG, "shutdown(): failed to close socket", ex);
             }
 
-            reset();
             mHandler.onRtmpDisconnected("disconnected");
         }
+
+        reset();
     }
 
     private void reset() {

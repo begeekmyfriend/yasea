@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
     Button btnSwitchCamera = null;
     Button btnRecord = null;
     Button btnSwitchEncoder = null;
+    Button btnSwitchFilter = null;
 
     private SharedPreferences sp;
     private String rtmpUrl = "rtmp://0.0.0.0/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
@@ -58,6 +59,7 @@ public class MainActivity extends Activity {
         btnSwitchCamera = (Button) findViewById(R.id.swCam);
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
+        btnSwitchFilter = (Button) findViewById(R.id.swFilter);
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
         mPublisher.setPreviewResolution(1280, 720);
 
@@ -73,7 +75,6 @@ public class MainActivity extends Activity {
 
                     mPublisher.setOutputResolution(384, 640);
                     mPublisher.setVideoSmoothMode();
-                    mPublisher.setMagicFilterType(MagicFilterType.BEAUTY);
                     mPublisher.startPublish(rtmpUrl);
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
@@ -86,7 +87,6 @@ public class MainActivity extends Activity {
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
-
                     btnPublish.setText("publish");
                     btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
@@ -108,7 +108,6 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 if (btnRecord.getText().toString().contentEquals("record")) {
                     mPublisher.startRecord(recPath);
-
                     btnRecord.setText("pause");
                 } else if (btnRecord.getText().toString().contentEquals("pause")) {
                     mPublisher.pauseRecord();
@@ -129,6 +128,21 @@ public class MainActivity extends Activity {
                 } else if (btnSwitchEncoder.getText().toString().contentEquals("hard enc")) {
                     mPublisher.swithToHardEncoder();
                     btnSwitchEncoder.setText("soft enc");
+                }
+            }
+        });
+
+        btnSwitchFilter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (btnSwitchFilter.getText().toString().contentEquals("beauty")) {
+                    if (mPublisher.switchCameraFilter(MagicFilterType.BEAUTY)) {
+                        btnSwitchFilter.setText("none");
+                    }
+                } else if (btnSwitchFilter.getText().toString().contentEquals("none")) {
+                    if (mPublisher.switchCameraFilter(MagicFilterType.NONE)) {
+                        btnSwitchFilter.setText("beauty");
+                    }
                 }
             }
         });

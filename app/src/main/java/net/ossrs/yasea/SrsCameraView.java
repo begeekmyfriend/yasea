@@ -149,7 +149,11 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         previewHeight = height;
     }
 
-    public void setFilter(final MagicFilterType type) {
+    public boolean setFilter(final MagicFilterType type) {
+        if (mCamera == null) {
+            return false;
+        }
+
         queueEvent(new Runnable() {
             @Override
             public void run() {
@@ -161,11 +165,12 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                     filter.init();
                     filter.onDisplaySizeChanged(surfaceWidth, surfaceHeight);
                     filter.onInputSizeChanged(previewWidth, previewHeight);
-                    mCamera.setPreviewCallback(null);
                 }
+                switchCameraFilter();
             }
         });
         requestRender();
+        return true;
     }
 
     private void deleteTextures() {
@@ -260,12 +265,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
         mCamera.setDisplayOrientation(mPreviewRotation);
 
-        if (filter == null) {
-            mCamera.addCallbackBuffer(mYuvPreviewBuffer);
-            mCamera.setPreviewCallbackWithBuffer(this);
-        } else {
-            mCamera.setPreviewCallback(null);
-        }
+        switchCameraFilter();
 
         try {
             mCamera.setPreviewTexture(surfaceTexture);
@@ -313,6 +313,15 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         }
         return closestRange;
+    }
+
+    private void switchCameraFilter() {
+        if (filter == null) {
+            mCamera.addCallbackBuffer(mYuvPreviewBuffer);
+            mCamera.setPreviewCallbackWithBuffer(this);
+        } else {
+            mCamera.setPreviewCallback(null);
+        }
     }
 
     public interface PreviewCallback {

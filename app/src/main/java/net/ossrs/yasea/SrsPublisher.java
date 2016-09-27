@@ -22,7 +22,6 @@ public class SrsPublisher {
     private Thread aworker;
 
     private SrsCameraView mCameraView;
-    private MagicFilterType filterType = MagicFilterType.NONE;
 
     private boolean sendAudioOnly = false;
     private int videoFrameCount;
@@ -82,7 +81,6 @@ public class SrsPublisher {
             mEncoder.stop();
             return;
         }
-        mCameraView.setFilter(filterType);
 
         aworker = new Thread(new Runnable() {
             @Override
@@ -211,9 +209,9 @@ public class SrsPublisher {
         sendAudioOnly = flag;
     }
 	
-    public void setMagicFilterType(MagicFilterType type) {
-        filterType = type;
-    }	
+    public boolean switchCameraFilter(MagicFilterType type) {
+        return mCameraView.setFilter(type);
+    }
 
     public void switchCameraFace(int id) {
         mCameraView.setCameraId(id);

@@ -49,6 +49,14 @@
         android:layout_alignBottom="@+id/publish"
         android:layout_toRightOf="@id/record" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="beauty"
+        android:id="@+id/swFilter"
+        android:layout_alignBottom="@+id/publish"
+        android:layout_toRightOf="@id/swEnc" />
+
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

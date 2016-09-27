@@ -301,38 +301,38 @@ public class RtmpConnection implements RtmpPublisher {
 
     @Override
     public void shutdown() {
-        try {
-            // It will raise EOFException in handleRxPacketThread
-            socket.shutdownInput();
-            // It will raise SocketException in sendRtmpPacket
-            socket.shutdownOutput();
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-
-        // shutdown rxPacketHandler
-        if (rxPacketHandler != null) {
-            rxPacketHandler.interrupt();
-            try {
-                rxPacketHandler.join();
-            } catch (InterruptedException ie) {
-                rxPacketHandler.interrupt();
-            }
-            rxPacketHandler = null;
-        }
-
-        // shutdown socket as well as its input and output stream
         if (socket != null) {
+            try {
+                // It will raise EOFException in handleRxPacketThread
+                socket.shutdownInput();
+                // It will raise SocketException in sendRtmpPacket
+                socket.shutdownOutput();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+
+            // shutdown rxPacketHandler
+            if (rxPacketHandler != null) {
+                rxPacketHandler.interrupt();
+                try {
+                    rxPacketHandler.join();
+                } catch (InterruptedException ie) {
+                    rxPacketHandler.interrupt();
+                }
+                rxPacketHandler = null;
+            }
+
+            // shutdown socket as well as its input and output stream
             try {
                 socket.close();
                 Log.d(TAG, "socket closed");
             } catch (IOException ex) {
                 Log.e(TAG, "shutdown(): failed to close socket", ex);
             }
-        }
 
-        reset();
-        mHandler.onRtmpDisconnected("disconnected");
+            reset();
+            mHandler.onRtmpDisconnected("disconnected");
+        }
     }
 
     private void reset() {

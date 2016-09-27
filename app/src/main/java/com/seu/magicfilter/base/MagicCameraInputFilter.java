@@ -32,7 +32,7 @@ public class MagicCameraInputFilter extends GPUImageFilter{
         mTextureTransformMatrixLocation = GLES20.glGetUniformLocation(mGLProgId, "textureTransform");
         mSingleStepOffsetLocation = GLES20.glGetUniformLocation(getProgram(), "singleStepOffset");
         mParamsLocation = GLES20.glGetUniformLocation(getProgram(), "params");
-        setBeautyLevel(5);
+        setBeautyLevel(0);
     }
 
     public void setTextureTransformMatrix(float[] mtx){

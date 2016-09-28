@@ -77,7 +77,7 @@ public class MainActivity extends Activity {
                     mPublisher.setVideoSmoothMode();
                     mPublisher.startPublish(rtmpUrl);
 
-                    if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
+                    if (btnSwitchEncoder.getText().toString().contentEquals("soft encoding")) {
                         Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(getApplicationContext(), "Use soft encoder", Toast.LENGTH_SHORT).show();
@@ -122,12 +122,12 @@ public class MainActivity extends Activity {
         btnSwitchEncoder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
+                if (btnSwitchEncoder.getText().toString().contentEquals("soft encoding")) {
                     mPublisher.swithToSoftEncoder();
-                    btnSwitchEncoder.setText("hard enc");
-                } else if (btnSwitchEncoder.getText().toString().contentEquals("hard enc")) {
+                    btnSwitchEncoder.setText("hard encoding");
+                } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoding")) {
                     mPublisher.swithToHardEncoder();
-                    btnSwitchEncoder.setText("soft enc");
+                    btnSwitchEncoder.setText("soft encoding");
                 }
             }
         });

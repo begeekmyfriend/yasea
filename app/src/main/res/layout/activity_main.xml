@@ -44,18 +44,21 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="soft enc"
+        android:text="soft encoding"
         android:id="@+id/swEnc"
         android:layout_alignBottom="@+id/publish"
-        android:layout_toRightOf="@id/record" />
+        android:layout_toRightOf="@id/record"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"/>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="beauty"
         android:id="@+id/swFilter"
-        android:layout_alignBottom="@+id/publish"
-        android:layout_toRightOf="@id/swEnc" />
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"/>
 
     <EditText
         android:layout_width="wrap_content"

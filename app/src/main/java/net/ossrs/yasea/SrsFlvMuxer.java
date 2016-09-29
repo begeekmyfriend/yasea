@@ -53,7 +53,6 @@ public class SrsFlvMuxer {
 
     private SrsFlv flv = new SrsFlv();
     private boolean needToFindKeyFrame = true;
-    private boolean sequenceHeaderOk = false;
     private SrsFlvFrame videoSequenceHeader;
     private SrsFlvFrame audioSequenceHeader;
     private ConcurrentLinkedQueue<SrsFlvFrame> frameCache = new ConcurrentLinkedQueue<SrsFlvFrame>();
@@ -111,7 +110,8 @@ public class SrsFlvMuxer {
         }
         publisher.shutdown();
         connected = false;
-        sequenceHeaderOk = false;
+        videoSequenceHeader = null;
+        audioSequenceHeader = null;
     }
 
     private boolean connect(String url) {
@@ -121,7 +121,8 @@ public class SrsFlvMuxer {
                 if (publisher.connect(url)) {
                     connected = publisher.publish("live");
                 }
-                sequenceHeaderOk = false;
+                videoSequenceHeader = null;
+                audioSequenceHeader = null;
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -160,35 +161,23 @@ public class SrsFlvMuxer {
                 }
 
                 while (!Thread.interrupted()) {
-                    // Keep at least one audio and video frame in cache to ensure monotonically increasing.
                     while (!frameCache.isEmpty()) {
                         SrsFlvFrame frame = frameCache.poll();
                         try {
-                            // when sequence header required,
-                            // adjust the dts by the current frame and sent it.
-                            if (!sequenceHeaderOk) {
-                                if (videoSequenceHeader != null) {
-                                    videoSequenceHeader.dts = frame.dts;
+                            if (frame.is_sequenceHeader()) {
+                                if (frame.is_video()) {
+                                    videoSequenceHeader = frame;
+                                    sendFlvTag(videoSequenceHeader);
+                                } else if (frame.is_audio()) {
+                                    audioSequenceHeader = frame;
+                                    sendFlvTag(audioSequenceHeader);
                                 }
-                                if (audioSequenceHeader != null) {
-                                    audioSequenceHeader.dts = frame.dts;
+                            } else {
+                                if (frame.is_video() && videoSequenceHeader != null) {
+                                    sendFlvTag(frame);
+                                } else if (frame.is_audio() && audioSequenceHeader != null) {
+                                    sendFlvTag(frame);
                                 }
-
-                                sendFlvTag(audioSequenceHeader);
-                                sendFlvTag(videoSequenceHeader);
-                                sequenceHeaderOk = true;
-                            }
-
-                            // try to send, ignore when not connected.
-                            if (sequenceHeaderOk) {
-                                sendFlvTag(frame);
-                            }
-
-                            // cache the sequence header.
-                            if (frame.type == SrsCodecFlvTag.Video && frame.avc_aac_type == SrsCodecVideoAVCType.SequenceHeader) {
-                                videoSequenceHeader = frame;
-                            } else if (frame.type == SrsCodecFlvTag.Audio && frame.avc_aac_type == 0) {
-                                audioSequenceHeader = frame;
                             }
                         } catch (IOException ioe) {
                             ioe.printStackTrace();
@@ -537,7 +526,11 @@ public class SrsFlvMuxer {
         public int dts;
 
         public boolean is_keyframe() {
-            return type == SrsCodecFlvTag.Video && frame_type == SrsCodecVideoAVCFrame.KeyFrame;
+            return is_video() && frame_type == SrsCodecVideoAVCFrame.KeyFrame;
+        }
+
+        public boolean is_sequenceHeader() {
+            return avc_aac_type == 0;
         }
 
         public boolean is_video() {
@@ -918,7 +911,7 @@ public class SrsFlvMuxer {
 
                 // 5bits, 7.3.1 NAL unit syntax,
                 // H.264-AVC-ISO_IEC_14496-10.pdf, page 44.
-                //  7: SPS, 8: PPS, 5: I Frame, 1: P Frame
+                // 7: SPS, 8: PPS, 5: I Frame, 1: P Frame
                 int nal_unit_type = (int)(frame.data.get(0) & 0x1f);
                 if (nal_unit_type == SrsAvcNaluType.SPS || nal_unit_type == SrsAvcNaluType.PPS) {
                     Log.i(TAG, String.format("annexb demux %dB, pts=%d, frame=%dB, nalu=%d", bi.size, pts, frame.size, nal_unit_type));
@@ -1022,12 +1015,16 @@ public class SrsFlvMuxer {
             frame.frame_type = frame_type;
             frame.avc_aac_type = avc_aac_type;
 
-            if (needToFindKeyFrame) {
-                if (frame.is_keyframe()) {
-                    needToFindKeyFrame = false;
+            if (frame.is_video()) {
+                if (needToFindKeyFrame) {
+                    if (frame.is_keyframe()) {
+                        needToFindKeyFrame = false;
+                        flvFrameCacheAdd(frame);
+                    }
+                } else {
                     flvFrameCacheAdd(frame);
                 }
-            } else {
+            } else if (frame.is_audio()) {
                 flvFrameCacheAdd(frame);
             }
         }

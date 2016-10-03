@@ -223,6 +223,7 @@ public class SrsFlvMuxer {
             Log.i(TAG, "worker: disconnect SRS ok.");
         }
 
+        flv.reset();
         needToFindKeyFrame = true;
         Log.i(TAG, "SrsFlvMuxer closed");
     }
@@ -800,10 +801,13 @@ public class SrsFlvMuxer {
 
         public SrsFlv() {
             avc = new SrsRawH264Stream();
+            reset();
+        }
+
+        public void reset() {
             h264_sps_changed = false;
             h264_pps_changed = false;
             h264_sps_pps_sent = false;
-
             aac_specific_config = null;
         }
 

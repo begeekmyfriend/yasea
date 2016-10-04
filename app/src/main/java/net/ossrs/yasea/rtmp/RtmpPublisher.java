@@ -108,5 +108,9 @@ public interface RtmpPublisher {
         void onRtmpDisconnected(String msg);
 
         void onRtmpOutputFps(double fps);
+
+        void onRtmpVideoBitrate(double bitrate);
+
+        void onRtmpAudioBitrate(double bitrate);
     }
 }

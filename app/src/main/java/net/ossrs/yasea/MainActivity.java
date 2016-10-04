@@ -183,6 +183,24 @@ public class MainActivity extends Activity {
             public void onRtmpOutputFps(final double fps) {
                 Log.i(TAG, String.format("Output Fps: %f", fps));
             }
+
+            @Override
+            public void onRtmpVideoBitrate(final double bitrate) {
+                int rate = (int) bitrate;
+                if (rate / 1000 > 0) {
+                    Log.i(TAG, String.format("Video bitrate: %f kbps", rate / 1000));
+                }
+                Log.i(TAG, String.format("Video bitrate: %f bps", rate));
+            }
+
+            @Override
+            public void onRtmpAudioBitrate(final double bitrate) {
+                int rate = (int) bitrate;
+                if (rate / 1000 > 0) {
+                    Log.i(TAG, String.format("Audio bitrate: %f kbps", rate / 1000));
+                }
+                Log.i(TAG, String.format("Audio bitrate: %f bps", rate));
+            }
         });
 
         mPublisher.setRecordEventHandler(new SrsMp4Muxer.EventHandler() {

@@ -50,6 +50,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
     public void setPreviewCallback(PreviewCallback cb) {
         mPrevCb = cb;
+        getHolder().addCallback(this);
     }
 
     public void setPreviewResolution(int width, int height) {

@@ -54,8 +54,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private Thread worker;
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<IntBuffer> mGLIntBufferCache = new ConcurrentLinkedQueue<>();
-	private PreviewCallback mPrevCb;
-		
+    private PreviewCallback mPrevCb;
+
     public SrsCameraView(Context context) {
         this(context, null);
     }
@@ -98,6 +98,15 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 requestRender();
             }
         });
+
+        // For camera preview on activity creation
+        if (mCamera != null) {
+            try {
+                mCamera.setPreviewTexture(surfaceTexture);
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
     }
 
     @Override

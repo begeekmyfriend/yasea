@@ -15,11 +15,12 @@ import net.ossrs.yasea.rtmp.packets.RtmpHeader;
  */
 public class ChunkStreamInfo {
 
-    public static final byte RTMP_STREAM_CHANNEL = 0x05;
-    public static final byte RTMP_COMMAND_CHANNEL = 0x03;
-    public static final byte RTMP_VIDEO_CHANNEL = 0x06;
-    public static final byte RTMP_AUDIO_CHANNEL = 0x07;
-    public static final byte RTMP_CONTROL_CHANNEL = 0x02;
+    public static final byte RTMP_CID_PROTOCOL_CONTROL = 0x02;
+    public static final byte RTMP_CID_OVER_CONNECTION = 0x03;
+    public static final byte RTMP_CID_OVER_CONNECTION2 = 0x04;
+    public static final byte RTMP_CID_OVER_STREAM = 0x05;
+    public static final byte RTMP_CID_VIDEO = 0x06;
+    public static final byte RTMP_CID_AUDIO = 0x07;
     private RtmpHeader prevHeaderRx;
     private RtmpHeader prevHeaderTx;
     private static long sessionBeginTimestamp;

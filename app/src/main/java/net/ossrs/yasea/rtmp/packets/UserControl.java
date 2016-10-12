@@ -156,7 +156,7 @@ public class UserControl extends RtmpPacket {
     }
 
     public UserControl(ChunkStreamInfo channelInfo) {
-        super(new RtmpHeader(channelInfo.canReusePrevHeaderTx(RtmpHeader.MessageType.USER_CONTROL_MESSAGE) ? RtmpHeader.ChunkType.TYPE_2_RELATIVE_TIMESTAMP_ONLY : RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_CONTROL_CHANNEL, RtmpHeader.MessageType.USER_CONTROL_MESSAGE));
+        super(new RtmpHeader(channelInfo.canReusePrevHeaderTx(RtmpHeader.MessageType.USER_CONTROL_MESSAGE) ? RtmpHeader.ChunkType.TYPE_2_RELATIVE_TIMESTAMP_ONLY : RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_CID_PROTOCOL_CONTROL, RtmpHeader.MessageType.USER_CONTROL_MESSAGE));
     }
 
     /** Convenience construtor that creates a "pong" message for the specified ping */

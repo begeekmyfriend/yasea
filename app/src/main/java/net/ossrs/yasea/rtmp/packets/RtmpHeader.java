@@ -11,8 +11,6 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import android.util.Log;
-
 import net.ossrs.yasea.rtmp.Util;
 import net.ossrs.yasea.rtmp.io.ChunkStreamInfo;
 import net.ossrs.yasea.rtmp.io.RtmpSessionInfo;
@@ -300,7 +298,6 @@ public class RtmpHeader {
                 break;
             }
             default:
-                Log.e(TAG, "readHeaderImpl(): Invalid chunk type; basic header byte was: " + Util.toHexString((byte) basicHeaderByte));
                 throw new IOException("Invalid chunk type; basic header byte was: " + Util.toHexString((byte) basicHeaderByte));
         }
     }

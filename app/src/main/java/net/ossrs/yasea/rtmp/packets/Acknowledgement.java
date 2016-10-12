@@ -28,7 +28,7 @@ public class Acknowledgement extends RtmpPacket {
     }
 
     public Acknowledgement(int numBytesReadThusFar) {
-        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_CONTROL_CHANNEL, RtmpHeader.MessageType.ACKNOWLEDGEMENT));
+        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_CID_PROTOCOL_CONTROL, RtmpHeader.MessageType.ACKNOWLEDGEMENT));
         this.sequenceNumber = numBytesReadThusFar;
     }
 

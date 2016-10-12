@@ -25,7 +25,6 @@ import net.ossrs.yasea.rtmp.amf.AmfNumber;
 import net.ossrs.yasea.rtmp.amf.AmfObject;
 import net.ossrs.yasea.rtmp.amf.AmfString;
 import net.ossrs.yasea.rtmp.packets.Abort;
-import net.ossrs.yasea.rtmp.packets.Acknowledgement;
 import net.ossrs.yasea.rtmp.packets.Data;
 import net.ossrs.yasea.rtmp.packets.Handshake;
 import net.ossrs.yasea.rtmp.packets.Command;
@@ -56,8 +55,8 @@ public class RtmpConnection implements RtmpPublisher {
     private Socket socket;
     private String srsServerInfo = "";
     private String socketExceptionCause = "";
-    private RtmpSessionInfo rtmpSessionInfo = new RtmpSessionInfo();
-    private RtmpDecoder rtmpDecoder = new RtmpDecoder(rtmpSessionInfo);
+    private RtmpSessionInfo rtmpSessionInfo;
+    private RtmpDecoder rtmpDecoder;
     private BufferedInputStream inputStream;
     private BufferedOutputStream outputStream;
     private Thread rxPacketHandler;
@@ -74,11 +73,7 @@ public class RtmpConnection implements RtmpPublisher {
     private int videoWidth;
     private int videoHeight;
     private int videoFrameCount;
-    private int videoDataLength;
-    private int audioFrameCount;
-    private int audioDataLength;
-    private long videoLastTimeMillis;
-    private long audioLastTimeMillis;
+    private long lastTimeMillis;
 
     public RtmpConnection(RtmpPublisher.EventHandler handler) {
         mHandler = handler;
@@ -115,6 +110,8 @@ public class RtmpConnection implements RtmpPublisher {
 
         // socket connection
         Log.d(TAG, "connect() called. Host: " + host + ", port: " + port + ", appName: " + appName + ", publishPath: " + streamName);
+        rtmpSessionInfo = new RtmpSessionInfo();
+        rtmpDecoder = new RtmpDecoder(rtmpSessionInfo);
         socket = new Socket();
         SocketAddress socketAddress = new InetSocketAddress(host, port);
         socket.connect(socketAddress, 3000);
@@ -151,7 +148,7 @@ public class RtmpConnection implements RtmpPublisher {
         ChunkStreamInfo.markSessionTimestampTx();
 
         Log.d(TAG, "rtmpConnect(): Building 'connect' invoke packet");
-        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
+        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_OVER_CONNECTION);
         Command invoke = new Command("connect", ++transactionIdCounter, chunkStreamInfo);
         invoke.getHeader().setMessageStreamId(0);
         AmfObject args = new AmfObject();
@@ -200,7 +197,7 @@ public class RtmpConnection implements RtmpPublisher {
         Log.d(TAG, "createStream(): Sending releaseStream command...");
         // transactionId == 2
         Command releaseStream = new Command("releaseStream", ++transactionIdCounter);
-        releaseStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
+        releaseStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
         releaseStream.addData(new AmfNull());  // command object: null for "createStream"
         releaseStream.addData(streamName);  // command object: null for "releaseStream"
         sendRtmpPacket(releaseStream);
@@ -208,13 +205,13 @@ public class RtmpConnection implements RtmpPublisher {
         Log.d(TAG, "createStream(): Sending FCPublish command...");
         // transactionId == 3
         Command FCPublish = new Command("FCPublish", ++transactionIdCounter);
-        FCPublish.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
+        FCPublish.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
         FCPublish.addData(new AmfNull());  // command object: null for "FCPublish"
         FCPublish.addData(streamName);
         sendRtmpPacket(FCPublish);
 
         Log.d(TAG, "createStream(): Sending createStream command...");
-        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_COMMAND_CHANNEL);
+        ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_OVER_CONNECTION);
         // transactionId == 4
         Command createStream = new Command("createStream", ++transactionIdCounter, chunkStreamInfo);
         createStream.addData(new AmfNull());  // command object: null for "createStream"
@@ -247,7 +244,7 @@ public class RtmpConnection implements RtmpPublisher {
         Log.d(TAG, "fmlePublish(): Sending publish command...");
         // transactionId == 0
         Command publish = new Command("publish", 0);
-        publish.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
+        publish.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
         publish.getHeader().setMessageStreamId(currentStreamId);
         publish.addData(new AmfNull());  // command object: null for "publish"
         publish.addData(streamName);
@@ -295,7 +292,7 @@ public class RtmpConnection implements RtmpPublisher {
         }
         Log.d(TAG, "closeStream(): setting current stream ID to 0");
         Command closeStream = new Command("closeStream", 0);
-        closeStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_STREAM_CHANNEL);
+        closeStream.getHeader().setChunkStreamId(ChunkStreamInfo.RTMP_CID_OVER_STREAM);
         closeStream.getHeader().setMessageStreamId(currentStreamId);
         closeStream.addData(new AmfNull());
         sendRtmpPacket(closeStream);
@@ -355,6 +352,8 @@ public class RtmpConnection implements RtmpPublisher {
         serverIpAddr = null;
         serverPid = null;
         serverId = null;
+        rtmpSessionInfo = null;
+        rtmpDecoder = null;
     }
 
     @Override
@@ -373,7 +372,6 @@ public class RtmpConnection implements RtmpPublisher {
         audio.getHeader().setAbsoluteTimestamp(dts);
         audio.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(audio);
-        calcAudioBitrate(audio.getHeader().getPacketLength());
         mHandler.onRtmpAudioStreaming("audio streaming");
     }
 
@@ -394,42 +392,14 @@ public class RtmpConnection implements RtmpPublisher {
         video.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(video);
         videoFrameCacheNumber.decrementAndGet();
-        calcVideoFpsAndBitrate(video.getHeader().getPacketLength());
+        calcFps();
         mHandler.onRtmpVideoStreaming("video streaming");
     }
 
-    private void calcVideoFpsAndBitrate(int length) {
-        videoDataLength += length;
-        if (videoFrameCount == 0) {
-            videoLastTimeMillis = System.nanoTime() / 1000000;
-            videoFrameCount++;
-        } else {
-            if (++videoFrameCount >= 48) {
-                long diffTimeMillis = System.nanoTime() / 1000000 - videoLastTimeMillis;
-                mHandler.onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
-                mHandler.onRtmpVideoBitrate((double) videoDataLength * 8 * 1000 / diffTimeMillis);
-                videoFrameCount = 0;
-                videoDataLength = 0;
-            }
-        }
-    }
-
-    private void calcAudioBitrate(int length) {
-        audioDataLength += length;
-        if (audioFrameCount == 0) {
-            audioLastTimeMillis = System.nanoTime() / 1000000;
-            audioFrameCount++;
-        } else {
-            if (++audioFrameCount >= 48) {
-                long diffTimeMillis = System.nanoTime() / 1000000 - audioLastTimeMillis;
-                mHandler.onRtmpAudioBitrate((double) audioDataLength * 8 * 1000 / diffTimeMillis);
-                audioFrameCount = 0;
-                audioDataLength = 0;
-            }
-        }
-    }
-
-    private void sendRtmpPacket(RtmpPacket rtmpPacket) {
+    /**
+     * Transmit the specified RTMP packet
+     */
+    public void sendRtmpPacket(RtmpPacket rtmpPacket) {
         try {
             ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(rtmpPacket.getHeader().getChunkStreamId());
             chunkStreamInfo.setPrevHeaderTx(rtmpPacket.getHeader());
@@ -454,6 +424,19 @@ public class RtmpConnection implements RtmpPublisher {
         }
     }
 
+    private void calcFps() {
+        if (videoFrameCount == 0) {
+            lastTimeMillis = System.nanoTime() / 1000000;
+            videoFrameCount++;
+        } else {
+            if (++videoFrameCount >= 48) {
+                long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
+                mHandler.onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
+                videoFrameCount = 0;
+            }
+        }
+    }
+
     private void handleRxPacketLoop() throws IOException {
         // Handle all queued received RTMP packets
         while (!Thread.interrupted()) {
@@ -475,7 +458,7 @@ public class RtmpConnection implements RtmpPublisher {
                                     }
                                     break;
                                 case PING_REQUEST:
-                                    ChunkStreamInfo channelInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CONTROL_CHANNEL);
+                                    ChunkStreamInfo channelInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_PROTOCOL_CONTROL);
                                     Log.d(TAG, "handleRxPacketLoop(): Sending PONG reply..");
                                     UserControl pong = new UserControl(user, channelInfo);
                                     sendRtmpPacket(pong);
@@ -498,7 +481,7 @@ public class RtmpConnection implements RtmpPublisher {
                             SetPeerBandwidth bw = (SetPeerBandwidth) rtmpPacket;
                             rtmpSessionInfo.setAcknowledgmentWindowSize(bw.getAcknowledgementWindowSize());
                             int acknowledgementWindowsize = rtmpSessionInfo.getAcknowledgementWindowSize();
-                            ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CONTROL_CHANNEL);
+                            ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_PROTOCOL_CONTROL);
                             Log.d(TAG, "handleRxPacketLoop(): Send acknowledgement window size: " + acknowledgementWindowsize);
                             sendRtmpPacket(new WindowAckSize(acknowledgementWindowsize, chunkStreamInfo));
                             // Set socket option

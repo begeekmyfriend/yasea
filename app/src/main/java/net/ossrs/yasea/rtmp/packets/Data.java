@@ -27,7 +27,7 @@ public class Data extends VariableBodyRtmpPacket {
     }
 
     public Data(String type) {
-        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_COMMAND_CHANNEL, RtmpHeader.MessageType.DATA_AMF0));
+        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_CID_OVER_CONNECTION, RtmpHeader.MessageType.DATA_AMF0));
         this.type = type;
     }
 

@@ -30,13 +30,13 @@ public class Command extends VariableBodyRtmpPacket {
     }
 
     public Command(String commandName, int transactionId, ChunkStreamInfo channelInfo) {
-        super(new RtmpHeader((channelInfo.canReusePrevHeaderTx(RtmpHeader.MessageType.COMMAND_AMF0) ? RtmpHeader.ChunkType.TYPE_1_RELATIVE_LARGE : RtmpHeader.ChunkType.TYPE_0_FULL), ChunkStreamInfo.RTMP_COMMAND_CHANNEL, RtmpHeader.MessageType.COMMAND_AMF0));        
+        super(new RtmpHeader((channelInfo.canReusePrevHeaderTx(RtmpHeader.MessageType.COMMAND_AMF0) ? RtmpHeader.ChunkType.TYPE_1_RELATIVE_LARGE : RtmpHeader.ChunkType.TYPE_0_FULL), ChunkStreamInfo.RTMP_CID_OVER_CONNECTION, RtmpHeader.MessageType.COMMAND_AMF0));
         this.commandName = commandName;
         this.transactionId = transactionId;
     }
     
     public Command(String commandName, int transactionId) {
-        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_COMMAND_CHANNEL, RtmpHeader.MessageType.COMMAND_AMF0));        
+        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_0_FULL, ChunkStreamInfo.RTMP_CID_OVER_CONNECTION, RtmpHeader.MessageType.COMMAND_AMF0));
         this.commandName = commandName;
         this.transactionId = transactionId;
     }

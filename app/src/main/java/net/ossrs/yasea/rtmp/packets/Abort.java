@@ -21,7 +21,7 @@ public class Abort extends RtmpPacket {
     }
 
     public Abort(int chunkStreamId) {
-        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_1_RELATIVE_LARGE, ChunkStreamInfo.RTMP_CONTROL_CHANNEL, RtmpHeader.MessageType.SET_CHUNK_SIZE));
+        super(new RtmpHeader(RtmpHeader.ChunkType.TYPE_1_RELATIVE_LARGE, ChunkStreamInfo.RTMP_CID_PROTOCOL_CONTROL, RtmpHeader.MessageType.SET_CHUNK_SIZE));
         this.chunkStreamId = chunkStreamId;
     }
 

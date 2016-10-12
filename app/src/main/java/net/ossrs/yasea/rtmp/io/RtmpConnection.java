@@ -73,7 +73,11 @@ public class RtmpConnection implements RtmpPublisher {
     private int videoWidth;
     private int videoHeight;
     private int videoFrameCount;
-    private long lastTimeMillis;
+    private int videoDataLength;
+    private int audioFrameCount;
+    private int audioDataLength;
+    private long videoLastTimeMillis;
+    private long audioLastTimeMillis;
 
     public RtmpConnection(RtmpPublisher.EventHandler handler) {
         mHandler = handler;
@@ -166,7 +170,7 @@ public class RtmpConnection implements RtmpPublisher {
         invoke.addData(args);
         sendRtmpPacket(invoke);
         mHandler.onRtmpConnecting("connecting");
-        
+
         synchronized (connectingLock) {
             try {
                 connectingLock.wait(5000);
@@ -372,6 +376,7 @@ public class RtmpConnection implements RtmpPublisher {
         audio.getHeader().setAbsoluteTimestamp(dts);
         audio.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(audio);
+        calcAudioBitrate(audio.getHeader().getPacketLength());
         mHandler.onRtmpAudioStreaming("audio streaming");
     }
 
@@ -392,14 +397,42 @@ public class RtmpConnection implements RtmpPublisher {
         video.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(video);
         videoFrameCacheNumber.decrementAndGet();
-        calcFps();
+        calcVideoFpsAndBitrate(video.getHeader().getPacketLength());
         mHandler.onRtmpVideoStreaming("video streaming");
     }
 
-    /**
-     * Transmit the specified RTMP packet
-     */
-    public void sendRtmpPacket(RtmpPacket rtmpPacket) {
+    private void calcVideoFpsAndBitrate(int length) {
+        videoDataLength += length;
+        if (videoFrameCount == 0) {
+            videoLastTimeMillis = System.nanoTime() / 1000000;
+            videoFrameCount++;
+        } else {
+            if (++videoFrameCount >= 48) {
+                long diffTimeMillis = System.nanoTime() / 1000000 - videoLastTimeMillis;
+                mHandler.onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
+                mHandler.onRtmpVideoBitrate((double) videoDataLength * 8 * 1000 / diffTimeMillis);
+                videoFrameCount = 0;
+                videoDataLength = 0;
+            }
+        }
+    }
+
+    private void calcAudioBitrate(int length) {
+        audioDataLength += length;
+        if (audioFrameCount == 0) {
+            audioLastTimeMillis = System.nanoTime() / 1000000;
+            audioFrameCount++;
+        } else {
+            if (++audioFrameCount >= 48) {
+                long diffTimeMillis = System.nanoTime() / 1000000 - audioLastTimeMillis;
+                mHandler.onRtmpAudioBitrate((double) audioDataLength * 8 * 1000 / diffTimeMillis);
+                audioFrameCount = 0;
+                audioDataLength = 0;
+            }
+        }
+    }
+
+    private void sendRtmpPacket(RtmpPacket rtmpPacket) {
         try {
             ChunkStreamInfo chunkStreamInfo = rtmpSessionInfo.getChunkStreamInfo(rtmpPacket.getHeader().getChunkStreamId());
             chunkStreamInfo.setPrevHeaderTx(rtmpPacket.getHeader());
@@ -421,19 +454,6 @@ public class RtmpConnection implements RtmpPublisher {
         } catch (IOException ioe) {
             Log.e(TAG, "Caught IOException during write loop, shutting down: " + ioe.getMessage());
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ioe);
-        }
-    }
-
-    private void calcFps() {
-        if (videoFrameCount == 0) {
-            lastTimeMillis = System.nanoTime() / 1000000;
-            videoFrameCount++;
-        } else {
-            if (++videoFrameCount >= 48) {
-                long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
-                mHandler.onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
-                videoFrameCount = 0;
-            }
         }
     }
 

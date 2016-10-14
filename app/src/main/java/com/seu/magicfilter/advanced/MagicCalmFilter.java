@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -19,7 +20,7 @@ public class MagicCalmFilter extends GPUImageFilter{
 	private int mMaskGrey2UniformLocation;
 	
 	public MagicCalmFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.calm));
+		super(MagicFilterType.CALM, OpenGlUtils.readShaderFromRawResource(R.raw.calm));
 	}
 
 	@Override
@@ -72,7 +73,7 @@ public class MagicCalmFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
         mMaskGrey1UniformLocation = GLES20.glGetUniformLocation(getProgram(), "grey1Frame");
         mMaskGrey2UniformLocation = GLES20.glGetUniformLocation(getProgram(), "grey2Frame");
 	}

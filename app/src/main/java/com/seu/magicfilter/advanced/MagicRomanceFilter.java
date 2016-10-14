@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -15,7 +16,7 @@ public class MagicRomanceFilter extends GPUImageFilter{
 	private int mToneCurveTextureUniformLocation;
 	  
 	public MagicRomanceFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.romance));
+		super(MagicFilterType.ROMANCE, OpenGlUtils.readShaderFromRawResource(R.raw.romance));
 	}
 
 	@Override
@@ -46,7 +47,7 @@ public class MagicRomanceFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
 	}
 
 	@Override

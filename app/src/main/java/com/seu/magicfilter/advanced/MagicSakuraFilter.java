@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -16,7 +17,7 @@ public class MagicSakuraFilter extends GPUImageFilter{
 	private int mTexelWidthUniformLocation;
 	
 	public MagicSakuraFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.romance));
+		super(MagicFilterType.SAKURA, OpenGlUtils.readShaderFromRawResource(R.raw.romance));
 	}
 
 	@Override
@@ -47,7 +48,7 @@ public class MagicSakuraFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
         mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelWidthOffset");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelHeightOffset");
 	}

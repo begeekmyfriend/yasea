@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -14,8 +15,8 @@ public class MagicWhiteCatFilter extends GPUImageFilter{
 	private int[] mToneCurveTexture = {-1};
 	private int mToneCurveTextureUniformLocation;
 	  
-	public MagicWhiteCatFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.whitecat));
+	public MagicWhiteCatFilter() {
+		super(MagicFilterType.WHITECAT, OpenGlUtils.readShaderFromRawResource(R.raw.whitecat));
 	}
 
 	@Override
@@ -46,7 +47,7 @@ public class MagicWhiteCatFilter extends GPUImageFilter{
 	@Override
 	public void onInit() {
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
 	}
 
 	@Override

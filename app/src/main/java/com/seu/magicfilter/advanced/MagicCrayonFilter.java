@@ -2,6 +2,7 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -14,7 +15,7 @@ public class MagicCrayonFilter extends GPUImageFilter{
 	private int mStrengthLocation;
 	
 	public MagicCrayonFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.crayon));
+		super(MagicFilterType.CRAYON, OpenGlUtils.readShaderFromRawResource(R.raw.crayon));
 	}
 
     @Override

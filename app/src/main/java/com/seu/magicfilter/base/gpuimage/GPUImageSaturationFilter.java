@@ -18,6 +18,8 @@ package com.seu.magicfilter.base.gpuimage;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
+
 /**
  * saturation: The degree of saturation or desaturation to apply to the image (0.0 - 2.0, with 1.0 as the default)
  */
@@ -49,7 +51,7 @@ public class GPUImageSaturationFilter extends GPUImageFilter {
     }
 
     public GPUImageSaturationFilter(final float saturation) {
-        super(NO_FILTER_VERTEX_SHADER, SATURATION_FRAGMENT_SHADER);
+        super(MagicFilterType.SATURATION, SATURATION_FRAGMENT_SHADER);
         mSaturation = saturation;
     }
 

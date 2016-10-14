@@ -36,6 +36,7 @@ public enum  MagicFilterType {
     HUDSON,
     INKWELL,
     KEVIN,
+    LOCKUP,
     LOMO,
     N1977,
     NASHVILLE,

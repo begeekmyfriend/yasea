@@ -44,6 +44,7 @@ import com.seu.magicfilter.advanced.MagicWaldenFilter;
 import com.seu.magicfilter.advanced.MagicWarmFilter;
 import com.seu.magicfilter.advanced.MagicWhiteCatFilter;
 import com.seu.magicfilter.advanced.MagicXproIIFilter;
+import com.seu.magicfilter.base.MagicLookupFilter;
 import com.seu.magicfilter.base.gpuimage.GPUImageBrightnessFilter;
 import com.seu.magicfilter.base.gpuimage.GPUImageContrastFilter;
 import com.seu.magicfilter.base.gpuimage.GPUImageExposureFilter;
@@ -54,8 +55,6 @@ import com.seu.magicfilter.base.gpuimage.GPUImageSharpenFilter;
 
 public class MagicFilterFactory{
 	
-	private static MagicFilterType filterType = MagicFilterType.NONE;
-
 	private static Context mContext;
 
 	public static void initContext(Context context) {
@@ -63,8 +62,9 @@ public class MagicFilterFactory{
 	}
 
 	public static GPUImageFilter initFilters(MagicFilterType type) {
-		filterType = type;
 		switch (type) {
+			case NONE:
+				return new GPUImageFilter();
 			case WHITECAT:
 				return new MagicWhiteCatFilter();
 			case BLACKCAT:
@@ -101,6 +101,8 @@ public class MagicFilterFactory{
 				return new MagicInkwellFilter();
 			case KEVIN:
 				return new MagicKevinFilter();
+			case LOCKUP:
+				return new MagicLookupFilter("");
 			case LOMO:
 				return new MagicLomoFilter();
 			case N1977:
@@ -165,10 +167,6 @@ public class MagicFilterFactory{
 			default:
 				return null;
 		}
-	}
-	
-	public static MagicFilterType getCurrentFilterType(){
-		return filterType;
 	}
 
 	public static Context getCurrentContext(){

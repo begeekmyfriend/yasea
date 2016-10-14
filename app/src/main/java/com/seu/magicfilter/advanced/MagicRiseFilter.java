@@ -2,6 +2,7 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -13,7 +14,7 @@ public class MagicRiseFilter extends GPUImageFilter{
 	private int[] inputTextureUniformLocations = {-1,-1,-1};
 	
 	public MagicRiseFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.rise));
+		super(MagicFilterType.RISE, OpenGlUtils.readShaderFromRawResource(R.raw.rise));
 	}
 
 	@Override

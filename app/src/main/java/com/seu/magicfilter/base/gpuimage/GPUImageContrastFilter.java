@@ -18,6 +18,8 @@ package com.seu.magicfilter.base.gpuimage;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
+
 /**
  * Changes the contrast of the image.<br>
  * <br>
@@ -45,7 +47,7 @@ public class GPUImageContrastFilter extends GPUImageFilter {
     }
     
     public GPUImageContrastFilter(float contrast) {
-        super(NO_FILTER_VERTEX_SHADER, CONTRAST_FRAGMENT_SHADER);
+        super(MagicFilterType.CONTRAST, CONTRAST_FRAGMENT_SHADER);
         mContrast = contrast;
     }
 

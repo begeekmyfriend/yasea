@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -14,7 +15,7 @@ public class MagicEvergreenFilter extends GPUImageFilter{
 	private int mToneCurveTextureUniformLocation;
 	  
 	public MagicEvergreenFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.evergreen));
+		super(MagicFilterType.EVERGREEN, OpenGlUtils.readShaderFromRawResource(R.raw.evergreen));
 	}
 
 	@Override
@@ -45,7 +46,7 @@ public class MagicEvergreenFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
 	}
 
 	@Override

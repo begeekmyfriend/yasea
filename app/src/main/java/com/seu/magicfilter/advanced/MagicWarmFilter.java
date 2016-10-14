@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -19,7 +20,7 @@ public class MagicWarmFilter extends GPUImageFilter{
 	private int mMaskGrey2UniformLocation;
 	
 	public MagicWarmFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.warm));
+		super(MagicFilterType.WARM, OpenGlUtils.readShaderFromRawResource(R.raw.warm));
 	}
 
 	@Override
@@ -72,7 +73,7 @@ public class MagicWarmFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
         mMaskGrey1UniformLocation = GLES20.glGetUniformLocation(getProgram(), "layerImage");
         mMaskGrey2UniformLocation = GLES20.glGetUniformLocation(getProgram(), "greyFrame");
 	}

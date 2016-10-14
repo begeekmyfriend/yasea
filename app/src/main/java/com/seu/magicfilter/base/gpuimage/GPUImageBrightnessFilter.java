@@ -18,6 +18,8 @@ package com.seu.magicfilter.base.gpuimage;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
+
 /**
  * brightness value ranges from -1.0 to 1.0, with 0.0 as the normal level
  */
@@ -43,7 +45,7 @@ public class GPUImageBrightnessFilter extends GPUImageFilter {
     }
 
     public GPUImageBrightnessFilter(final float brightness) {
-        super(NO_FILTER_VERTEX_SHADER, BRIGHTNESS_FRAGMENT_SHADER);
+        super(MagicFilterType.BRIGHTNESS, BRIGHTNESS_FRAGMENT_SHADER);
         mBrightness = brightness;
     }
 

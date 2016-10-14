@@ -2,6 +2,7 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -14,7 +15,7 @@ public class MagicEarlyBirdFilter extends GPUImageFilter{
 	protected int mGLStrengthLocation;
 
 	public MagicEarlyBirdFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.earlybird));
+		super(MagicFilterType.EARLYBIRD, OpenGlUtils.readShaderFromRawResource(R.raw.earlybird));
 	}
 
 	@Override
@@ -50,7 +51,7 @@ public class MagicEarlyBirdFilter extends GPUImageFilter{
 		super.onInit();
 		for(int i=0; i < inputTextureUniformLocations.length; i++)
 			inputTextureUniformLocations[i] = GLES20.glGetUniformLocation(getProgram(), "inputImageTexture"+(2+i));
-		mGLStrengthLocation = GLES20.glGetUniformLocation(mGLProgId,
+		mGLStrengthLocation = GLES20.glGetUniformLocation(mGlProgId,
 				"strength");
 	}
 

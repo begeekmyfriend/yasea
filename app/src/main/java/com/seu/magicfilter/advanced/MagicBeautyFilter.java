@@ -2,6 +2,7 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -13,10 +14,10 @@ import com.seu.magicfilter.utils.OpenGlUtils;
 public class MagicBeautyFilter extends GPUImageFilter{
     private int mSingleStepOffsetLocation;
     private int mParamsLocation;
-    private int mBeautyLevel = 5;
+    private int mBeautyLevel = 3;
 
     public MagicBeautyFilter(){
-        super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.beauty));
+        super(MagicFilterType.BEAUTY, OpenGlUtils.readShaderFromRawResource(R.raw.beauty));
     }
 
     protected void onInit() {

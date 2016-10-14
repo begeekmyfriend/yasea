@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -20,7 +21,7 @@ public class MagicHealthyFilter extends GPUImageFilter{
 	private int mTexelWidthUniformLocation;
 
 	public MagicHealthyFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.healthy));
+		super(MagicFilterType.HEALTHY, OpenGlUtils.readShaderFromRawResource(R.raw.healthy));
 	}
 
 	@Override
@@ -65,7 +66,7 @@ public class MagicHealthyFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
         mMaskGrey1UniformLocation = GLES20.glGetUniformLocation(getProgram(), "mask");
         mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelWidthOffset");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelHeightOffset");

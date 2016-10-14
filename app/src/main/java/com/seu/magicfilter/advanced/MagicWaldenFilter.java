@@ -2,6 +2,7 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -14,7 +15,7 @@ public class MagicWaldenFilter extends GPUImageFilter{
 	private int mGLStrengthLocation;
 
 	public MagicWaldenFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.walden));
+		super(MagicFilterType.WALDEN, OpenGlUtils.readShaderFromRawResource(R.raw.walden));
 	}
 
 	@Override
@@ -49,7 +50,7 @@ public class MagicWaldenFilter extends GPUImageFilter{
 		super.onInit();
 		for(int i = 0; i < inputTextureUniformLocations.length; i++)
 			inputTextureUniformLocations[i] = GLES20.glGetUniformLocation(getProgram(), "inputImageTexture"+(2+i));
-		mGLStrengthLocation = GLES20.glGetUniformLocation(mGLProgId,
+		mGLStrengthLocation = GLES20.glGetUniformLocation(mGlProgId,
 				"strength");
 	}
 

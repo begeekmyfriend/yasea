@@ -11,7 +11,7 @@ import android.opengl.GLES20;
 
 
 public class MagicBaseGroupFilter extends GPUImageFilter{
-	protected static int[] frameBuffers = null;
+    protected static int[] frameBuffers = null;
     protected static int[] frameBufferTextures = null;
     private int frameWidth = -1;
     private int frameHeight = -1;
@@ -21,7 +21,7 @@ public class MagicBaseGroupFilter extends GPUImageFilter{
     	this.filters = filters;
     }
     
-	@Override
+    @Override
     public void onDestroy() {
         for (GPUImageFilter filter : filters) {
             filter.destroy();
@@ -49,7 +49,7 @@ public class MagicBaseGroupFilter extends GPUImageFilter{
 			frameHeight = height;
 		}
         if (frameBuffers == null) {
-        	frameBuffers = new int[size-1];
+            frameBuffers = new int[size-1];
             frameBufferTextures = new int[size-1];
 
             for (int i = 0; i < size-1; i++) {

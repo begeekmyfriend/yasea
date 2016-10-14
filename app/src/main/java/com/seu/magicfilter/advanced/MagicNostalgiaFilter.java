@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -19,7 +20,7 @@ public class MagicNostalgiaFilter extends GPUImageFilter{
 	private int mToneCurveTextureUniformLocation2;
 	  
 	public MagicNostalgiaFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.nostalgia));
+		super(MagicFilterType.NOSTALGIA, OpenGlUtils.readShaderFromRawResource(R.raw.nostalgia));
 	}
 
 	@Override
@@ -63,8 +64,8 @@ public class MagicNostalgiaFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGLProgId, "curve");
-        mToneCurveTextureUniformLocation2 = GLES20.glGetUniformLocation(mGLProgId, "curve2");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
+        mToneCurveTextureUniformLocation2 = GLES20.glGetUniformLocation(mGlProgId, "curve2");
         mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelWidthOffset");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelHeightOffset");
         mBlurSizeUniformLocation = GLES20.glGetUniformLocation(getProgram(), "blurSize");

@@ -4,6 +4,7 @@ import android.opengl.GLES20;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
+import com.seu.magicfilter.utils.MagicFilterType;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicLookupFilter extends GPUImageFilter {
@@ -46,7 +47,7 @@ public class MagicLookupFilter extends GPUImageFilter {
     protected String table;
 
     public MagicLookupFilter(String table) {
-        super(NO_FILTER_VERTEX_SHADER,LOOKUP_FRAGMENT_SHADER);
+        super(MagicFilterType.LOCKUP, LOOKUP_FRAGMENT_SHADER);
         this.table = table;
     }
     
@@ -54,17 +55,17 @@ public class MagicLookupFilter extends GPUImageFilter {
     public int mLookupSourceTexture = OpenGlUtils.NO_TEXTURE;
     
     protected void onInit(){
-		super.onInit();
-		mLookupTextureUniform = GLES20.glGetUniformLocation(getProgram(), "inputImageTexture2");
+	super.onInit();
+	mLookupTextureUniform = GLES20.glGetUniformLocation(getProgram(), "inputImageTexture2");
     }
     
     protected void onInitialized(){
-		super.onInitialized();
-    	runOnDraw(new Runnable(){
-    		public void run(){
-                        mLookupSourceTexture = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), table);
-    		}
-    	});
+	super.onInitialized();
+        runOnDraw(new Runnable(){
+	    public void run(){
+	        mLookupSourceTexture = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), table);
+	    }
+	});
     }
     
     protected void onDestroy(){

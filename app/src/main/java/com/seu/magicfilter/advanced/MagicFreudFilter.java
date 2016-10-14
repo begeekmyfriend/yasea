@@ -2,6 +2,7 @@ package com.seu.magicfilter.advanced;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -16,7 +17,7 @@ public class MagicFreudFilter extends GPUImageFilter {
 	private int mGLStrengthLocation;
 
 	public MagicFreudFilter(){
-		super(NO_FILTER_VERTEX_SHADER, OpenGlUtils.readShaderFromRawResource(R.raw.freud));
+		super(MagicFilterType.FREUD, OpenGlUtils.readShaderFromRawResource(R.raw.freud));
 	}
 
 	@Override
@@ -53,7 +54,7 @@ public class MagicFreudFilter extends GPUImageFilter {
 		mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "inputImageTextureWidth");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "inputImageTextureHeight");
 
-		mGLStrengthLocation = GLES20.glGetUniformLocation(mGLProgId,
+		mGLStrengthLocation = GLES20.glGetUniformLocation(mGlProgId,
 				"strength");
 	}
 

@@ -113,7 +113,8 @@ public class RtmpConnection implements RtmpPublisher {
         }
 
         // socket connection
-        Log.d(TAG, "connect() called. Host: " + host + ", port: " + port + ", appName: " + appName + ", publishPath: " + streamName);
+        Log.d(TAG, "connect() called. Host: " + host + ", port: " + port + ", appName: " + appName +
+            ", publishPath: " + streamName);
         rtmpSessionInfo = new RtmpSessionInfo();
         rtmpDecoder = new RtmpDecoder(rtmpSessionInfo);
         socket = new Socket();

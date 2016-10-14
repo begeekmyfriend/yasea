@@ -9,18 +9,13 @@ import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.widget.Toast;
 
-import com.seu.magicfilter.base.MagicCameraInputFilter;
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.MagicFilterType;
 import com.seu.magicfilter.utils.OpenGlUtils;
-import com.seu.magicfilter.utils.Rotation;
-import com.seu.magicfilter.utils.TextureRotationUtil;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -33,20 +28,18 @@ import javax.microedition.khronos.opengles.GL10;
  */
 public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Renderer, Camera.PreviewCallback {
 
-    private GPUImageFilter filter;
-    private MagicCameraInputFilter cameraInputFilter;
+    private GPUImageFilter magicFilter;
 
     private SurfaceTexture surfaceTexture;
     
-    private int textureId = OpenGlUtils.NO_TEXTURE;
-    private final FloatBuffer gLCubeBuffer;
-    private final FloatBuffer gLTextureBuffer;
-    private int surfaceWidth, surfaceHeight;
-    private int previewWidth, previewHeight;
+    private int mTextureId = OpenGlUtils.NO_TEXTURE;
+    private int mSurfaceWidth;
+    private int mSurfaceHeight;
+    private int mPreviewWidth;
+    private int mPreviewHeight;
 
     private Camera mCamera;
-    private IntBuffer mGLPreviewIntBuffer;
-    private ByteBuffer mGLPreviewByteBuffer;
+    private ByteBuffer mGlPreviewBuffer;
     private byte[] mYuvPreviewBuffer;
     private int mCamId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private int mPreviewRotation = 90;
@@ -63,16 +56,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public SrsCameraView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        gLCubeBuffer = ByteBuffer.allocateDirect(TextureRotationUtil.CUBE.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
-        gLCubeBuffer.put(TextureRotationUtil.CUBE).position(0);
-
-        gLTextureBuffer = ByteBuffer.allocateDirect(TextureRotationUtil.TEXTURE_NO_ROTATION.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
-        gLTextureBuffer.put(TextureRotationUtil.getRotation(Rotation.NORMAL, false, true)).position(0);
-
         setEGLContextClientVersion(2);
         setRenderer(this);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
@@ -85,13 +68,12 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         GLES20.glDisable(GL10.GL_DITHER);
         GLES20.glClearColor(0, 0, 0, 0);
 
-        cameraInputFilter = new MagicCameraInputFilter();
-        cameraInputFilter.init();
-        cameraInputFilter.initCameraFrameBuffer(previewWidth, previewHeight);
-        cameraInputFilter.onInputSizeChanged(previewWidth, previewHeight);
+        magicFilter = new GPUImageFilter(MagicFilterType.NONE);
+        magicFilter.init();
+        magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
 
-        textureId = OpenGlUtils.getExternalOESTextureID();
-        surfaceTexture = new SurfaceTexture(textureId);
+        mTextureId = OpenGlUtils.getExternalOESTextureID();
+        surfaceTexture = new SurfaceTexture(mTextureId);
         surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
             @Override
             public void onFrameAvailable(SurfaceTexture surfaceTexture) {
@@ -112,9 +94,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         GLES20.glViewport(0,0,width, height);
-        surfaceWidth = width;
-        surfaceHeight = height;
-        cameraInputFilter.onDisplaySizeChanged(surfaceWidth, surfaceHeight);
+        mSurfaceWidth = width;
+        mSurfaceHeight = height;
+        magicFilter.onDisplaySizeChanged(mSurfaceWidth, mSurfaceHeight);
     }
 
     @Override
@@ -126,17 +108,11 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
         float[] mtx = new float[16];
         surfaceTexture.getTransformMatrix(mtx);
-        cameraInputFilter.setTextureTransformMatrix(mtx);
-        if (filter == null) {
-            cameraInputFilter.onDrawFrame(textureId, gLCubeBuffer, gLTextureBuffer);
-        } else {
-            int fboTextureId = cameraInputFilter.onDrawToTexture(textureId);
-            // Read under off-screen FBO mode
-            GLES20.glReadPixels(0, 0, previewWidth, previewHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mGLPreviewIntBuffer);
-            // Recover to window-specific FBO
-            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-            filter.onDrawFrame(fboTextureId, gLCubeBuffer, gLTextureBuffer);
-            mGLIntBufferCache.add(mGLPreviewIntBuffer);
+        magicFilter.setTextureTransformMatrix(mtx);
+        magicFilter.onDrawFrameOES(mTextureId);
+        if (magicFilter.getFilterType() != MagicFilterType.NONE) {
+            int fboTextureID = magicFilter.onDrawToTextureOES(mTextureId);
+            mGLIntBufferCache.add(magicFilter.getGlFboBuffer());
             synchronized (writeLock) {
                 writeLock.notifyAll();
             }
@@ -154,8 +130,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     public void setPreviewResolution(int width, int height) {
-        previewWidth = width;
-        previewHeight = height;
+        mPreviewWidth = width;
+        mPreviewHeight = height;
+        mGlPreviewBuffer = ByteBuffer.allocate(mPreviewWidth * mPreviewHeight * 4);
     }
 
     public boolean setFilter(final MagicFilterType type) {
@@ -166,14 +143,14 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         queueEvent(new Runnable() {
             @Override
             public void run() {
-                if (filter != null) {
-                    filter.destroy();
+                if (magicFilter != null) {
+                    magicFilter.destroy();
                 }
-                filter = MagicFilterFactory.initFilters(type);
-                if (filter != null) {
-                    filter.init();
-                    filter.onDisplaySizeChanged(surfaceWidth, surfaceHeight);
-                    filter.onInputSizeChanged(previewWidth, previewHeight);
+                magicFilter = MagicFilterFactory.initFilters(type);
+                if (magicFilter != null) {
+                    magicFilter.init();
+                    magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
+                    magicFilter.onDisplaySizeChanged(mSurfaceWidth, mSurfaceHeight);
                 }
                 switchCameraFilter();
             }
@@ -183,12 +160,12 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     private void deleteTextures() {
-        if(textureId != OpenGlUtils.NO_TEXTURE){
+        if(mTextureId != OpenGlUtils.NO_TEXTURE){
             queueEvent(new Runnable() {
                 @Override
                 public void run() {
-                    GLES20.glDeleteTextures(1, new int[]{ textureId }, 0);
-                    textureId = OpenGlUtils.NO_TEXTURE;
+                    GLES20.glDeleteTextures(1, new int[]{ mTextureId }, 0);
+                    mTextureId = OpenGlUtils.NO_TEXTURE;
                 }
             });
         }
@@ -220,8 +197,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 while (!Thread.interrupted()) {
                     while (!mGLIntBufferCache.isEmpty()) {
                         IntBuffer picture = mGLIntBufferCache.poll();
-                        mGLPreviewByteBuffer.asIntBuffer().put(picture.array());
-                        mPrevCb.onGetRgbaFrame(mGLPreviewByteBuffer.array(), previewWidth, previewHeight);
+                        mGlPreviewBuffer.asIntBuffer().put(picture.array());
+                        mPrevCb.onGetRgbaFrame(mGlPreviewBuffer.array(), mPreviewWidth, mPreviewHeight);
                     }
                     // Waiting for next frame
                     synchronized (writeLock) {
@@ -240,7 +217,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         mCamera = Camera.open(mCamId);
 
         Camera.Parameters params = mCamera.getParameters();
-        Camera.Size size = mCamera.new Size(previewWidth, previewHeight);
+        Camera.Size size = mCamera.new Size(mPreviewWidth, mPreviewHeight);
         if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
             Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
             stopCamera();
@@ -251,16 +228,14 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         }
 
-        mYuvPreviewBuffer = new byte[previewWidth * previewHeight * 3 / 2];
-        mGLPreviewIntBuffer = IntBuffer.allocate(previewWidth * previewHeight);
-        mGLPreviewByteBuffer = ByteBuffer.allocate(previewWidth * previewHeight * 4);
+        mYuvPreviewBuffer = new byte[mPreviewWidth * mPreviewHeight * 3 / 2];
 
         /***** set parameters *****/
         //params.set("orientation", "portrait");
         //params.set("orientation", "landscape");
         //params.setRotation(90);
-        params.setPictureSize(previewWidth, previewHeight);
-        params.setPreviewSize(previewWidth, previewHeight);
+        params.setPictureSize(mPreviewWidth, mPreviewHeight);
+        params.setPreviewSize(mPreviewWidth, mPreviewHeight);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewFormat(ImageFormat.NV21);
@@ -325,7 +300,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     private void switchCameraFilter() {
-        if (filter == null) {
+        if (magicFilter.getFilterType() == MagicFilterType.NONE) {
             mCamera.addCallbackBuffer(mYuvPreviewBuffer);
             mCamera.setPreviewCallbackWithBuffer(this);
         } else {
@@ -334,7 +309,10 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     public interface PreviewCallback {
+
         void onGetYuvFrame(byte[] data);
+
         void onGetRgbaFrame(byte[] data, int width, int height);
+
     }
 }

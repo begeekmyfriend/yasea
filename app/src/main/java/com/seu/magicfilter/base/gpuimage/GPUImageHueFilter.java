@@ -18,6 +18,8 @@ package com.seu.magicfilter.base.gpuimage;
 
 import android.opengl.GLES20;
 
+import com.seu.magicfilter.utils.MagicFilterType;
+
 public class GPUImageHueFilter extends GPUImageFilter {
     public static final String HUE_FRAGMENT_SHADER = "" +
       "precision highp float;\n" +
@@ -72,7 +74,7 @@ public class GPUImageHueFilter extends GPUImageFilter {
     }
 
     public GPUImageHueFilter(final float hue) {
-        super(NO_FILTER_VERTEX_SHADER, HUE_FRAGMENT_SHADER);
+        super(MagicFilterType.HUE, HUE_FRAGMENT_SHADER);
         mHue = hue;
     }
 

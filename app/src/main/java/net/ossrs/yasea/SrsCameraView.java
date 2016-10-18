@@ -111,13 +111,10 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         magicFilter.setTextureTransformMatrix(mtx);
 
         magicFilter.onDrawFrameOES(mTextureId);
-
-        if (magicFilter.getFilterType() != MagicFilterType.NONE) {
-            magicFilter.onDrawToTextureOES(mTextureId);
-            mGLIntBufferCache.add(magicFilter.getGlFboBuffer());
-            synchronized (writeLock) {
-                writeLock.notifyAll();
-            }
+        magicFilter.onDrawToTextureOES(mTextureId);
+        mGLIntBufferCache.add(magicFilter.getGlFboBuffer());
+        synchronized (writeLock) {
+            writeLock.notifyAll();
         }
     }
 
@@ -154,7 +151,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                     magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
                     magicFilter.onDisplaySizeChanged(mSurfaceWidth, mSurfaceHeight);
                 }
-                switchCameraFilter();
             }
         });
         requestRender();
@@ -251,8 +247,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
         mCamera.setDisplayOrientation(mPreviewRotation);
 
-        switchCameraFilter();
-
         try {
             mCamera.setPreviewTexture(surfaceTexture);
         } catch (IOException e) {
@@ -299,15 +293,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         }
         return closestRange;
-    }
-
-    private void switchCameraFilter() {
-        if (magicFilter != null && magicFilter.getFilterType() == MagicFilterType.NONE) {
-            mCamera.addCallbackBuffer(mYuvPreviewBuffer);
-            mCamera.setPreviewCallbackWithBuffer(this);
-        } else {
-            mCamera.setPreviewCallback(null);
-        }
     }
 
     public interface PreviewCallback {

@@ -302,7 +302,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     private void switchCameraFilter() {
-        if (magicFilter.getFilterType() == MagicFilterType.NONE) {
+        if (magicFilter != null && magicFilter.getFilterType() == MagicFilterType.NONE) {
             mCamera.addCallbackBuffer(mYuvPreviewBuffer);
             mCamera.setPreviewCallbackWithBuffer(this);
         } else {

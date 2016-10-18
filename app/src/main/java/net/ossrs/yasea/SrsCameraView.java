@@ -26,7 +26,7 @@ import javax.microedition.khronos.opengles.GL10;
 /**
  * Created by Leo Ma on 2016/2/25.
  */
-public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Renderer, Camera.PreviewCallback {
+public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Renderer {
 
     private GPUImageFilter magicFilter;
 
@@ -40,7 +40,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     private Camera mCamera;
     private ByteBuffer mGlPreviewBuffer;
-    private byte[] mYuvPreviewBuffer;
     private int mCamId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private int mPreviewRotation = 90;
 
@@ -116,12 +115,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         synchronized (writeLock) {
             writeLock.notifyAll();
         }
-    }
-
-    @Override
-    public void onPreviewFrame(byte[] data, Camera camera) {
-        mPrevCb.onGetYuvFrame(data);
-        camera.addCallbackBuffer(mYuvPreviewBuffer);
     }
 
     public void setPreviewCallback(PreviewCallback cb) {
@@ -225,8 +218,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
             params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         }
-
-        mYuvPreviewBuffer = new byte[mPreviewWidth * mPreviewHeight * 3 / 2];
 
         /***** set parameters *****/
         //params.set("orientation", "portrait");

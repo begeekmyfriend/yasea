@@ -66,7 +66,7 @@ public class MagicHealthyFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(getProgram(), "curve");
         mMaskGrey1UniformLocation = GLES20.glGetUniformLocation(getProgram(), "mask");
         mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelWidthOffset");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelHeightOffset");

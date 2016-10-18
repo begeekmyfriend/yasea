@@ -1,7 +1,10 @@
-varying highp vec2 textureCoordinate; 
-precision highp float; 
+#extension GL_OES_EGL_image_external : require
 
-uniform sampler2D inputImageTexture; 
+precision highp float;
+
+varying highp vec2 textureCoordinate;
+
+uniform samplerExternalOES inputImageTexture;
 uniform sampler2D curve; 
 
 vec3 RGBtoHSL(vec3 c) { 

@@ -1,39 +1,38 @@
- precision highp float;
- varying mediump vec2 textureCoordinate;
- 
- uniform sampler2D inputImageTexture;
- uniform sampler2D inputImageTexture2;
- 
- uniform float inputImageTextureHeight;
- uniform float inputImageTextureWidth;
- 
- float texture2Size = 1024.0;
- 
- uniform float strength;
+#extension GL_OES_EGL_image_external : require
 
- // gray
- float NCGray(vec4 color)
+precision highp float;
+varying mediump vec2 textureCoordinate;
+
+uniform samplerExternalOES inputImageTexture;
+uniform sampler2D inputImageTexture2;
+
+uniform float inputImageTextureHeight;
+uniform float inputImageTextureWidth;
+
+float texture2Size = 1024.0;
+
+uniform float strength;
+
+// gray
+float NCGray(vec4 color)
 {
     float gray = 0.2125 * color.r + 0.7154 * color.g + 0.0721 * color.b;
-    
     return gray;
 }
- 
- // tone mapping
- vec4 NCTonemapping(vec4 color)
+
+// tone mapping
+vec4 NCTonemapping(vec4 color)
 {
-    
     vec4 mapped;
     mapped.r = texture2D(inputImageTexture2, vec2(color.r, 0.0)).r;
     mapped.g = texture2D(inputImageTexture2, vec2(color.g, 0.0)).g;
     mapped.b = texture2D(inputImageTexture2, vec2(color.b, 0.0)).b;
     mapped.a = color.a;
-    
     return mapped;
 }
  
- // color control
- vec4 NCColorControl(vec4 color, float saturation, float brightness, float contrast)
+// color control
+vec4 NCColorControl(vec4 color, float saturation, float brightness, float contrast)
 {
     float gray = NCGray(color);
     
@@ -55,8 +54,8 @@
     return color;
 }
  
- // hue adjust
- vec4 NCHueAdjust(vec4 color, float hueAdjust)
+// hue adjust
+vec4 NCHueAdjust(vec4 color, float hueAdjust)
 {
     vec3 kRGBToYPrime = vec3(0.299, 0.587, 0.114);
     vec3 kRGBToI = vec3(0.595716, -0.274453, -0.321263);
@@ -85,16 +84,16 @@
     return color;
 }
  
- // colorMatrix
- vec4 NCColorMatrix(vec4 color, float red, float green, float blue, float alpha, vec4 bias)
+// colorMatrix
+vec4 NCColorMatrix(vec4 color, float red, float green, float blue, float alpha, vec4 bias)
 {
     color = color * vec4(red, green, blue, alpha) + bias;
     
     return color;
 }
  
- // multiply blend
- vec4 NCMultiplyBlend(vec4 overlay, vec4 base)
+// multiply blend
+vec4 NCMultiplyBlend(vec4 overlay, vec4 base)
 {
     vec4 outputColor;
     
@@ -115,9 +114,9 @@
     return outputColor;
 }
  
- // xy should be a integer position (e.g. pixel position on the screen)
- // similar to a texture lookup but is only ALU
- float PseudoRandom(vec2 co)
+// xy should be a integer position (e.g. pixel position on the screen)
+// similar to a texture lookup but is only ALU
+float PseudoRandom(vec2 co)
 {
     //    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
     mediump float a = 12.9898;
@@ -128,7 +127,7 @@
     return fract(sin(sn) * c);
 }
  
- void main()
+void main()
 {
     vec4 originColor = texture2D(inputImageTexture, textureCoordinate);
     vec4 color = texture2D(inputImageTexture, textureCoordinate);

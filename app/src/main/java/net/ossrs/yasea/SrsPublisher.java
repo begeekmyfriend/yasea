@@ -15,7 +15,6 @@ import java.io.IOException;
  * Created by Leo Ma on 2016/7/25.
  */
 public class SrsPublisher {
-    private static final String TAG = "SrsPublisher";
 
     private AudioRecord mic;
     private boolean aloop = false;

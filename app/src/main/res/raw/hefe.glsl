@@ -1,17 +1,19 @@
- precision mediump float;
- 
- varying mediump vec2 textureCoordinate;
- 
- uniform sampler2D inputImageTexture;
- uniform sampler2D inputImageTexture2;  //edgeBurn
- uniform sampler2D inputImageTexture3;  //hefeMap
- uniform sampler2D inputImageTexture4;  //hefeGradientMap
- uniform sampler2D inputImageTexture5;  //hefeSoftLight
- uniform sampler2D inputImageTexture6;  //hefeMetal
- 
- uniform float strength;
+#extension GL_OES_EGL_image_external : require
 
- void main()
+precision mediump float;
+
+varying mediump vec2 textureCoordinate;
+
+uniform samplerExternalOES inputImageTexture;
+uniform sampler2D inputImageTexture2;  //edgeBurn
+uniform sampler2D inputImageTexture3;  //hefeMap
+uniform sampler2D inputImageTexture4;  //hefeGradientMap
+uniform sampler2D inputImageTexture5;  //hefeSoftLight
+uniform sampler2D inputImageTexture6;  //hefeMetal
+
+uniform float strength;
+
+void main()
 {
     vec4 originColor = texture2D(inputImageTexture, textureCoordinate);
     vec3 texel = texture2D(inputImageTexture, textureCoordinate).rgb;

@@ -1,7 +1,10 @@
-varying highp vec2 textureCoordinate;
+#extension GL_OES_EGL_image_external : require
+
 precision mediump float;
 
-uniform sampler2D inputImageTexture;
+varying highp vec2 textureCoordinate;
+
+uniform samplerExternalOES inputImageTexture;
 uniform vec2 singleStepOffset; 
 uniform float strength;
 

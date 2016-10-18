@@ -1,8 +1,10 @@
+#extension GL_OES_EGL_image_external : require
+
 precision mediump float;
- 
+
 varying mediump vec2 textureCoordinate;
- 
-uniform sampler2D inputImageTexture;
+
+uniform samplerExternalOES inputImageTexture;
 uniform sampler2D inputImageTexture2; //map
 uniform sampler2D inputImageTexture3; //vigMap
 

@@ -5,6 +5,7 @@ import java.nio.FloatBuffer;
 import java.util.List;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterType;
 import com.seu.magicfilter.utils.OpenGlUtils;
 
 import android.opengl.GLES20;
@@ -18,7 +19,7 @@ public class MagicBaseGroupFilter extends GPUImageFilter{
     protected List<GPUImageFilter> filters;
     
     public MagicBaseGroupFilter(List<GPUImageFilter> filters){
-    	this.filters = filters;
+         this.filters = filters;
     }
     
     @Override
@@ -44,10 +45,10 @@ public class MagicBaseGroupFilter extends GPUImageFilter{
             filters.get(i).onInputSizeChanged(width, height);
         }
         if(frameBuffers != null && (frameWidth != width || frameHeight != height || frameBuffers.length != size-1)){
-			destroyFramebuffers();
-			frameWidth = width;
-			frameHeight = height;
-		}
+            destroyFramebuffers();
+            frameWidth = width;
+            frameHeight = height;
+        }
         if (frameBuffers == null) {
             frameBuffers = new int[size-1];
             frameBufferTextures = new int[size-1];
@@ -80,39 +81,39 @@ public class MagicBaseGroupFilter extends GPUImageFilter{
     
     @Override
     public int onDrawFrame(final int textureId, final FloatBuffer cubeBuffer,
-    		final FloatBuffer textureBuffer) {
-    	if (frameBuffers == null || frameBufferTextures == null) {
+                           final FloatBuffer textureBuffer) {
+        if (frameBuffers == null || frameBufferTextures == null) {
             return OpenGlUtils.NOT_INIT;
         }
-    	int size = filters.size();
+        int size = filters.size();
         int previousTexture = textureId;
         for (int i = 0; i < size; i++) {
-        	GPUImageFilter filter = filters.get(i);
+            GPUImageFilter filter = filters.get(i);
             boolean isNotLast = i < size - 1;
             if (isNotLast) {
-            	GLES20.glViewport(0, 0, mIntputWidth, mIntputHeight);
+                    GLES20.glViewport(0, 0, mInputWidth, mInputHeight);
                 GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[i]);
                 GLES20.glClearColor(0, 0, 0, 0);
                 filter.onDrawFrame(previousTexture, mGLCubeBuffer, mGLTextureBuffer);
                 GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
                 previousTexture = frameBufferTextures[i];
             }else{
-            	GLES20.glViewport(0, 0, mOutputWidth, mOutputHeight);
-            	filter.onDrawFrame(previousTexture, cubeBuffer, textureBuffer);
+                 GLES20.glViewport(0, 0, mOutputWidth, mOutputHeight);
+                 filter.onDrawFrame(previousTexture, cubeBuffer, textureBuffer);
             }
         }
-    	return OpenGlUtils.ON_DRAWN;
+         return OpenGlUtils.ON_DRAWN;
     }
     
     @Override
     public int onDrawFrame(final int textureId) {
-    	if (frameBuffers == null || frameBufferTextures == null) {
+         if (frameBuffers == null || frameBufferTextures == null) {
             return OpenGlUtils.NOT_INIT;
         }
-    	int size = filters.size();
+         int size = filters.size();
         int previousTexture = textureId;
         for (int i = 0; i < size; i++) {
-        	GPUImageFilter filter = filters.get(i);
+             GPUImageFilter filter = filters.get(i);
             boolean isNotLast = i < size - 1;
             if (isNotLast) {
                 GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[i]);
@@ -121,10 +122,10 @@ public class MagicBaseGroupFilter extends GPUImageFilter{
                 GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
                 previousTexture = frameBufferTextures[i];
             }else{
-            	filter.onDrawFrame(previousTexture, mGLCubeBuffer, mGLTextureBuffer);
+                 filter.onDrawFrame(previousTexture, mGLCubeBuffer, mGLTextureBuffer);
             }
         }
-    	return OpenGlUtils.ON_DRAWN;
+           return OpenGlUtils.ON_DRAWN;
     }
     
     private void destroyFramebuffers() {
@@ -139,6 +140,6 @@ public class MagicBaseGroupFilter extends GPUImageFilter{
     }
     
     public int getSize(){
-    	return filters.size();
+         return filters.size();
     }
 }

@@ -52,7 +52,7 @@ public class MagicToasterFilter extends GPUImageFilter{
 		for(int i = 0; i < inputTextureUniformLocations.length; i++) {
 			inputTextureUniformLocations[i] = GLES20.glGetUniformLocation(getProgram(), "inputImageTexture" + (2 + i));
 		}
-		mGLStrengthLocation = GLES20.glGetUniformLocation(mGlProgId, "strength");
+		mGLStrengthLocation = GLES20.glGetUniformLocation(getProgram(), "strength");
 	}
 
 	@Override

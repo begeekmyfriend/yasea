@@ -64,8 +64,8 @@ public class MagicNostalgiaFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
-        mToneCurveTextureUniformLocation2 = GLES20.glGetUniformLocation(mGlProgId, "curve2");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(getProgram(), "curve");
+        mToneCurveTextureUniformLocation2 = GLES20.glGetUniformLocation(getProgram(), "curve2");
         mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelWidthOffset");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelHeightOffset");
         mBlurSizeUniformLocation = GLES20.glGetUniformLocation(getProgram(), "blurSize");

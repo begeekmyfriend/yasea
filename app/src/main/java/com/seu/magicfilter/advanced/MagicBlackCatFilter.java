@@ -47,7 +47,7 @@ public class MagicBlackCatFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(getProgram(), "curve");
 	}
 
 	@Override

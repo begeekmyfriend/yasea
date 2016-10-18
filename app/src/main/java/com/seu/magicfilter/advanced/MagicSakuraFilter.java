@@ -48,7 +48,7 @@ public class MagicSakuraFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(getProgram(), "curve");
         mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelWidthOffset");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "texelHeightOffset");
 	}

@@ -73,7 +73,7 @@ public class MagicWarmFilter extends GPUImageFilter{
 	@Override
 	protected void onInit(){
 		super.onInit();
-	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(mGlProgId, "curve");
+	    mToneCurveTextureUniformLocation = GLES20.glGetUniformLocation(getProgram(), "curve");
         mMaskGrey1UniformLocation = GLES20.glGetUniformLocation(getProgram(), "layerImage");
         mMaskGrey2UniformLocation = GLES20.glGetUniformLocation(getProgram(), "greyFrame");
 	}

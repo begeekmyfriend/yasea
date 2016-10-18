@@ -1,7 +1,10 @@
+#extension GL_OES_EGL_image_external : require
+
+precision highp float;
+
 varying highp vec2 textureCoordinate;
-precision highp float; 
-  
-uniform sampler2D inputImageTexture;
+
+uniform samplerExternalOES inputImageTexture;
 uniform sampler2D curve;
 uniform sampler2D greyFrame;
 uniform sampler2D layerImage;

@@ -33,26 +33,36 @@ import java.nio.IntBuffer;
 import java.util.LinkedList;
 
 public class GPUImageFilter {
-
+    public static final String NO_FILTER_VERTEX_SHADER = "" +
+        "attribute vec4 position;\n" +
+        "attribute vec4 inputTextureCoordinate;\n" +
+        " \n" +
+        "varying vec2 textureCoordinate;\n" +
+        " \n" +
+        "void main()\n" +
+        "{\n" +
+        "    gl_Position = position;\n" +
+        "    textureCoordinate = inputTextureCoordinate.xy;\n" +
+        "}";
     private MagicFilterType mType = MagicFilterType.NONE;
     private final LinkedList<Runnable> mRunOnDraw;
     private final String mVertexShader;
     private final String mFragmentShader;
-    protected int mGlProgId;
+    private int mGlProgId;
     private int mGlAttribPosition;
     private int mGlUniformTexture;
     private int mGlAttribTextureCoordinate;
     private int mGlTextureTransformMatrixLocation;
 
-    protected int mIntputWidth;
-    protected int mIntputHeight;
+    protected int mInputWidth;
+    protected int mInputHeight;
     protected int mOutputWidth;
     protected int mOutputHeight;
     protected FloatBuffer mGLCubeBuffer;
     protected FloatBuffer mGLTextureBuffer;
     private IntBuffer mGlFboBuffer;
     private boolean mIsInitialized;
-    private float[] mTextureTransformMatrix;
+    private float[] mGlTextureTransformMatrix;
     private int[] mFrameBuffers;
     private int[] mFrameBufferTextures;
 
@@ -114,8 +124,8 @@ public class GPUImageFilter {
     }
 
     public void onInputSizeChanged(final int width, final int height) {
-        mIntputWidth = width;
-        mIntputHeight = height;
+        mInputWidth = width;
+        mInputHeight = height;
         initFboTexture(width, height);
     }
 
@@ -125,7 +135,7 @@ public class GPUImageFilter {
     }
 
     private void initFboTexture(int width, int height) {
-        if (mFrameBuffers != null && (mIntputWidth != width || mIntputHeight != height)) {
+        if (mFrameBuffers != null && (mInputWidth != width || mInputHeight != height)) {
             destroyFboTexture();
         }
 
@@ -199,6 +209,7 @@ public class GPUImageFilter {
         GLES20.glEnableVertexAttribArray(mGlAttribPosition);
         GLES20.glVertexAttribPointer(mGlAttribTextureCoordinate, 2, GLES20.GL_FLOAT, false, 0, mGLTextureBuffer);
         GLES20.glEnableVertexAttribArray(mGlAttribTextureCoordinate);
+        GLES20.glUniformMatrix4fv(mGlTextureTransformMatrixLocation, 1, false, mGlTextureTransformMatrix, 0);
 
         if (textureId != OpenGlUtils.NO_TEXTURE) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -211,8 +222,8 @@ public class GPUImageFilter {
         GLES20.glDisableVertexAttribArray(mGlAttribPosition);
         GLES20.glDisableVertexAttribArray(mGlAttribTextureCoordinate);
         onDrawArraysAfter();
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
 
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
         return OpenGlUtils.ON_DRAWN;
     }
 
@@ -228,7 +239,7 @@ public class GPUImageFilter {
         GLES20.glEnableVertexAttribArray(mGlAttribPosition);
         GLES20.glVertexAttribPointer(mGlAttribTextureCoordinate, 2, GLES20.GL_FLOAT, false, 0, mGLTextureBuffer);
         GLES20.glEnableVertexAttribArray(mGlAttribTextureCoordinate);
-        GLES20.glUniformMatrix4fv(mGlTextureTransformMatrixLocation, 1, false, mTextureTransformMatrix, 0);
+        GLES20.glUniformMatrix4fv(mGlTextureTransformMatrixLocation, 1, false, mGlTextureTransformMatrix, 0);
 
         if (textureId != OpenGlUtils.NO_TEXTURE) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -236,9 +247,12 @@ public class GPUImageFilter {
             GLES20.glUniform1i(mGlUniformTexture, 0);
         }
 
+        onDrawArraysPre();
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         GLES20.glDisableVertexAttribArray(mGlAttribPosition);
         GLES20.glDisableVertexAttribArray(mGlAttribTextureCoordinate);
+        onDrawArraysAfter();
+
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
         return OpenGlUtils.ON_DRAWN;
     }
@@ -252,7 +266,7 @@ public class GPUImageFilter {
         }
 
         runPendingOnDrawTasks();
-        GLES20.glViewport(0, 0, mIntputWidth, mIntputHeight);
+        GLES20.glViewport(0, 0, mInputWidth, mInputHeight);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFrameBuffers[0]);
         GLES20.glUseProgram(mGlProgId);
 
@@ -260,7 +274,7 @@ public class GPUImageFilter {
         GLES20.glEnableVertexAttribArray(mGlAttribPosition);
         GLES20.glVertexAttribPointer(mGlAttribTextureCoordinate, 2, GLES20.GL_FLOAT, false, 0, mGLTextureBuffer);
         GLES20.glEnableVertexAttribArray(mGlAttribTextureCoordinate);
-        GLES20.glUniformMatrix4fv(mGlTextureTransformMatrixLocation, 1, false, mTextureTransformMatrix, 0);
+        GLES20.glUniformMatrix4fv(mGlTextureTransformMatrixLocation, 1, false, mGlTextureTransformMatrix, 0);
 
         if (textureId != OpenGlUtils.NO_TEXTURE) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -268,11 +282,13 @@ public class GPUImageFilter {
             GLES20.glUniform1i(mGlUniformTexture, 0);
         }
 
+        onDrawArraysPre();
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-        GLES20.glReadPixels(0, 0, mIntputWidth, mIntputHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mGlFboBuffer);
-
+        GLES20.glReadPixels(0, 0, mInputWidth, mInputHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mGlFboBuffer);
         GLES20.glDisableVertexAttribArray(mGlAttribPosition);
         GLES20.glDisableVertexAttribArray(mGlAttribTextureCoordinate);
+        onDrawArraysAfter();
+
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
         GLES20.glViewport(0, 0, mOutputWidth, mOutputHeight);
@@ -288,7 +304,7 @@ public class GPUImageFilter {
         }
 
         runPendingOnDrawTasks();
-        GLES20.glViewport(0, 0, mIntputWidth, mIntputHeight);
+        GLES20.glViewport(0, 0, mInputWidth, mInputHeight);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFrameBuffers[0]);
         GLES20.glUseProgram(mGlProgId);
 
@@ -296,7 +312,7 @@ public class GPUImageFilter {
         GLES20.glEnableVertexAttribArray(mGlAttribPosition);
         GLES20.glVertexAttribPointer(mGlAttribTextureCoordinate, 2, GLES20.GL_FLOAT, false, 0, mGLTextureBuffer);
         GLES20.glEnableVertexAttribArray(mGlAttribTextureCoordinate);
-        GLES20.glUniformMatrix4fv(mGlTextureTransformMatrixLocation, 1, false, mTextureTransformMatrix, 0);
+        GLES20.glUniformMatrix4fv(mGlTextureTransformMatrixLocation, 1, false, mGlTextureTransformMatrix, 0);
 
         if (textureId != OpenGlUtils.NO_TEXTURE) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -304,11 +320,13 @@ public class GPUImageFilter {
             GLES20.glUniform1i(mGlUniformTexture, 0);
         }
 
+        onDrawArraysPre();
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-        GLES20.glReadPixels(0, 0, mIntputWidth, mIntputHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mGlFboBuffer);
-
+        GLES20.glReadPixels(0, 0, mInputWidth, mInputHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mGlFboBuffer);
         GLES20.glDisableVertexAttribArray(mGlAttribPosition);
         GLES20.glDisableVertexAttribArray(mGlAttribTextureCoordinate);
+        onDrawArraysAfter();
+
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
         GLES20.glViewport(0, 0, mOutputWidth, mOutputHeight);
@@ -329,11 +347,11 @@ public class GPUImageFilter {
     }
 
     public int getIntputWidth() {
-        return mIntputWidth;
+        return mInputWidth;
     }
 
     public int getIntputHeight() {
-        return mIntputHeight;
+        return mInputHeight;
     }
 
     public int getProgram() {
@@ -357,7 +375,7 @@ public class GPUImageFilter {
     }
 
     public void setTextureTransformMatrix(float[] mtx){
-        mTextureTransformMatrix = mtx;
+        mGlTextureTransformMatrix = mtx;
     }
 
     protected void setInteger(final int location, final int intValue) {

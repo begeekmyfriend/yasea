@@ -54,8 +54,7 @@ public class MagicFreudFilter extends GPUImageFilter {
 		mTexelWidthUniformLocation = GLES20.glGetUniformLocation(getProgram(), "inputImageTextureWidth");
         mTexelHeightUniformLocation = GLES20.glGetUniformLocation(getProgram(), "inputImageTextureHeight");
 
-		mGLStrengthLocation = GLES20.glGetUniformLocation(mGlProgId,
-				"strength");
+		mGLStrengthLocation = GLES20.glGetUniformLocation(getProgram(), "strength");
 	}
 
 	@Override

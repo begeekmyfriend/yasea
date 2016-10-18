@@ -1,6 +1,8 @@
-precision mediump float; 
+#extension GL_OES_EGL_image_external : require
 
-uniform lowp sampler2D inputImageTexture; 
+precision mediump float;
+
+uniform lowp samplerExternalOES inputImageTexture;
 uniform lowp sampler2D curve;
 uniform lowp sampler2D samplerMask;
 uniform lowp int lowPerformance;

@@ -1,8 +1,10 @@
+#extension GL_OES_EGL_image_external : require
+
 precision mediump float;
 
 varying mediump vec2 textureCoordinate;
 
-uniform sampler2D inputImageTexture;
+uniform samplerExternalOES inputImageTexture;
 uniform sampler2D inputImageTexture2; //toaster_metal
 uniform sampler2D inputImageTexture3; //toaster_soft_light
 uniform sampler2D inputImageTexture4; //toaster_curves

@@ -35,14 +35,6 @@ public class SrsPublisher {
         mCameraView = view;
         mCameraView.setPreviewCallback(new SrsCameraView.PreviewCallback() {
             @Override
-            public void onGetYuvFrame(byte[] data) {
-                calcSamplingFps();
-                if (!sendAudioOnly) {
-                    mEncoder.onGetYuvFrame(data);
-                }
-            }
-
-            @Override
             public void onGetRgbaFrame(byte[] data, int width, int height) {
                 calcSamplingFps();
                 if (!sendAudioOnly) {

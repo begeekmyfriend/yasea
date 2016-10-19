@@ -288,8 +288,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     public interface PreviewCallback {
 
-        void onGetYuvFrame(byte[] data);
-
         void onGetRgbaFrame(byte[] data, int width, int height);
 
     }

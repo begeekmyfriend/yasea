@@ -199,10 +199,10 @@ public class GPUImageFilter {
         runPendingOnDrawTasks();
 
         GLES20.glEnableVertexAttribArray(mGLPositionIndex);
-        GLES20.glVertexAttribPointer(mGLPositionIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, cubeBuffer);
+        GLES20.glVertexAttribPointer(mGLPositionIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, cubeBuffer);
 
         GLES20.glEnableVertexAttribArray(mGLTextureCoordinateIndex);
-        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, textureBuffer);
+        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, textureBuffer);
 
         if (textureId != OpenGlUtils.NO_TEXTURE) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -232,11 +232,11 @@ public class GPUImageFilter {
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLCubeId[0]);
         GLES20.glEnableVertexAttribArray(mGLPositionIndex);
-        GLES20.glVertexAttribPointer(mGLPositionIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLPositionIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLTextureId[0]);
         GLES20.glEnableVertexAttribArray(mGLTextureCoordinateIndex);
-        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glUniformMatrix4fv(mGLTextureTransformIndex, 1, false, mGLTextureTransformMatrix, 0);
 
@@ -270,11 +270,11 @@ public class GPUImageFilter {
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLCubeId[0]);
         GLES20.glEnableVertexAttribArray(mGLPositionIndex);
-        GLES20.glVertexAttribPointer(mGLPositionIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLPositionIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLTextureId[0]);
         GLES20.glEnableVertexAttribArray(mGLTextureCoordinateIndex);
-        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glUniformMatrix4fv(mGLTextureTransformIndex, 1, false, mGLTextureTransformMatrix, 0);
 
@@ -311,11 +311,11 @@ public class GPUImageFilter {
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLCubeId[0]);
         GLES20.glEnableVertexAttribArray(mGLPositionIndex);
-        GLES20.glVertexAttribPointer(mGLPositionIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLPositionIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLTextureId[0]);
         GLES20.glEnableVertexAttribArray(mGLTextureCoordinateIndex);
-        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glUniformMatrix4fv(mGLTextureTransformIndex, 1, false, mGLTextureTransformMatrix, 0);
 
@@ -359,11 +359,11 @@ public class GPUImageFilter {
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLCubeId[0]);
         GLES20.glEnableVertexAttribArray(mGLPositionIndex);
-        GLES20.glVertexAttribPointer(mGLPositionIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLPositionIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLTextureId[0]);
         GLES20.glEnableVertexAttribArray(mGLTextureCoordinateIndex);
-        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 4, GLES20.GL_FLOAT, false, 4 * 4, 0);
+        GLES20.glVertexAttribPointer(mGLTextureCoordinateIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
 
         GLES20.glUniformMatrix4fv(mGLTextureTransformIndex, 1, false, mGLTextureTransformMatrix, 0);
 

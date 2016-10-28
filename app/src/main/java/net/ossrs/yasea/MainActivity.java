@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
         btnSwitchFilter = (Button) findViewById(R.id.swFilter);
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
-        mPublisher.setPreviewResolution(1280, 720);
+        mPublisher.setPreviewResolution(640, 480);
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -73,8 +73,8 @@ public class MainActivity extends Activity {
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
 
-                    mPublisher.setOutputResolution(384, 640);
-                    mPublisher.setVideoSmoothMode();
+                    mPublisher.setOutputResolution(720, 1280);
+                    mPublisher.setVideoHDMode();
                     mPublisher.startPublish(rtmpUrl);
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft encoding")) {

@@ -105,8 +105,7 @@ public class MagicBaseGroupFilter extends GPUImageFilter {
         return OpenGlUtils.ON_DRAWN;
     }
 
-    @Override
-    public int onDrawFrame(int textureId, boolean needFbo) {
+    public int onDrawFrame(int textureId) {
         if (frameBuffers == null || frameBufferTextures == null) {
             return OpenGlUtils.NOT_INIT;
         }

@@ -109,7 +109,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         surfaceTexture.getTransformMatrix(mtx);
         magicFilter.setTextureTransformMatrix(mtx);
 
-        magicFilter.onDrawFrameOES(mTextureId, true);
+        magicFilter.onDrawFrame();
         mGLIntBufferCache.add(magicFilter.getGlFboBuffer());
         synchronized (writeLock) {
             writeLock.notifyAll();

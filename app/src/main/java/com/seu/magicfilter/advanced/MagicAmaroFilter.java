@@ -7,7 +7,7 @@ import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
-import com.seu.magicfilter.utils.OpenGlUtils;
+import com.seu.magicfilter.utils.OpenGLUtils;
 
 public class MagicAmaroFilter extends GPUImageFilter{
 	private int[] inputTextureHandles = {-1,-1,-1};
@@ -15,7 +15,7 @@ public class MagicAmaroFilter extends GPUImageFilter{
 	private int mGLStrengthLocation;
 
 	public MagicAmaroFilter(){
-		super(MagicFilterType.AMARO, OpenGlUtils.readShaderFromRawResource(R.raw.amaro));
+		super(MagicFilterType.AMARO, R.raw.amaro);
 	}
 
 	@Override
@@ -28,7 +28,7 @@ public class MagicAmaroFilter extends GPUImageFilter{
 
 	@Override
 	protected void onDrawArraysAfter(){
-		for(int i = 0; i < inputTextureHandles.length && inputTextureHandles[i] != OpenGlUtils.NO_TEXTURE; i++){
+		for(int i = 0; i < inputTextureHandles.length && inputTextureHandles[i] != OpenGLUtils.NO_TEXTURE; i++){
 			GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + (i+3));
 			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
 			GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -37,7 +37,7 @@ public class MagicAmaroFilter extends GPUImageFilter{
 
 	@Override
 	protected void onDrawArraysPre(){
-		for(int i = 0; i < inputTextureHandles.length && inputTextureHandles[i] != OpenGlUtils.NO_TEXTURE; i++){
+		for(int i = 0; i < inputTextureHandles.length && inputTextureHandles[i] != OpenGLUtils.NO_TEXTURE; i++){
 			GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + (i+3));
 			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputTextureHandles[i]);
 			GLES20.glUniform1i(inputTextureUniformLocations[i], (i+3));
@@ -59,9 +59,9 @@ public class MagicAmaroFilter extends GPUImageFilter{
 		setFloat(mGLStrengthLocation, 1.0f);
 	    runOnDraw(new Runnable(){
 		    public void run(){
-				inputTextureHandles[0] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brannan_blowout.png");
-				inputTextureHandles[1] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/overlaymap.png");
-				inputTextureHandles[2] = OpenGlUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/amaromap.png");
+				inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brannan_blowout.png");
+				inputTextureHandles[1] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/overlaymap.png");
+				inputTextureHandles[2] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/amaromap.png");
 		    }
 	    });
 	}

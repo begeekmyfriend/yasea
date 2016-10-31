@@ -8,14 +8,13 @@ import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
-import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicEmeraldFilter extends GPUImageFilter{
 	private int[] mToneCurveTexture = {-1};
 	private int mToneCurveTextureUniformLocation;
 	  
 	public MagicEmeraldFilter(){
-		super(MagicFilterType.EMERALD, OpenGlUtils.readShaderFromRawResource(R.raw.emerald));
+		super(MagicFilterType.EMERALD, R.raw.emerald);
 	}
 
 	@Override

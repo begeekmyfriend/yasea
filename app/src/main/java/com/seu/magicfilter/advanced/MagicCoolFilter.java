@@ -8,14 +8,13 @@ import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
-import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicCoolFilter extends GPUImageFilter {
     private int[] mToneCurveTexture = {-1};
     private int mToneCurveTextureUniformLocation;
 
     public MagicCoolFilter(){
-        super(MagicFilterType.COOL, OpenGlUtils.readShaderFromRawResource(R.raw.cool));
+        super(MagicFilterType.COOL, R.raw.cool);
     }
 
     @Override

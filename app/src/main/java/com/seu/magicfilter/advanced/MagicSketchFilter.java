@@ -6,20 +6,19 @@ import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
-import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicSketchFilter extends GPUImageFilter{
-	
-	private int mSingleStepOffsetLocation;
-	//0.0 - 1.0
-	private int mStrengthLocation;
-	
-	public MagicSketchFilter(){
-		super(MagicFilterType.SKETCH, OpenGlUtils.readShaderFromRawResource(R.raw.sketch));
-	}
+    
+    private int mSingleStepOffsetLocation;
+    //0.0 - 1.0
+    private int mStrengthLocation;
+    
+    public MagicSketchFilter(){
+        super(MagicFilterType.SKETCH, R.raw.sketch);
+    }
 
     @Override
-	protected void onInit() {
+    protected void onInit() {
         super.onInit();
         mSingleStepOffsetLocation = GLES20.glGetUniformLocation(getProgram(), "singleStepOffset");
         mStrengthLocation = GLES20.glGetUniformLocation(getProgram(), "strength");
@@ -36,7 +35,7 @@ public class MagicSketchFilter extends GPUImageFilter{
         setFloat(mStrengthLocation, 0.5f);
     }
 
-	@Override
+    @Override
     public void onInputSizeChanged(final int width, final int height) {
         super.onInputSizeChanged(width, height);
         setFloatVec2(mSingleStepOffsetLocation, new float[] {1.0f / width, 1.0f / height});

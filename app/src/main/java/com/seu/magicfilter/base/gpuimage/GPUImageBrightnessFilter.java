@@ -20,22 +20,12 @@ import android.opengl.GLES20;
 
 import com.seu.magicfilter.utils.MagicFilterType;
 
+import net.ossrs.yasea.R;
+
 /**
  * brightness value ranges from -1.0 to 1.0, with 0.0 as the normal level
  */
 public class GPUImageBrightnessFilter extends GPUImageFilter {
-    public static final String BRIGHTNESS_FRAGMENT_SHADER = "" +
-            "varying highp vec2 textureCoordinate;\n" +
-            " \n" +
-            " uniform sampler2D inputImageTexture;\n" +
-            " uniform lowp float brightness;\n" +
-            " \n" +
-            " void main()\n" +
-            " {\n" +
-            "     lowp vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);\n" +
-            "     \n" +
-            "     gl_FragColor = vec4((textureColor.rgb + vec3(brightness)), textureColor.w);\n" +
-            " }";
 
     private int mBrightnessLocation;
     private float mBrightness;
@@ -45,7 +35,7 @@ public class GPUImageBrightnessFilter extends GPUImageFilter {
     }
 
     public GPUImageBrightnessFilter(final float brightness) {
-        super(MagicFilterType.BRIGHTNESS, BRIGHTNESS_FRAGMENT_SHADER);
+        super(MagicFilterType.BRIGHTNESS, R.raw.brightness);
         mBrightness = brightness;
     }
 

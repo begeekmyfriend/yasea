@@ -20,6 +20,8 @@ import android.opengl.GLES20;
 
 import com.seu.magicfilter.utils.MagicFilterType;
 
+import net.ossrs.yasea.R;
+
 /**
  * exposure: The adjusted exposure (-10.0 - 10.0, with 0.0 as the default)
  */
@@ -45,7 +47,7 @@ public class GPUImageExposureFilter extends GPUImageFilter {
     }
 
     public GPUImageExposureFilter(final float exposure) {
-        super(MagicFilterType.EXPOSURE, EXPOSURE_FRAGMENT_SHADER);
+        super(MagicFilterType.EXPOSURE, R.raw.exposure);
         mExposure = exposure;
     }
 

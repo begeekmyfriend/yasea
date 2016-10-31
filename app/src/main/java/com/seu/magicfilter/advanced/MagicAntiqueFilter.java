@@ -8,14 +8,13 @@ import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
-import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicAntiqueFilter extends GPUImageFilter{
 	private int[] mToneCurveTexture = {-1};
 	private int mToneCurveTextureUniformLocation;
 	  
 	public MagicAntiqueFilter(){
-		super(MagicFilterType.ANTIQUE, OpenGlUtils.readShaderFromRawResource(R.raw.antique));
+		super(MagicFilterType.ANTIQUE, R.raw.antique);
 	}
 
 	@Override

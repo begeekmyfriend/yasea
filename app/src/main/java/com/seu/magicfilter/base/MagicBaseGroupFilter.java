@@ -5,8 +5,7 @@ import java.nio.FloatBuffer;
 import java.util.List;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
-import com.seu.magicfilter.utils.MagicFilterType;
-import com.seu.magicfilter.utils.OpenGlUtils;
+import com.seu.magicfilter.utils.OpenGLUtils;
 
 import android.opengl.GLES20;
 
@@ -83,7 +82,7 @@ public class MagicBaseGroupFilter extends GPUImageFilter {
     public int onDrawFrame(final int textureId, final FloatBuffer cubeBuffer,
                            final FloatBuffer textureBuffer) {
         if (frameBuffers == null || frameBufferTextures == null) {
-            return OpenGlUtils.NOT_INIT;
+            return OpenGLUtils.NOT_INIT;
         }
         int size = filters.size();
         int previousTexture = textureId;
@@ -102,12 +101,12 @@ public class MagicBaseGroupFilter extends GPUImageFilter {
                 filter.onDrawFrame(previousTexture, cubeBuffer, textureBuffer);
             }
         }
-        return OpenGlUtils.ON_DRAWN;
+        return OpenGLUtils.ON_DRAWN;
     }
 
     public int onDrawFrame(int textureId) {
         if (frameBuffers == null || frameBufferTextures == null) {
-            return OpenGlUtils.NOT_INIT;
+            return OpenGLUtils.NOT_INIT;
         }
         int size = filters.size();
         int previousTexture = textureId;
@@ -124,7 +123,7 @@ public class MagicBaseGroupFilter extends GPUImageFilter {
                 filter.onDrawFrame(previousTexture, mGLCubeBuffer, mGLTextureBuffer);
             }
         }
-        return OpenGlUtils.ON_DRAWN;
+        return OpenGLUtils.ON_DRAWN;
     }
 
     private void destroyFramebuffers() {

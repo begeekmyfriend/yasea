@@ -6,20 +6,19 @@ import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
-import com.seu.magicfilter.utils.OpenGlUtils;
 
 public class MagicCrayonFilter extends GPUImageFilter{
-	
-	private int mSingleStepOffsetLocation;
-	//1.0 - 5.0
-	private int mStrengthLocation;
-	
-	public MagicCrayonFilter(){
-		super(MagicFilterType.CRAYON, OpenGlUtils.readShaderFromRawResource(R.raw.crayon));
-	}
+    
+    private int mSingleStepOffsetLocation;
+    //1.0 - 5.0
+    private int mStrengthLocation;
+    
+    public MagicCrayonFilter(){
+        super(MagicFilterType.CRAYON, R.raw.crayon);
+    }
 
     @Override
-	protected void onInit() {
+    protected void onInit() {
         super.onInit();
         mSingleStepOffsetLocation = GLES20.glGetUniformLocation(getProgram(), "singleStepOffset");
         mStrengthLocation = GLES20.glGetUniformLocation(getProgram(), "strength");

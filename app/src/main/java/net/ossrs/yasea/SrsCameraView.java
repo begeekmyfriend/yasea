@@ -12,7 +12,7 @@ import android.widget.Toast;
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.MagicFilterType;
-import com.seu.magicfilter.utils.OpenGlUtils;
+import com.seu.magicfilter.utils.OpenGLUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -32,7 +32,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     private SurfaceTexture surfaceTexture;
     
-    private int mTextureId = OpenGlUtils.NO_TEXTURE;
+    private int mOESTextureId = OpenGLUtils.NO_TEXTURE;
     private int mSurfaceWidth;
     private int mSurfaceHeight;
     private int mPreviewWidth;
@@ -71,8 +71,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         magicFilter.init();
         magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
 
-        mTextureId = OpenGlUtils.getExternalOESTextureID();
-        surfaceTexture = new SurfaceTexture(mTextureId);
+        mOESTextureId = OpenGLUtils.getExternalOESTextureID();
+        surfaceTexture = new SurfaceTexture(mOESTextureId);
         surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
             @Override
             public void onFrameAvailable(SurfaceTexture surfaceTexture) {
@@ -95,7 +95,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         GLES20.glViewport(0,0,width, height);
         mSurfaceWidth = width;
         mSurfaceHeight = height;
-        magicFilter.onDisplaySizeChanged(mSurfaceWidth, mSurfaceHeight);
+        magicFilter.onDisplaySizeChanged(width, height);
     }
 
     @Override
@@ -108,9 +108,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         float[] mtx = new float[16];
         surfaceTexture.getTransformMatrix(mtx);
         magicFilter.setTextureTransformMatrix(mtx);
-
-        magicFilter.onDrawFrame();
-        mGLIntBufferCache.add(magicFilter.getGlFboBuffer());
+        magicFilter.onDrawFrame(mOESTextureId);
+        mGLIntBufferCache.add(magicFilter.getGLFboBuffer());
         synchronized (writeLock) {
             writeLock.notifyAll();
         }
@@ -150,12 +149,12 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     private void deleteTextures() {
-        if(mTextureId != OpenGlUtils.NO_TEXTURE){
+        if(mOESTextureId != OpenGLUtils.NO_TEXTURE){
             queueEvent(new Runnable() {
                 @Override
                 public void run() {
-                    GLES20.glDeleteTextures(1, new int[]{ mTextureId }, 0);
-                    mTextureId = OpenGlUtils.NO_TEXTURE;
+                    GLES20.glDeleteTextures(1, new int[]{ mOESTextureId }, 0);
+                    mOESTextureId = OpenGLUtils.NO_TEXTURE;
                 }
             });
         }
@@ -219,9 +218,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         }
 
         /***** set parameters *****/
-        //params.set("orientation", "portrait");
-        //params.set("orientation", "landscape");
-        //params.setRotation(90);
         params.setPictureSize(mPreviewWidth, mPreviewHeight);
         params.setPreviewSize(mPreviewWidth, mPreviewHeight);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
@@ -261,8 +257,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         }
 
         if (mCamera != null) {
-            // need to SET NULL CB before stop preview!!!
-            mCamera.setPreviewCallback(null);
             mCamera.stopPreview();
             mCamera.release();
             mCamera = null;

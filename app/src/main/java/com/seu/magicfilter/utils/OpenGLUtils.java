@@ -227,4 +227,15 @@ public class OpenGLUtils {
         }
         return body.toString();
     }
+
+    /**
+     * Checks to see if a GLES error has been raised.
+     */
+    public static void checkGlError(String op) {
+        int error = GLES20.glGetError();
+        if (error != GLES20.GL_NO_ERROR) {
+            String msg = op + ": glError 0x" + Integer.toHexString(error);
+            Log.e("OpenGlUtils", msg);
+        }
+    }
 }

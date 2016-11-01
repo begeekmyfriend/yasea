@@ -28,8 +28,7 @@ Remember to modify the URL by yourself. Have fun!
 Other Branch
 ------------
 
-If you want to stay in portrait mode ignoring dynamic orientation change when
-streaming, clone yasea on brach [portrait-forever](https://github.com/begeekmyfriend/yasea/tree/portrait-forever).
+[gpuimage](https://github.com/begeekmyfriend/yasea/tree/gpuimage).
 
 Thanks
 ------

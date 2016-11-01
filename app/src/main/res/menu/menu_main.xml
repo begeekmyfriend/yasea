@@ -3,4 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools" tools:context="net.ossrs.yasea.MainActivity">
     <item android:id="@+id/action_settings" android:title="action_settings"
         android:orderInCategory="100" app:showAsAction="never" />
+
+    <item android:id="@+id/original_filter" android:title="Original" app:showAsAction="never"/>
+    <item android:id="@+id/beauty_filter" android:title="Beauty" app:showAsAction="never"/>
+    <item android:id="@+id/cool_filter" android:title="Cool" app:showAsAction="never"/>
+    <item android:id="@+id/early_bird_filter" android:title="Early Bird" app:showAsAction="never"/>
+    <item android:id="@+id/evergreen_filter" android:title="Evergreen" app:showAsAction="never"/>
+    <item android:id="@+id/n1977_filter" android:title="N1977" app:showAsAction="never"/>
+    <item android:id="@+id/nostalgia_filter" android:title="Nostalgia" app:showAsAction="never"/>
+    <item android:id="@+id/romance_filter" android:title="Romance" app:showAsAction="never"/>
+    <item android:id="@+id/sunrise_filter" android:title="Sunrise" app:showAsAction="never"/>
+    <item android:id="@+id/sunset_filter" android:title="Sunset" app:showAsAction="never"/>
+    <item android:id="@+id/warm_filter" android:title="Warm" app:showAsAction="never"/>
+    <item android:id="@+id/tender_filter" android:title="Tender" app:showAsAction="never"/>
+    <item android:id="@+id/toast_filter" android:title="Toast" app:showAsAction="never"/>
+    <item android:id="@+id/valencia_filter" android:title="Valencia" app:showAsAction="never"/>
+    <item android:id="@+id/walden_filter" android:title="Walden" app:showAsAction="never"/>
+
 </menu>

@@ -1,12 +1,12 @@
 package net.ossrs.yasea;
 
-import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,14 +22,13 @@ import com.seu.magicfilter.utils.MagicFilterType;
 
 import java.util.Random;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Yasea";
 
     Button btnPublish = null;
     Button btnSwitchCamera = null;
     Button btnRecord = null;
     Button btnSwitchEncoder = null;
-    Button btnSwitchFilter = null;
 
     private SharedPreferences sp;
     private String rtmpUrl = "rtmp://0.0.0.0/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
@@ -59,7 +58,6 @@ public class MainActivity extends Activity {
         btnSwitchCamera = (Button) findViewById(R.id.swCam);
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
-        btnSwitchFilter = (Button) findViewById(R.id.swFilter);
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
         mPublisher.setPreviewResolution(640, 480);
 
@@ -68,7 +66,6 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 if (btnPublish.getText().toString().contentEquals("publish")) {
                     rtmpUrl = efu.getText().toString();
-                    Log.i(TAG, String.format("RTMP URL changed to %s", rtmpUrl));
                     SharedPreferences.Editor editor = sp.edit();
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
@@ -128,21 +125,6 @@ public class MainActivity extends Activity {
                 } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoding")) {
                     mPublisher.swithToHardEncoder();
                     btnSwitchEncoder.setText("soft encoding");
-                }
-            }
-        });
-
-        btnSwitchFilter.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (btnSwitchFilter.getText().toString().contentEquals("beauty")) {
-                    if (mPublisher.switchCameraFilter(MagicFilterType.BEAUTY)) {
-                        btnSwitchFilter.setText("none");
-                    }
-                } else if (btnSwitchFilter.getText().toString().contentEquals("none")) {
-                    if (mPublisher.switchCameraFilter(MagicFilterType.NONE)) {
-                        btnSwitchFilter.setText("beauty");
-                    }
                 }
             }
         });
@@ -322,7 +304,57 @@ public class MainActivity extends Activity {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        } else {
+            switch (id) {
+                case R.id.cool_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.COOL);
+                    break;
+                case R.id.beauty_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.BEAUTY);
+                    break;
+                case R.id.early_bird_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.EARLYBIRD);
+                    break;
+                case R.id.evergreen_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.EVERGREEN);
+                    break;
+                case R.id.n1977_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.N1977);
+                    break;
+                case R.id.nostalgia_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.NOSTALGIA);
+                    break;
+                case R.id.romance_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.ROMANCE);
+                    break;
+                case R.id.sunrise_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.SUNRISE);
+                    break;
+                case R.id.sunset_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.SUNSET);
+                    break;
+                case R.id.tender_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.TENDER);
+                    break;
+                case R.id.toast_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.TOASTER2);
+                    break;
+                case R.id.valencia_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.VALENCIA);
+                    break;
+                case R.id.walden_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.WALDEN);
+                    break;
+                case R.id.warm_filter:
+                    mPublisher.switchCameraFilter(MagicFilterType.WARM);
+                    break;
+                case R.id.original_filter:
+                default:
+                    mPublisher.switchCameraFilter(MagicFilterType.NONE);
+                    break;
+            }
         }
+        setTitle(item.getTitle());
 
         return super.onOptionsItemSelected(item);
     }

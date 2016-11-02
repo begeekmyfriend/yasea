@@ -6,6 +6,7 @@ import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
 import android.util.AttributeSet;
 import android.widget.Toast;
 
@@ -37,6 +38,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private int mSurfaceHeight;
     private int mPreviewWidth;
     private int mPreviewHeight;
+    private float[] mProjectionMatrix = new float[16];
+    private float[] mSurfaceMatrix = new float[16];
+    private float[] mTransformMatrix = new float[16];
 
     private Camera mCamera;
     private ByteBuffer mGlPreviewBuffer;
@@ -92,7 +96,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        GLES20.glViewport(0,0,width, height);
+        GLES20.glViewport(0, 0, width, height);
         mSurfaceWidth = width;
         mSurfaceHeight = height;
         magicFilter.onDisplaySizeChanged(width, height);
@@ -105,9 +109,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
         surfaceTexture.updateTexImage();
 
-        float[] mtx = new float[16];
-        surfaceTexture.getTransformMatrix(mtx);
-        magicFilter.setTextureTransformMatrix(mtx);
+        surfaceTexture.getTransformMatrix(mSurfaceMatrix);
+        Matrix.multiplyMM(mTransformMatrix, 0, mSurfaceMatrix, 0, mProjectionMatrix, 0);
+        magicFilter.setTextureTransformMatrix(mTransformMatrix);
         magicFilter.onDrawFrame(mOESTextureId);
         mGLIntBufferCache.add(magicFilter.getGLFboBuffer());
         synchronized (writeLock) {
@@ -123,6 +127,13 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         mPreviewWidth = width;
         mPreviewHeight = height;
         mGlPreviewBuffer = ByteBuffer.allocate(mPreviewWidth * mPreviewHeight * 4);
+
+        float aspectRatio = width > height ? (float) width / (float) height : (float) height / (float) width;
+        if (width > height) {
+            Matrix.orthoM(mProjectionMatrix, 0, -aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
+        } else {
+            Matrix.orthoM(mProjectionMatrix, 0, -1.0f, 1.0f, -aspectRatio, aspectRatio, -1.0f, 1.0f);
+        }
     }
 
     public boolean setFilter(final MagicFilterType type) {

@@ -38,6 +38,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private int mSurfaceHeight;
     private int mPreviewWidth;
     private int mPreviewHeight;
+    private float mInputAspectRatio;
+    private float mOutputAspectRatio;
     private float[] mProjectionMatrix = new float[16];
     private float[] mSurfaceMatrix = new float[16];
     private float[] mTransformMatrix = new float[16];
@@ -100,6 +102,14 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         mSurfaceWidth = width;
         mSurfaceHeight = height;
         magicFilter.onDisplaySizeChanged(width, height);
+
+        mOutputAspectRatio = width > height ? (float) width / height : (float) height / width;
+        float aspectRatio = mOutputAspectRatio / mInputAspectRatio;
+        if (width > height) {
+            Matrix.orthoM(mProjectionMatrix, 0, -1.0f, 1.0f, -aspectRatio, aspectRatio, -1.0f, 1.0f);
+        } else {
+            Matrix.orthoM(mProjectionMatrix, 0, -aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
+        }
     }
 
     @Override
@@ -112,6 +122,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         surfaceTexture.getTransformMatrix(mSurfaceMatrix);
         Matrix.multiplyMM(mTransformMatrix, 0, mSurfaceMatrix, 0, mProjectionMatrix, 0);
         magicFilter.setTextureTransformMatrix(mTransformMatrix);
+
         magicFilter.onDrawFrame(mOESTextureId);
         mGLIntBufferCache.add(magicFilter.getGLFboBuffer());
         synchronized (writeLock) {
@@ -127,13 +138,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         mPreviewWidth = width;
         mPreviewHeight = height;
         mGlPreviewBuffer = ByteBuffer.allocate(mPreviewWidth * mPreviewHeight * 4);
-
-        float aspectRatio = width > height ? (float) width / (float) height : (float) height / (float) width;
-        if (width > height) {
-            Matrix.orthoM(mProjectionMatrix, 0, -aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
-        } else {
-            Matrix.orthoM(mProjectionMatrix, 0, -1.0f, 1.0f, -aspectRatio, aspectRatio, -1.0f, 1.0f);
-        }
+        mInputAspectRatio = width > height ? (float) width / height : (float) height / width;
     }
 
     public boolean setFilter(final MagicFilterType type) {

@@ -26,14 +26,21 @@ Remember to modify the URL by yourself. Have fun!
 
 **NOTE** if you feel high latency, please check your bandwidth limits and player buffering.
 
-Other Branch
-------------
+<img src="http://ww2.sinaimg.cn/mw690/a16d768bgw1f9euw0n7fyj20u01hc48t.jpg" height="450px" >
+<img src="http://ww3.sinaimg.cn/mw690/a16d768bgw1f9euwdtmn7j20u01hck3u.jpg" height="450px" >
+<img src="http://ww1.sinaimg.cn/mw690/a16d768bgw1f9euwg3jfxj20u01hcgvi.jpg" height="450px" >
 
-If you want to stay in portrait mode ignoring dynamic orientation change when
-streaming, clone yasea on brach [portrait-forever](https://github.com/begeekmyfriend/yasea/tree/portrait-forever).
+<img src="http://ww4.sinaimg.cn/mw690/a16d768bgw1f9euwbo9s9j20u01hcgwq.jpg" height="450px" >
+<img src="http://ww1.sinaimg.cn/mw690/a16d768bgw1f9euw3udb3j20u01hcak1.jpg" height="450px" >
+<img src="http://ww2.sinaimg.cn/mw690/a16d768bgw1f9euw8ngn9j20u01hcdqs.jpg" height="450px" >
 
-Thanks
-------
+<img src="http://ww3.sinaimg.cn/mw690/a16d768bgw1f9euwktw04j20u01hcqct.jpg" height="450px" >
+<img src="http://ww4.sinaimg.cn/mw690/a16d768bgw1f9euwiffobj20u01hctix.jpg" height="450px" >
+<img src="http://ww4.sinaimg.cn/mw690/a16d768bgw1f9euw63u4mj20u01hcn88.jpg" height="450px" >
+
+Acknowledgements
+----------------
+
 
 - [srs-sea](https://github.com/ossrs/srs-sea)
 - [SimpleRtmp](https://github.com/faucamp/SimpleRtmp)

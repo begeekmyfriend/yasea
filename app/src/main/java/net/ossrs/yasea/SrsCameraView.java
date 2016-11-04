@@ -18,7 +18,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     private Camera mCamera;
 
     private int mPreviewRotation = 90;
-    private int mCamId = Camera.CameraInfo.CAMERA_FACING_FRONT;
+    private int mCamId = -1;
     private PreviewCallback mPrevCb;
     private byte[] mYuvPreviewFrame;
     private int previewWidth;
@@ -62,19 +62,23 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         if (mCamera != null) {
             return false;
         }
-        if (mCamId > (Camera.getNumberOfCameras() - 1) || mCamId < 0) {
+        if (mCamId > (Camera.getNumberOfCameras() - 1)) {
             return false;
         }
 
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        int numCameras = Camera.getNumberOfCameras();
-        for (int i = 0; i < numCameras; i++) {
-            Camera.getCameraInfo(i, info);
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                mCamera = Camera.open(i);
-                mCamId = i;
-                break;
+        if (mCamId < 0) {
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            int numCameras = Camera.getNumberOfCameras();
+            for (int i = 0; i < numCameras; i++) {
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    mCamera = Camera.open(i);
+                    mCamId = i;
+                    break;
+                }
             }
+        } else {
+            mCamera = Camera.open(mCamId);
         }
         if (mCamera == null) {
             mCamera = Camera.open();
@@ -91,10 +95,6 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
         mYuvPreviewFrame = new byte[previewWidth * previewHeight * 3 / 2];
 
-        /***** set parameters *****/
-        //params.set("orientation", "portrait");
-        //params.set("orientation", "landscape");
-        //params.setRotation(90);
         params.setPictureSize(previewWidth, previewHeight);
         params.setPreviewSize(previewWidth, previewHeight);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
@@ -107,9 +107,9 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         List<String> supportedFocusModes = params.getSupportedFocusModes();
 
         if (!supportedFocusModes.isEmpty()) {
-            if(supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)){
+            if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                 params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-            }else{
+            } else {
                 params.setFocusMode(supportedFocusModes.get(0));
             }
         }

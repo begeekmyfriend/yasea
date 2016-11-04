@@ -113,6 +113,7 @@ public class SrsFlvMuxer {
         connected = false;
         videoSequenceHeader = null;
         audioSequenceHeader = null;
+        Log.i(TAG, "worker: disconnect ok.");
     }
 
     private boolean connect(String url) {
@@ -221,7 +222,6 @@ public class SrsFlvMuxer {
             }
             frameCache.clear();
             worker = null;
-            Log.i(TAG, "worker: disconnect SRS ok.");
         }
 
         flv.reset();

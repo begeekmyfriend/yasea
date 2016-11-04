@@ -49,7 +49,7 @@ public class SrsEncoder {
     private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
-    private EventHandler mHandler;
+    private SrsNetworkHandler mHandler;
     private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
     private boolean useSoftEncoder = false;
@@ -62,13 +62,6 @@ public class SrsEncoder {
     private int videoMp4Track;
     private int audioFlvTrack;
     private int audioMp4Track;
-
-    public interface EventHandler {
-
-        void onNetworkResume(String msg);
-
-        void onNetworkWeak(String msg);
-    }
 
     // Y, U (Cb) and V (Cr)
     // yuv420                     yuv yuv yuv yuv
@@ -93,7 +86,7 @@ public class SrsEncoder {
         this.mp4Muxer = mp4Muxer;
     }
 
-    public void setNetworkEventHandler(EventHandler handler) {
+    public void setNetworkEventHandler(SrsNetworkHandler handler) {
         mHandler = handler;
     }
 
@@ -370,99 +363,6 @@ public class SrsEncoder {
         }
     }
 
-    public void onGetYuvFrame(byte[] data) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                    swPortraitYuvFrame(data, pts);
-                } else {
-                    swLandscapeYuvFrame(data, pts);
-                }
-            } else {
-                byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
-                        hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
-                } else {
-                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                            new IllegalArgumentException("libyuv failure"));
-                }
-            }
-
-            if (networkWeakTriggered) {
-                networkWeakTriggered = false;
-                mHandler.onNetworkResume("Network resume");
-            }
-        } else {
-            mHandler.onNetworkWeak("Network weak");
-            networkWeakTriggered = true;
-        }
-    }
-
-    private byte[] hwPortraitYuvFrame(byte[] data) {
-        if (mCameraFaceFront) {
-            switch (mVideoColorFormat) {
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, vPrevWidth, vPrevHeight, true, 270);
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, true, 270);
-                default:
-                    throw new IllegalStateException("Unsupported color format!");
-            }
-        } else {
-            switch (mVideoColorFormat) {
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, vPrevWidth, vPrevHeight, false, 90);
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, false, 90);
-                default:
-                    throw new IllegalStateException("Unsupported color format!");
-            }
-        }
-    }
-
-    private byte[] hwLandscapeYuvFrame(byte[] data) {
-        if (mCameraFaceFront) {
-            switch (mVideoColorFormat) {
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, vPrevWidth, vPrevHeight, true, 0);
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, true, 0);
-                default:
-                    throw new IllegalStateException("Unsupported color format!");
-            }
-        } else {
-            switch (mVideoColorFormat) {
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
-                    return NV21ToI420(data, vPrevWidth, vPrevHeight, false, 0);
-                case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
-                    return NV21ToNV12(data, vPrevWidth, vPrevHeight, false, 0);
-                default:
-                    throw new IllegalStateException("Unsupported color format!");
-            }
-        }
-    }
-
-    private void swPortraitYuvFrame(byte[] data, long pts) {
-        if (mCameraFaceFront) {
-            NV21SoftEncode(data, vPrevWidth, vPrevHeight, true, 270, pts);
-        } else {
-            NV21SoftEncode(data, vPrevWidth, vPrevHeight, false, 90, pts);
-        }
-    }
-
-    private void swLandscapeYuvFrame(byte[] data, long pts) {
-        if (mCameraFaceFront) {
-            NV21SoftEncode(data, vPrevWidth, vPrevHeight, true, 0, pts);
-        } else {
-            NV21SoftEncode(data, vPrevWidth, vPrevHeight, false, 0, pts);
-        }
-    }
-
     public void onGetRgbaFrame(byte[] data, int width, int height) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
@@ -483,10 +383,10 @@ public class SrsEncoder {
 
             if (networkWeakTriggered) {
                 networkWeakTriggered = false;
-                mHandler.onNetworkResume("Network resume");
+                mHandler.notifyNetworkResume();
             }
         } else {
-            mHandler.onNetworkWeak("Network weak");
+            mHandler.notifyNetworkWeak();
             networkWeakTriggered = true;
         }
     }

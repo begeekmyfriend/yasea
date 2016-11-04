@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.ossrs.yasea.rtmp.DefaultRtmpPublisher;
+import net.ossrs.yasea.rtmp.RtmpHandler;
 
 /**
  * Created by winlin on 5/2/15.
@@ -65,7 +66,7 @@ public class SrsFlvMuxer {
      * constructor.
      * @param handler the rtmp event handler.
      */
-    public SrsFlvMuxer(DefaultRtmpPublisher.EventHandler handler) {
+    public SrsFlvMuxer(RtmpHandler handler) {
         publisher = new DefaultRtmpPublisher(handler);
     }
 

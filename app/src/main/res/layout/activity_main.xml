@@ -44,15 +44,17 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="soft enc"
+        android:text="soft encoder"
         android:id="@+id/swEnc"
         android:layout_alignBottom="@+id/publish"
-        android:layout_toRightOf="@id/record" />
+        android:layout_toRightOf="@id/record"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"/>
 
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="14dp"
+        android:textSize="14sp"
         android:id="@+id/url"
         android:textColor="@color/accent_material_light" />
 

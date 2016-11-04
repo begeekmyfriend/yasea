@@ -69,7 +69,6 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
             public void onClick(View v) {
                 if (btnPublish.getText().toString().contentEquals("publish")) {
                     rtmpUrl = efu.getText().toString();
-                    Log.i(TAG, String.format("RTMP URL changed to %s", rtmpUrl));
                     SharedPreferences.Editor editor = sp.edit();
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
@@ -79,7 +78,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
                     mPublisher.setVideoSmoothMode();
                     mPublisher.startPublish(rtmpUrl);
 
-                    if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
+                    if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
                         Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(getApplicationContext(), "Use soft encoder", Toast.LENGTH_SHORT).show();
@@ -89,7 +88,6 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
-
                     btnPublish.setText("publish");
                     btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
@@ -111,7 +109,6 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
             public void onClick(View v) {
                 if (btnRecord.getText().toString().contentEquals("record")) {
                     mPublisher.startRecord(recPath);
-
                     btnRecord.setText("pause");
                 } else if (btnRecord.getText().toString().contentEquals("pause")) {
                     mPublisher.pauseRecord();
@@ -126,10 +123,10 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         btnSwitchEncoder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
+                if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
                     mPublisher.swithToSoftEncoder();
                     btnSwitchEncoder.setText("hard encoder");
-                } else if (btnSwitchEncoder.getText().toString().contentEquals("hard enc")) {
+                } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoder")) {
                     mPublisher.swithToHardEncoder();
                     btnSwitchEncoder.setText("soft encoder");
                 }

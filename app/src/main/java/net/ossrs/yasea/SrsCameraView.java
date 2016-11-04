@@ -47,7 +47,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     private Camera mCamera;
     private ByteBuffer mGlPreviewBuffer;
-    private int mCamId = Camera.CameraInfo.CAMERA_FACING_FRONT;
+    private int mCamId = -1;
     private int mPreviewRotation = 90;
 
     private Thread worker;
@@ -193,7 +193,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         if (mCamera != null) {
             return false;
         }
-        if (mCamId > (Camera.getNumberOfCameras() - 1) || mCamId < 0) {
+        if (mCamId > (Camera.getNumberOfCameras() - 1)) {
             return false;
         }
 
@@ -220,15 +220,19 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         });
         worker.start();
 
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        int numCameras = Camera.getNumberOfCameras();
-        for (int i = 0; i < numCameras; i++) {
-            Camera.getCameraInfo(i, info);
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                mCamera = Camera.open(i);
-                mCamId = i;
-                break;
+        if (mCamId < 0) {
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            int numCameras = Camera.getNumberOfCameras();
+            for (int i = 0; i < numCameras; i++) {
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    mCamera = Camera.open(i);
+                    mCamId = i;
+                    break;
+                }
             }
+        } else {
+            mCamera = Camera.open(mCamId);
         }
         if (mCamera == null) {
             mCamera = Camera.open();

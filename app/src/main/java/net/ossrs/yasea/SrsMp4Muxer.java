@@ -67,7 +67,7 @@ public class SrsMp4Muxer {
     private static final int AUDIO_TRACK = 101;
 
     private File mRecFile;
-    private EventHandler mHandler;
+    private SrsRecordHandler mHandler;
 
     private MediaFormat videoFormat = null;
     private MediaFormat audioFormat = null;
@@ -105,22 +105,8 @@ public class SrsMp4Muxer {
         samplingFrequencyIndexMap.put(8000, 0xb);
     }
 
-    public SrsMp4Muxer(EventHandler handler) {
+    public SrsMp4Muxer(SrsRecordHandler handler) {
         mHandler = handler;
-    }
-
-    /**
-     * MP4 recording event handler.
-     */
-    public interface EventHandler {
-
-        void onRecordPause(String msg);
-
-        void onRecordResume(String msg);
-
-        void onRecordStarted(String msg);
-
-        void onRecordFinished(String msg);
     }
     
     /**
@@ -129,7 +115,7 @@ public class SrsMp4Muxer {
     public void record(File outputFile) throws IOException {
         mRecFile = outputFile;
         createMovie(mRecFile);
-        mHandler.onRecordStarted(mRecFile.getPath());
+        mHandler.notifyRecordStarted(mRecFile.getPath());
 
         if (!spsList.isEmpty() && !ppsList.isEmpty()) {
             mp4Movie.addTrack(videoFormat, false);
@@ -171,7 +157,7 @@ public class SrsMp4Muxer {
     public void pause() {
         if (bRecording) {
             bPaused = true;
-            mHandler.onRecordPause("Recording pause");
+            mHandler.notifyRecordPause();
         }
     }
 
@@ -182,7 +168,7 @@ public class SrsMp4Muxer {
         if (bRecording) {
             bPaused = false;
             needToFindKeyFrame = true;
-            mHandler.onRecordResume("Recording resume");
+            mHandler.notifyRecordResume();
         }
     }
 
@@ -196,7 +182,7 @@ public class SrsMp4Muxer {
         aacSpecConfig = false;
         frameCache.clear();
 
-		if (worker != null) {
+        if (worker != null) {
             try {
                 worker.join();
             } catch (InterruptedException e) {
@@ -210,7 +196,7 @@ public class SrsMp4Muxer {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            mHandler.onRecordFinished(mRecFile.getPath());
+            mHandler.notifyRecordFinished(mRecFile.getPath());
         }
         Log.i(TAG, String.format("SrsMp4Muxer closed"));
     }
@@ -291,7 +277,7 @@ public class SrsMp4Muxer {
         public final static int CodedSliceExt = 20;
     }
 
-    public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
+    private void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
         int nal_unit_type = bb.get(4) & 0x1f;
         if (nal_unit_type == SrsAvcNaluType.IDR || nal_unit_type == SrsAvcNaluType.NonIDR) {
             writeFrameByte(VIDEO_TRACK, bb, bi, nal_unit_type == SrsAvcNaluType.IDR);
@@ -324,7 +310,7 @@ public class SrsMp4Muxer {
         }
     }
 
-    public void writeAudioSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
+    private void writeAudioSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
         if (!aacSpecConfig) {
             aacSpecConfig = true;
         } else {
@@ -471,7 +457,7 @@ public class SrsMp4Muxer {
         }
     }
 
-    public class Sample {
+    class Sample {
         private long offset = 0;
         private long size = 0;
 
@@ -489,7 +475,7 @@ public class SrsMp4Muxer {
         }
     }
 
-    public class Track {
+    class Track {
         private int trackId = 0;
         private ArrayList<Sample> samples = new ArrayList<>();
         private long duration = 0;
@@ -683,7 +669,7 @@ public class SrsMp4Muxer {
         }
     }
 
-    public class Mp4Movie {
+    class Mp4Movie {
         private Matrix matrix = Matrix.ROTATE_0;
         private HashMap<Integer, Track> tracks = new HashMap<>();
 
@@ -713,7 +699,7 @@ public class SrsMp4Muxer {
         }
     }
 
-    public class InterleaveChunkMdat implements Box {
+    class InterleaveChunkMdat implements Box {
         private boolean first = true;
         private ContainerBox parent;
         private ByteBuffer header = ByteBuffer.allocateDirect(16);

@@ -66,7 +66,20 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
             return false;
         }
 
-        mCamera = Camera.open(mCamId);
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        int numCameras = Camera.getNumberOfCameras();
+        for (int i = 0; i < numCameras; i++) {
+            Camera.getCameraInfo(i, info);
+            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                mCamera = Camera.open(i);
+                mCamId = i;
+                break;
+            }
+        }
+        if (mCamera == null) {
+            mCamera = Camera.open();
+            mCamId = 0;
+        }
 
         Camera.Parameters params = mCamera.getParameters();
         Camera.Size size = mCamera.new Size(previewWidth, previewHeight);

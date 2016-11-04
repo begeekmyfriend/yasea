@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import android.util.Log;
 
+import net.ossrs.yasea.rtmp.RtmpHandler;
 import net.ossrs.yasea.rtmp.RtmpPublisher;
 import net.ossrs.yasea.rtmp.amf.AmfMap;
 import net.ossrs.yasea.rtmp.amf.AmfNull;
@@ -45,7 +46,9 @@ public class RtmpConnection implements RtmpPublisher {
     private static final String TAG = "RtmpConnection";
     private static final Pattern rtmpUrlPattern = Pattern.compile("^rtmp://([^/:]+)(:(\\d+))*/([^/]+)(/(.*))*$");
 
-    private RtmpPublisher.EventHandler mHandler;
+    private RtmpHandler mHandler;
+    private int port;
+    private String host;
     private String appName;
     private String streamName;
     private String publishType;
@@ -79,7 +82,7 @@ public class RtmpConnection implements RtmpPublisher {
     private long videoLastTimeMillis;
     private long audioLastTimeMillis;
 
-    public RtmpConnection(RtmpPublisher.EventHandler handler) {
+    public RtmpConnection(RtmpHandler handler) {
         mHandler = handler;
     }
 
@@ -96,8 +99,6 @@ public class RtmpConnection implements RtmpPublisher {
 
     @Override
     public boolean connect(String url) throws IOException {
-        int port;
-        String host;
         Matcher matcher = rtmpUrlPattern.matcher(url);
         if (matcher.matches()) {
             tcUrl = url.substring(0, url.lastIndexOf('/'));
@@ -169,7 +170,7 @@ public class RtmpConnection implements RtmpPublisher {
         args.setProperty("objectEncoding", 0);
         invoke.addData(args);
         sendRtmpPacket(invoke);
-        mHandler.onRtmpConnecting("connecting");
+        mHandler.notifyRtmpConnecting("Connecting");
 
         synchronized (connectingLock) {
             try {
@@ -230,7 +231,7 @@ public class RtmpConnection implements RtmpPublisher {
             }
         }
         if (publishPermitted) {
-            mHandler.onRtmpConnected("connected" + srsServerInfo);
+            mHandler.notifyRtmpConnected("Connected" + srsServerInfo);
         } else {
             shutdown();
         }
@@ -300,7 +301,7 @@ public class RtmpConnection implements RtmpPublisher {
         closeStream.getHeader().setMessageStreamId(currentStreamId);
         closeStream.addData(new AmfNull());
         sendRtmpPacket(closeStream);
-        mHandler.onRtmpStopped("stopped");
+        mHandler.notifyRtmpStopped();
     }
 
     @Override
@@ -334,7 +335,7 @@ public class RtmpConnection implements RtmpPublisher {
                 Log.e(TAG, "shutdown(): failed to close socket", ex);
             }
 
-            mHandler.onRtmpDisconnected("disconnected");
+            mHandler.notifyRtmpDisconnected();
         }
 
         reset();
@@ -377,7 +378,7 @@ public class RtmpConnection implements RtmpPublisher {
         audio.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(audio);
         calcAudioBitrate(audio.getHeader().getPacketLength());
-        mHandler.onRtmpAudioStreaming("audio streaming");
+        mHandler.notifyRtmpAudioStreaming();
     }
 
     @Override
@@ -398,7 +399,7 @@ public class RtmpConnection implements RtmpPublisher {
         sendRtmpPacket(video);
         videoFrameCacheNumber.decrementAndGet();
         calcVideoFpsAndBitrate(video.getHeader().getPacketLength());
-        mHandler.onRtmpVideoStreaming("video streaming");
+        mHandler.notifyRtmpVideoStreaming();
     }
 
     private void calcVideoFpsAndBitrate(int length) {
@@ -409,8 +410,8 @@ public class RtmpConnection implements RtmpPublisher {
         } else {
             if (++videoFrameCount >= 48) {
                 long diffTimeMillis = System.nanoTime() / 1000000 - videoLastTimeMillis;
-                mHandler.onRtmpOutputFps((double) videoFrameCount * 1000 / diffTimeMillis);
-                mHandler.onRtmpVideoBitrate((double) videoDataLength * 8 * 1000 / diffTimeMillis);
+                mHandler.notifyRtmpVideoFpsChanged((double) videoFrameCount * 1000 / diffTimeMillis);
+                mHandler.notifyRtmpVideoBitrateChanged((double) videoDataLength * 8 * 1000 / diffTimeMillis);
                 videoFrameCount = 0;
                 videoDataLength = 0;
             }
@@ -425,7 +426,7 @@ public class RtmpConnection implements RtmpPublisher {
         } else {
             if (++audioFrameCount >= 48) {
                 long diffTimeMillis = System.nanoTime() / 1000000 - audioLastTimeMillis;
-                mHandler.onRtmpAudioBitrate((double) audioDataLength * 8 * 1000 / diffTimeMillis);
+                mHandler.notifyRtmpAudioBitrateChanged((double) audioDataLength * 8 * 1000 / diffTimeMillis);
                 audioFrameCount = 0;
                 audioDataLength = 0;
             }
@@ -596,11 +597,6 @@ public class RtmpConnection implements RtmpPublisher {
     @Override
     public AtomicInteger getVideoFrameCacheNumber() {
         return videoFrameCacheNumber;
-    }
-
-    @Override
-    public EventHandler getEventHandler() {
-        return mHandler;
     }
 
     @Override

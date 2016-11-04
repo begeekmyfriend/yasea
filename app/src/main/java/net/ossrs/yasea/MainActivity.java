@@ -16,11 +16,13 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import net.ossrs.yasea.rtmp.RtmpPublisher;
+import net.ossrs.yasea.rtmp.RtmpHandler;
 
 import java.util.Random;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
+                        SrsRecordHandler.SrsRecordListener, SrsNetworkHandler.SrsNetworkListener {
+
     private static final String TAG = "Yasea";
 
     Button btnPublish = null;
@@ -29,7 +31,7 @@ public class MainActivity extends Activity {
     Button btnSwitchEncoder = null;
 
     private SharedPreferences sp;
-    private String rtmpUrl = "rtmp://0.0.0.0/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
+    private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
     private String recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
 
     private SrsPublisher mPublisher;
@@ -56,7 +58,11 @@ public class MainActivity extends Activity {
         btnSwitchCamera = (Button) findViewById(R.id.swCam);
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
+
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.preview));
+        mPublisher.setRtmpHandler(new RtmpHandler(this));
+        mPublisher.setRecordHandler(new SrsRecordHandler(this));
+        mPublisher.setNetworkHandler(new SrsNetworkHandler(this));
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -122,150 +128,11 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 if (btnSwitchEncoder.getText().toString().contentEquals("soft enc")) {
                     mPublisher.swithToSoftEncoder();
-                    btnSwitchEncoder.setText("hard enc");
+                    btnSwitchEncoder.setText("hard encoder");
                 } else if (btnSwitchEncoder.getText().toString().contentEquals("hard enc")) {
                     mPublisher.swithToHardEncoder();
-                    btnSwitchEncoder.setText("soft enc");
+                    btnSwitchEncoder.setText("soft encoder");
                 }
-            }
-        });
-
-        mPublisher.setPublishEventHandler(new RtmpPublisher.EventHandler() {
-            @Override
-            public void onRtmpConnecting(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRtmpConnected(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRtmpVideoStreaming(final String msg) {
-            }
-
-            @Override
-            public void onRtmpAudioStreaming(final String msg) {
-            }
-
-            @Override
-            public void onRtmpStopped(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRtmpDisconnected(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRtmpOutputFps(final double fps) {
-                Log.i(TAG, String.format("Output Fps: %f", fps));
-            }
-
-            @Override
-            public void onRtmpVideoBitrate(final double bitrate) {
-                int rate = (int) bitrate;
-                if (rate / 1000 > 0) {
-                    Log.i(TAG, String.format("Video bitrate: %f kbps", bitrate / 1000));
-                } else {
-                    Log.i(TAG, String.format("Video bitrate: %d bps", rate));
-                }
-            }
-
-            @Override
-            public void onRtmpAudioBitrate(final double bitrate) {
-                int rate = (int) bitrate;
-                if (rate / 1000 > 0) {
-                    Log.i(TAG, String.format("Audio bitrate: %f kbps", bitrate / 1000));
-                } else {
-                    Log.i(TAG, String.format("Audio bitrate: %d bps", rate));
-                }
-            }
-        });
-
-        mPublisher.setRecordEventHandler(new SrsMp4Muxer.EventHandler() {
-            @Override
-            public void onRecordPause(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRecordResume(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRecordStarted(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), "Recording file: " + msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onRecordFinished(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), "MP4 file saved: " + msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-        });
-
-        mPublisher.setNetworkEventHandler(new SrsEncoder.EventHandler() {
-            @Override
-            public void onNetworkResume(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onNetworkWeak(final String msg) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-                    }
-                });
             }
         });
 
@@ -368,5 +235,94 @@ public class MainActivity extends Activity {
             sb.append(base.charAt(number));
         }
         return sb.toString();
+    }
+
+    // Implementation of SrsRtmpListener.
+
+    @Override
+    public void onRtmpConnecting(String msg) {
+        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRtmpConnected(String msg) {
+        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRtmpVideoStreaming() {
+    }
+
+    @Override
+    public void onRtmpAudioStreaming() {
+    }
+
+    @Override
+    public void onRtmpStopped() {
+        Toast.makeText(getApplicationContext(), "Stopped", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRtmpDisconnected() {
+        Toast.makeText(getApplicationContext(), "Disconnected", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRtmpVideoFpsChanged(double fps) {
+        Log.i(TAG, String.format("Output Fps: %f", fps));
+    }
+
+    @Override
+    public void onRtmpVideoBitrateChanged(double bitrate) {
+        int rate = (int) bitrate;
+        if (rate / 1000 > 0) {
+            Log.i(TAG, String.format("Video bitrate: %f kbps", bitrate / 1000));
+        } else {
+            Log.i(TAG, String.format("Video bitrate: %d bps", rate));
+        }
+    }
+
+    @Override
+    public void onRtmpAudioBitrateChanged(double bitrate) {
+        int rate = (int) bitrate;
+        if (rate / 1000 > 0) {
+            Log.i(TAG, String.format("Audio bitrate: %f kbps", bitrate / 1000));
+        } else {
+            Log.i(TAG, String.format("Audio bitrate: %d bps", rate));
+        }
+    }
+
+    // Implementation of SrsRecordHandler.
+
+    @Override
+    public void onRecordPause() {
+        Toast.makeText(getApplicationContext(), "Record paused", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRecordResume() {
+        Toast.makeText(getApplicationContext(), "Record resumed", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRecordStarted(String msg) {
+        Toast.makeText(getApplicationContext(), "Recording file: " + msg, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onRecordFinished(String msg) {
+        Toast.makeText(getApplicationContext(), "MP4 file saved: " + msg, Toast.LENGTH_SHORT).show();
+    }
+
+    // Implementation of SrsNetworkHandler.
+
+    @Override
+    public void onNetworkWeak() {
+        Toast.makeText(getApplicationContext(), "Network weak", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onNetworkResume() {
+        Toast.makeText(getApplicationContext(), "Network resume", Toast.LENGTH_SHORT).show();
     }
 }

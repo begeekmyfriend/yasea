@@ -14,7 +14,7 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
 
     private RtmpConnection rtmpConnection;
 
-    public DefaultRtmpPublisher(RtmpPublisher.EventHandler handler) {
+    public DefaultRtmpPublisher(RtmpHandler handler) {
         rtmpConnection = new RtmpConnection(handler);
     }
 
@@ -63,11 +63,6 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public final EventHandler getEventHandler() {
-        return rtmpConnection.getEventHandler();
-    }
-
-    @Override
     public final String getServerIpAddr() {
         return rtmpConnection.getServerIpAddr();
     }
@@ -86,4 +81,5 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
     public void setVideoResolution(int width, int height) {
         rtmpConnection.setVideoResolution(width, height);
     }
+
 }

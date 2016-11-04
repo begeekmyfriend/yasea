@@ -4,7 +4,7 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 
-import net.ossrs.yasea.rtmp.RtmpPublisher;
+import net.ossrs.yasea.rtmp.RtmpHandler;
 
 import java.io.File;
 import java.io.IOException;
@@ -252,17 +252,17 @@ public class SrsPublisher {
         audioManager.setMode(oldMode);
     }
 
-    public void setPublishEventHandler(RtmpPublisher.EventHandler handler) {
+    public void setRtmpHandler(RtmpHandler handler) {
         mFlvMuxer = new SrsFlvMuxer(handler);
         mEncoder.setFlvMuxer(mFlvMuxer);
     }
 
-    public void setRecordEventHandler(SrsMp4Muxer.EventHandler handler) {
+    public void setRecordHandler(SrsRecordHandler handler) {
         mMp4Muxer = new SrsMp4Muxer(handler);
         mEncoder.setMp4Muxer(mMp4Muxer);
     }
 
-    public void setNetworkEventHandler(SrsEncoder.EventHandler handler) {
+    public void setNetworkHandler(SrsNetworkHandler handler) {
         mEncoder.setNetworkEventHandler(handler);
     }
 }

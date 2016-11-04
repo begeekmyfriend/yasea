@@ -58,11 +58,6 @@ public interface RtmpPublisher {
     void publishAudioData(byte[] data, int dts) throws IllegalStateException;
 
     /**
-     * obtain event handler in publisher
-     */
-    EventHandler getEventHandler();
-
-    /**
      * obtain video frame number cached in publisher
      */
     AtomicInteger getVideoFrameCacheNumber();
@@ -90,27 +85,4 @@ public interface RtmpPublisher {
      */
     void setVideoResolution(int width, int height);
 
-    /**
-     * RTMP event handler.
-     */
-    interface EventHandler {
-
-        void onRtmpConnecting(String msg);
-
-        void onRtmpConnected(String msg);
-
-        void onRtmpVideoStreaming(String msg);
-
-        void onRtmpAudioStreaming(String msg);
-
-        void onRtmpStopped(String msg);
-
-        void onRtmpDisconnected(String msg);
-
-        void onRtmpOutputFps(double fps);
-
-        void onRtmpVideoBitrate(double bitrate);
-
-        void onRtmpAudioBitrate(double bitrate);
-    }
 }

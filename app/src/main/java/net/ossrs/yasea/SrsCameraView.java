@@ -62,7 +62,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public SrsCameraView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        setEGLContextClientVersion(3);
+        setEGLContextClientVersion(2);
         setRenderer(this);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 

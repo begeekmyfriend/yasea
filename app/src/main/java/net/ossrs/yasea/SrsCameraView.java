@@ -247,8 +247,13 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             return false;
         }
 
-        if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-            params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        List<String> supportedFocusModes = params.getSupportedFocusModes();
+        if (!supportedFocusModes.isEmpty()) {
+            if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            } else {
+                params.setFocusMode(supportedFocusModes.get(0));
+            }
         }
 
         /***** set parameters *****/

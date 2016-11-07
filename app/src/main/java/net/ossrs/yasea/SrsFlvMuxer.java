@@ -829,7 +829,7 @@ public class SrsFlvMuxer {
             byte[] frame = new byte[bi.size + 2];
             byte aac_packet_type = 1; // 1 = AAC raw
             if (aac_specific_config == null) {
-                frame = new byte[4];
+                frame = new byte[4 + 7];
 
                 // @see aac-mp4a-format-ISO_IEC_14496-3+2001.pdf
                 // AudioSpecificConfig (), page 33
@@ -868,6 +868,8 @@ public class SrsFlvMuxer {
 
                 aac_specific_config = frame;
                 aac_packet_type = 0; // 0 = AAC sequence header
+
+                write_adts_header(frame, 4);
             } else {
                 bb.get(frame, 2, frame.length - 2);
             }
@@ -901,6 +903,42 @@ public class SrsFlvMuxer {
             tag.size = frame.length;
 
             rtmp_write_packet(SrsCodecFlvTag.Audio, dts, 0, aac_packet_type, tag);
+        }
+
+        private void write_adts_header(byte[] frame, int offset) {
+            // adts sync word 0xfff (12-bit)
+            frame[offset] = (byte) 0xff;
+            frame[offset + 1] = (byte) 0xf0;
+            // versioin 0 for MPEG-4, 1 for MPEG-2 (1-bit)
+            frame[offset + 1] |= 0 << 3;
+            // layer 0 (2-bit)
+            frame[offset + 1] |= 0 << 1;
+            // protection absent: 1 (1-bit)
+            frame[offset + 1] |= 1;
+            // profile: audio_object_type - 1 (2-bit)
+            frame[offset + 2] = (SrsAacObjectType.AacLC - 1) << 6;
+            // sampling frequency index: 4 (4-bit)
+            frame[offset + 2] |= (4 & 0xf) << 2;
+            // channel configuration (3-bit)
+            frame[offset + 2] |= (2 & (byte) 0x4) >> 2;
+            frame[offset + 3] = (byte) ((2 & (byte) 0x03) << 6);
+            // original: 0 (1-bit)
+            frame[offset + 3] |= 0 << 5;
+            // home: 0 (1-bit)
+            frame[offset + 3] |= 0 << 4;
+            // copyright id bit: 0 (1-bit)
+            frame[offset + 3] |= 0 << 3;
+            // copyright id start: 0 (1-bit)
+            frame[offset + 3] |= 0 << 2;
+            // frame size (13-bit)
+            frame[offset + 3] |= ((frame.length - 2) & 0x1800) >> 11;
+            frame[offset + 4] = (byte) (((frame.length - 2) & 0x7f8) >> 3);
+            frame[offset + 5] = (byte) (((frame.length - 2) & 0x7) << 5);
+            // buffer fullness (0x7ff for variable bitrate)
+            frame[offset + 5] |= (byte) 0x1f;
+            frame[offset + 6] = (byte) 0xfc;
+            // number of data block (nb - 1)
+            frame[offset + 6] |= 0x0;
         }
 
         public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {

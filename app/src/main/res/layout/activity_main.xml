@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    tools:context="net.ossrs.yasea.MainActivity">
+    tools:context="net.ossrs.yasea.demo.MainActivity">
 
     <net.ossrs.yasea.SrsCameraView
         android:layout_width="fill_parent"

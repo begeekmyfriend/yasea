@@ -60,8 +60,8 @@ public class MagicXproIIFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/xpromap.png");
-                inputTextureHandles[1] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/vignettemap_new.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/xpromap.png");
+                inputTextureHandles[1] = OpenGLUtils.loadTexture(getContext(), "filter/vignettemap_new.png");
             }
         });
     }

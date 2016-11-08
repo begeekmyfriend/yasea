@@ -61,8 +61,8 @@ public class MagicLomoFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/vlomomap_new.png");
-                inputTextureHandles[1] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/vignette_map.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/vlomomap_new.png");
+                inputTextureHandles[1] = OpenGLUtils.loadTexture(getContext(), "filter/vignette_map.png");
             }
         });
     }

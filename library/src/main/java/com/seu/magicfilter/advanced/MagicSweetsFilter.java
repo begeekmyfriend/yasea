@@ -91,7 +91,7 @@ public class MagicSweetsFilter extends GPUImageFilter{
                   arrayOfByte[(3 + i * 4)] = ((byte)i);
                 }
                 GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 256, 1, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(arrayOfByte));
-                mMaskGrey1TextureId = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/rise_mask2.jpg");
+                mMaskGrey1TextureId = OpenGLUtils.loadTexture(getContext(), "filter/rise_mask2.jpg");
             }
         });
     }

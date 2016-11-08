@@ -119,8 +119,8 @@ public class MagicCalmFilter extends GPUImageFilter{
                   arrayOfByte[(3 + (2048 + k * 4))] = -1;
                 }
                 GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 256, 3, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(arrayOfByte));
-                mMaskGrey1TextureId = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/calm_mask1.jpg");
-                mMaskGrey2TextureId = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/calm_mask2.jpg");
+                mMaskGrey1TextureId = OpenGLUtils.loadTexture(getContext(), "filter/calm_mask1.jpg");
+                mMaskGrey2TextureId = OpenGLUtils.loadTexture(getContext(), "filter/calm_mask2.jpg");
             }
         });
     }

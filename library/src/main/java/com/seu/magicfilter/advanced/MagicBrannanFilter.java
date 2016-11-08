@@ -59,11 +59,11 @@ public class MagicBrannanFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brannan_process.png");
-                inputTextureHandles[1] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brannan_blowout.png");
-                inputTextureHandles[2] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brannan_contrast.png");
-                inputTextureHandles[3] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brannan_luma.png");
-                inputTextureHandles[4] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brannan_screen.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/brannan_process.png");
+                inputTextureHandles[1] = OpenGLUtils.loadTexture(getContext(), "filter/brannan_blowout.png");
+                inputTextureHandles[2] = OpenGLUtils.loadTexture(getContext(), "filter/brannan_contrast.png");
+                inputTextureHandles[3] = OpenGLUtils.loadTexture(getContext(), "filter/brannan_luma.png");
+                inputTextureHandles[4] = OpenGLUtils.loadTexture(getContext(), "filter/brannan_screen.png");
             }
         });
     }

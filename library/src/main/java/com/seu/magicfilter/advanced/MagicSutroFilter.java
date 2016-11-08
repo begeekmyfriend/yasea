@@ -59,11 +59,11 @@ public class MagicSutroFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/vignette_map.png");
-                inputTextureHandles[1] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/sutrometal.png");
-                inputTextureHandles[2] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/softlight.png");
-                inputTextureHandles[3] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/sutroedgeburn.png");
-                inputTextureHandles[4] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/sutrocurves.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/vignette_map.png");
+                inputTextureHandles[1] = OpenGLUtils.loadTexture(getContext(), "filter/sutrometal.png");
+                inputTextureHandles[2] = OpenGLUtils.loadTexture(getContext(), "filter/softlight.png");
+                inputTextureHandles[3] = OpenGLUtils.loadTexture(getContext(), "filter/sutroedgeburn.png");
+                inputTextureHandles[4] = OpenGLUtils.loadTexture(getContext(), "filter/sutrocurves.png");
             }
         });
     }

@@ -61,11 +61,11 @@ public class MagicToasterFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastermetal.png");
-                inputTextureHandles[1] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastersoftlight.png");
-                inputTextureHandles[2] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastercurves.png");
-                inputTextureHandles[3] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toasteroverlaymapwarm.png");
-                inputTextureHandles[4] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/toastercolorshift.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/toastermetal.png");
+                inputTextureHandles[1] = OpenGLUtils.loadTexture(getContext(), "filter/toastersoftlight.png");
+                inputTextureHandles[2] = OpenGLUtils.loadTexture(getContext(), "filter/toastercurves.png");
+                inputTextureHandles[3] = OpenGLUtils.loadTexture(getContext(), "filter/toasteroverlaymapwarm.png");
+                inputTextureHandles[4] = OpenGLUtils.loadTexture(getContext(), "filter/toastercolorshift.png");
             }
         });
     }

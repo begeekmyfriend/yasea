@@ -16,6 +16,7 @@
 
 package com.seu.magicfilter.base.gpuimage;
 
+import android.content.Context;
 import android.graphics.PointF;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
@@ -36,10 +37,11 @@ import java.util.LinkedList;
 public class GPUImageFilter {
 
     private boolean mIsInitialized;
+    private Context mContext;
     private MagicFilterType mType = MagicFilterType.NONE;
     private final LinkedList<Runnable> mRunOnDraw;
-    private final String mVertexShader;
-    private final String mFragmentShader;
+    private final int mVertexShaderId;
+    private final int mFragmentShaderId;
 
     private int mGLProgId;
     private int mGLPositionIndex;
@@ -82,8 +84,8 @@ public class GPUImageFilter {
     public GPUImageFilter(MagicFilterType type, int vertexShaderId, int fragmentShaderId) {
         mType = type;
         mRunOnDraw = new LinkedList<>();
-        mVertexShader = OpenGLUtils.readShaderFromRawResource(vertexShaderId);
-        mFragmentShader = OpenGLUtils.readShaderFromRawResource(fragmentShaderId);
+        mVertexShaderId = vertexShaderId;
+        mFragmentShaderId = fragmentShaderId;
 
         mGLCubeBuffer = ByteBuffer.allocateDirect(TextureRotationUtil.CUBE.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -96,7 +98,8 @@ public class GPUImageFilter {
         mGLTextureBuffer.put(TextureRotationUtil.getRotation(Rotation.NORMAL, false, true)).position(0);
     }
 
-    public void init() {
+    public void init(Context context) {
+        mContext = context;
         onInit();
         onInitialized();
     }
@@ -135,7 +138,8 @@ public class GPUImageFilter {
     }
 
     private void loadExternalSamplerShader() {
-        mGLProgId = OpenGLUtils.loadProgram(mVertexShader, mFragmentShader);
+        mGLProgId = OpenGLUtils.loadProgram(OpenGLUtils.readShaderFromRawResource(getContext(), mVertexShaderId),
+            OpenGLUtils.readShaderFromRawResource(getContext(), mFragmentShaderId));
         mGLPositionIndex = GLES20.glGetAttribLocation(mGLProgId, "position");
         mGLTextureCoordinateIndex = GLES20.glGetAttribLocation(mGLProgId,"inputTextureCoordinate");
         mGLTextureTransformIndex = GLES20.glGetUniformLocation(mGLProgId, "textureTransform");
@@ -143,8 +147,8 @@ public class GPUImageFilter {
     }
 
     private void loadInternalSamplerShader() {
-        mGLScreenProgId = OpenGLUtils.loadProgram(OpenGLUtils.readShaderFromRawResource(R.raw.vertex_default),
-            OpenGLUtils.readShaderFromRawResource(R.raw.fragment_default));
+        mGLScreenProgId = OpenGLUtils.loadProgram(OpenGLUtils.readShaderFromRawResource(getContext(), R.raw.vertex_default),
+            OpenGLUtils.readShaderFromRawResource(getContext(), R.raw.fragment_default));
         mGLScreenPositionIndex = GLES20.glGetAttribLocation(mGLScreenProgId, "position");
         mGLScreenTextureCoordinateIndex = GLES20.glGetAttribLocation(mGLScreenProgId,"inputTextureCoordinate");
         mGLScreenInputImageTextureIndex = GLES20.glGetUniformLocation(mGLScreenProgId, "inputImageTexture");
@@ -336,11 +340,7 @@ public class GPUImageFilter {
             mRunOnDraw.removeFirst().run();
         }
     }
-
-    public MagicFilterType getFilterType() {
-        return mType;
-    }
-
+    
     public int getProgram() {
         return mGLProgId;
     }
@@ -349,6 +349,14 @@ public class GPUImageFilter {
         return mGLFboBuffer;
     }
 
+    protected Context getContext() {
+        return mContext;
+    }
+
+    protected MagicFilterType getFilterType() {
+        return mType;
+    }
+    
     public void setTextureTransformMatrix(float[] mtx){
         mGLTextureTransformMatrix = mtx;
     }

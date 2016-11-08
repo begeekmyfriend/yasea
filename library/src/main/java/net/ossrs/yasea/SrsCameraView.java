@@ -32,7 +32,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private GPUImageFilter magicFilter;
 
     private SurfaceTexture surfaceTexture;
-    
+
     private int mOESTextureId = OpenGLUtils.NO_TEXTURE;
     private int mSurfaceWidth;
     private int mSurfaceHeight;
@@ -64,8 +64,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         setEGLContextClientVersion(2);
         setRenderer(this);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-
-        MagicFilterFactory.initContext(context.getApplicationContext());
     }
 
     @Override
@@ -74,7 +72,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         GLES20.glClearColor(0, 0, 0, 0);
 
         magicFilter = new GPUImageFilter(MagicFilterType.NONE);
-        magicFilter.init();
+        magicFilter.init(getContext().getApplicationContext());
         magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
 
         mOESTextureId = OpenGLUtils.getExternalOESTextureID();
@@ -137,7 +135,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public void setPreviewResolution(int width, int height) {
         mPreviewWidth = width;
         mPreviewHeight = height;
-        mGlPreviewBuffer = ByteBuffer.allocate(mPreviewWidth * mPreviewHeight * 4);
+        mGlPreviewBuffer = ByteBuffer.allocate(width * height * 4);
         mInputAspectRatio = width > height ? (float) width / height : (float) height / width;
     }
 
@@ -154,7 +152,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 }
                 magicFilter = MagicFilterFactory.initFilters(type);
                 if (magicFilter != null) {
-                    magicFilter.init();
+                    magicFilter.init(getContext().getApplicationContext());
                     magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
                     magicFilter.onDisplaySizeChanged(mSurfaceWidth, mSurfaceHeight);
                 }

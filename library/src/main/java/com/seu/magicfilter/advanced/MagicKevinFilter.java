@@ -60,7 +60,7 @@ public class MagicKevinFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/kelvinmap.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/kelvinmap.png");
             }
         });
     }

@@ -22,11 +22,11 @@ public class OpenGLUtils {
     public static final int NOT_INIT = -1;
     public static final int ON_DRAWN = 1;
 
-    public static int loadTexture(final Bitmap img, final int usedTexId) {
+    public static int loadTexture(Bitmap img, int usedTexId) {
         return loadTexture(img, usedTexId, false);
     }
 
-    public static int loadTexture(final Bitmap img, final int usedTexId, boolean recyled) {
+    public static int loadTexture(Bitmap img, int usedTexId, boolean recyled) {
         if(img == null)
             return NO_TEXTURE;
         int textures[] = new int[1];
@@ -53,7 +53,7 @@ public class OpenGLUtils {
         return textures[0];
     }
 
-    public static int loadTexture(final Buffer data, final int width,final int height, final int usedTexId) {
+    public static int loadTexture(Buffer data, int width, int height, int usedTexId) {
         if(data == null)
             return NO_TEXTURE;
         int textures[] = new int[1];
@@ -79,7 +79,7 @@ public class OpenGLUtils {
         return textures[0];
     }
 
-    public static int loadTexture(final Buffer data, final int width,final int height, final int usedTexId,final int type) {
+    public static int loadTexture(Buffer data, int width, int height, int usedTexId, int type) {
         if(data == null)
             return NO_TEXTURE;
         int textures[] = new int[1];
@@ -150,7 +150,7 @@ public class OpenGLUtils {
           return image;
     }
 
-    public static int loadProgram(final String strVSource, final String strFSource) {
+    public static int loadProgram(String strVSource, String strFSource) {
         int iVShader;
         int iFShader;
         int iProgId;
@@ -180,7 +180,7 @@ public class OpenGLUtils {
         return iProgId;
     }
 
-    private static int loadShader(final String strSource, final int iType) {
+    private static int loadShader(String strSource, int iType) {
         int[] compiled = new int[1];
         int iShader = GLES20.glCreateShader(iType);
         GLES20.glShaderSource(iShader, strSource);
@@ -208,8 +208,8 @@ public class OpenGLUtils {
         return texture[0];
     }
 
-    public static String readShaderFromRawResource(final int resourceId){
-        final InputStream inputStream = MagicFilterFactory.getCurrentContext().getResources().openRawResource(resourceId);
+    public static String readShaderFromRawResource(Context context, int resourceId){
+        final InputStream inputStream = context.getResources().openRawResource(resourceId);
         final InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
         final BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
 
@@ -226,16 +226,5 @@ public class OpenGLUtils {
             return null;
         }
         return body.toString();
-    }
-
-    /**
-     * Checks to see if a GLES error has been raised.
-     */
-    public static void checkGlError(String op) {
-        int error = GLES20.glGetError();
-        if (error != GLES20.GL_NO_ERROR) {
-            String msg = op + ": glError 0x" + Integer.toHexString(error);
-            Log.e("OpenGlUtils", msg);
-        }
     }
 }

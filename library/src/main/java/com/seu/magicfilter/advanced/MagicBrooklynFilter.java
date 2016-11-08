@@ -9,7 +9,7 @@ import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGLUtils;
 
-public class MagicBrooklynFilter extends GPUImageFilter{
+public class MagicBrooklynFilter extends GPUImageFilter {
     private int[] inputTextureHandles = {-1,-1,-1};
     private int[] inputTextureUniformLocations = {-1,-1,-1};
     private int mGLStrengthLocation;
@@ -60,9 +60,9 @@ public class MagicBrooklynFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brooklynCurves1.png");
-                inputTextureHandles[1] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/filter_map_first.png");
-                inputTextureHandles[2] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/brooklynCurves2.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/brooklynCurves1.png");
+                inputTextureHandles[1] = OpenGLUtils.loadTexture(getContext(), "filter/filter_map_first.png");
+                inputTextureHandles[2] = OpenGLUtils.loadTexture(getContext(), "filter/brooklynCurves2.png");
             }
         });
     }

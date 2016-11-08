@@ -7,6 +7,7 @@ import java.util.List;
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.OpenGLUtils;
 
+import android.content.Context;
 import android.opengl.GLES20;
 
 
@@ -30,9 +31,9 @@ public class MagicBaseGroupFilter extends GPUImageFilter {
     }
 
     @Override
-    public void init() {
+    public void init(Context context) {
         for (GPUImageFilter filter : filters) {
-            filter.init();
+            filter.init(context);
         }
     }
 

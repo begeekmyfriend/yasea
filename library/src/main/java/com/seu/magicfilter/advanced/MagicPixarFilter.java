@@ -60,7 +60,7 @@ public class MagicPixarFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/pixar_curves.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/pixar_curves.png");
             }
         });
     }

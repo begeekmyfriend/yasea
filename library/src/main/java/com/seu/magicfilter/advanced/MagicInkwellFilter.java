@@ -61,7 +61,7 @@ public class MagicInkwellFilter extends GPUImageFilter{
         setFloat(mGLStrengthLocation, 1.0f);
         runOnDraw(new Runnable(){
             public void run(){
-                inputTextureHandles[0] = OpenGLUtils.loadTexture(MagicFilterFactory.getCurrentContext(), "filter/inkwellmap.png");
+                inputTextureHandles[0] = OpenGLUtils.loadTexture(getContext(), "filter/inkwellmap.png");
             }
         });
     }

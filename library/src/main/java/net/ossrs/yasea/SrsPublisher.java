@@ -4,8 +4,7 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 
-import net.ossrs.yasea.rtmp.RtmpHandler;
-
+import com.github.faucamp.simplertmp.RtmpHandler;
 import com.seu.magicfilter.utils.MagicFilterType;
 
 import java.io.File;

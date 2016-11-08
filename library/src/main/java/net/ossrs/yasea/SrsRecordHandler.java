@@ -10,6 +10,7 @@ import java.lang.ref.WeakReference;
  */
 
 public class SrsRecordHandler extends Handler {
+
     private static final int MSG_RECORD_PAUSE = 0;
     private static final int MSG_RECORD_RESUME = 1;
     private static final int MSG_RECORD_STARTED = 2;
@@ -17,7 +18,7 @@ public class SrsRecordHandler extends Handler {
 
     private WeakReference<SrsRecordListener> mWeakListener;
 
-    SrsRecordHandler(SrsRecordListener listener) {
+    public SrsRecordHandler(SrsRecordListener listener) {
         mWeakListener = new WeakReference<>(listener);
     }
 
@@ -62,7 +63,7 @@ public class SrsRecordHandler extends Handler {
         }
     }
     
-    interface SrsRecordListener {
+    public interface SrsRecordListener {
 
         void onRecordPause();
 

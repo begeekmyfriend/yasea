@@ -4,14 +4,14 @@ import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.util.Log;
 
+import com.github.faucamp.simplertmp.DefaultRtmpPublisher;
+import com.github.faucamp.simplertmp.RtmpHandler;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import net.ossrs.yasea.rtmp.DefaultRtmpPublisher;
-import net.ossrs.yasea.rtmp.RtmpHandler;
 
 /**
  * Created by winlin on 5/2/15.

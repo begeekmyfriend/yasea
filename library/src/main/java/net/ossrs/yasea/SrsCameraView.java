@@ -8,7 +8,6 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -321,6 +320,5 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public interface PreviewCallback {
 
         void onGetRgbaFrame(byte[] data, int width, int height);
-
     }
 }

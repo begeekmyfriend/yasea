@@ -10,6 +10,7 @@ import java.lang.ref.WeakReference;
  */
 
 public class SrsNetworkHandler extends Handler {
+
     private static final int MSG_NETWORK_WEAK = 0;
     private static final int MSG_NETWORK_RESUME = 1;
 
@@ -46,7 +47,7 @@ public class SrsNetworkHandler extends Handler {
         }
     }
 
-    interface SrsNetworkListener {
+    public interface SrsNetworkListener {
 
         void onNetworkWeak();
 

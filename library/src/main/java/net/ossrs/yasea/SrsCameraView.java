@@ -87,7 +87,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
         Camera.Parameters params = mCamera.getParameters();
         Camera.Size size = mCamera.new Size(previewWidth, previewHeight);
-        if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
+        if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedVideoSizes().contains(size)) {
             Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
             stopCamera();
             return false;

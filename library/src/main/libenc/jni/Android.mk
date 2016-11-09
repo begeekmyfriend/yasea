@@ -1,14 +1,31 @@
 LOCAL_PATH := $(call my-dir)
 
 ############# prebuilt ###############
+
 include $(CLEAR_VARS)
 LOCAL_MODULE := libyuv
-LOCAL_SRC_FILES := lib/libyuv.so
+
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+    LOCAL_SRC_FILES := libs/armeabi-v7a/libyuv.so
+endif
+
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+    LOCAL_SRC_FILES := libs/arm64-v8a/libyuv.so
+endif
+
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libx264
-LOCAL_SRC_FILES := lib/libx264.a
+
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+    LOCAL_SRC_FILES := libs/armeabi-v7a/libx264.a
+endif
+
+ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+    LOCAL_SRC_FILES := libs/arm64-v8a/libx264.a
+endif
+
 include $(PREBUILT_STATIC_LIBRARY)
 
 ############# build libenc ###########

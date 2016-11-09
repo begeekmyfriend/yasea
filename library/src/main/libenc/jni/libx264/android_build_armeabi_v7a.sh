@@ -1,11 +1,11 @@
 #!/bin/sh
 
-ANDROID_NDK=/home/leoma/MyOSP/android-ndk-r10e
-SYSROOT=$ANDROID_NDK/platforms/android-16/arch-arm
-CROSS_PREFIX=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86_64/bin/arm-linux-androideabi-
+ANDROID_NDK=/home/leoma/MyOSP/android-ndk-r13b
+SYSROOT=$ANDROID_NDK/platforms/android-21/arch-arm
+CROSS_PREFIX=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-
 EXTRA_CFLAGS="-march=armv7-a -mfloat-abi=softfp -mfpu=neon -D__ANDROID__ -D__ARM_ARCH_7__ -D__ARM_ARCH_7A__"
 EXTRA_LDFLAGS="-nostdlib"
-PREFIX=`pwd`/../lib
+PREFIX=`pwd`/libs/armeabi-v7a
 
 ./configure --prefix=$PREFIX \
         --host=arm-linux \

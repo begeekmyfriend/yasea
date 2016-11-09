@@ -174,6 +174,22 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
         startCamera();
     }
 
+    private Camera.Size getBestCameraResolution(Camera.Parameters parameters, Camera.Size screenResolution) {
+        float tmp;
+        float mindiff = 100f;
+        float x_d_y = (float) screenResolution.width / (float) screenResolution.height;
+        Camera.Size best = null;
+        List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
+        for (Camera.Size s : supportedPreviewSizes) {
+            tmp = Math.abs(((float) s.height / (float) s.width) - x_d_y);
+            if (tmp < mindiff) {
+                mindiff = tmp;
+                best = s;
+            }
+        }
+        return best;
+    }
+
     private void startCamera() {
         if (mCamera != null) {
             return;
@@ -185,19 +201,14 @@ public class SrsPublisher implements SurfaceHolder.Callback, Camera.PreviewCallb
         mCamera = Camera.open(mCamId);
 
         Camera.Parameters params = mCamera.getParameters();
-        Camera.Size size = mCamera.new Size(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
-        if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                    new IllegalArgumentException(String.format("Unsupported resolution %dx%d", size.width, size.height)));
-        }
-
+        Camera.Size size = getBestCameraResolution(params, mCamera.new Size(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight()));
+        mEncoder.setPreviewResolution(size.width, size.height);
         mYuvPreviewFrame = new byte[mEncoder.getPreviewWidth() * mEncoder.getPreviewHeight() * 3 / 2];
 
         /***** set parameters *****/
         //params.set("orientation", "portrait");
         //params.set("orientation", "landscape");
         //params.setRotation(90);
-        params.setPictureSize(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
         params.setPreviewSize(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);

@@ -28,7 +28,7 @@ public class SrsPublisher {
 
     private SrsFlvMuxer mFlvMuxer;
     private SrsMp4Muxer mMp4Muxer;
-    private SrsEncoder mEncoder = new SrsEncoder();
+    private SrsEncoder mEncoder;
 
     public SrsPublisher(SrsCameraView view) {
         mCameraView = view;
@@ -88,14 +88,8 @@ public class SrsPublisher {
 
     public void startPublish(String rtmpUrl) {
         if (mFlvMuxer != null) {
-            try {
-                mFlvMuxer.start(rtmpUrl);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return;
-            }
+            mFlvMuxer.start(rtmpUrl);
             mFlvMuxer.setVideoResolution(mEncoder.getOutputWidth(), mEncoder.getOutputHeight());
-
             startEncode();
         }
     }
@@ -109,11 +103,7 @@ public class SrsPublisher {
 
     public void startRecord(String recPath) {
         if (mMp4Muxer != null) {
-            try {
-                mMp4Muxer.record(new File(recPath));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            mMp4Muxer.record(new File(recPath));
         }
     }
 
@@ -229,7 +219,6 @@ public class SrsPublisher {
             try {
                 aworker.join();
             } catch (InterruptedException e) {
-                e.printStackTrace();
                 aworker.interrupt();
             }
             aworker = null;
@@ -254,15 +243,25 @@ public class SrsPublisher {
 
     public void setRtmpHandler(RtmpHandler handler) {
         mFlvMuxer = new SrsFlvMuxer(handler);
-        mEncoder.setFlvMuxer(mFlvMuxer);
+        if (mEncoder != null) {
+            mEncoder.setFlvMuxer(mFlvMuxer);
+        }
     }
 
     public void setRecordHandler(SrsRecordHandler handler) {
         mMp4Muxer = new SrsMp4Muxer(handler);
-        mEncoder.setMp4Muxer(mMp4Muxer);
+        if (mEncoder != null) {
+            mEncoder.setMp4Muxer(mMp4Muxer);
+        }
     }
 
-    public void setNetworkHandler(SrsNetworkHandler handler) {
-        mEncoder.setNetworkEventHandler(handler);
+    public void setEncodeHandler(SrsEncodeHandler handler) {
+        mEncoder = new SrsEncoder(handler);
+        if (mFlvMuxer != null) {
+            mEncoder.setFlvMuxer(mFlvMuxer);
+        }
+        if (mMp4Muxer != null) {
+            mEncoder.setMp4Muxer(mMp4Muxer);
+        }
     }
 }

@@ -19,14 +19,16 @@ import android.widget.Toast;
 import com.github.faucamp.simplertmp.RtmpHandler;
 
 import net.ossrs.yasea.SrsCameraView;
-import net.ossrs.yasea.SrsNetworkHandler;
+import net.ossrs.yasea.SrsEncodeHandler;
 import net.ossrs.yasea.SrsPublisher;
 import net.ossrs.yasea.SrsRecordHandler;
 
+import java.io.IOException;
+import java.net.SocketException;
 import java.util.Random;
 
 public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
-                        SrsRecordHandler.SrsRecordListener, SrsNetworkHandler.SrsNetworkListener {
+                        SrsRecordHandler.SrsRecordListener, SrsEncodeHandler.SrsEncodeListener {
 
     private static final String TAG = "Yasea";
 
@@ -65,9 +67,9 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
 
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.preview));
+        mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
-        mPublisher.setNetworkHandler(new SrsNetworkHandler(this));
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -137,24 +139,6 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
                 }
             }
         });
-
-        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread thread, Throwable ex) {
-                final String msg = ex.getMessage();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-                        mPublisher.stopPublish();
-                        mPublisher.stopRecord();
-                        btnPublish.setText("publish");
-                        btnRecord.setText("record");
-                        btnSwitchEncoder.setEnabled(true);
-                    }
-                });
-            }
-        });
     }
 
     @Override
@@ -220,7 +204,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
     private static String getRandomAlphaString(int length) {
         String base = "abcdefghijklmnopqrstuvwxyz";
         Random random = new Random();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
             int number = random.nextInt(base.length());
             sb.append(base.charAt(number));
@@ -231,12 +215,25 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
     private static String getRandomAlphaDigitString(int length) {
         String base = "abcdefghijklmnopqrstuvwxyz0123456789";
         Random random = new Random();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
             int number = random.nextInt(base.length());
             sb.append(base.charAt(number));
         }
         return sb.toString();
+    }
+
+    private void handleException(Exception e) {
+        try {
+            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+            mPublisher.stopPublish();
+            mPublisher.stopRecord();
+            btnPublish.setText("publish");
+            btnRecord.setText("record");
+            btnSwitchEncoder.setEnabled(true);
+        } catch (Exception e1) {
+            // Ignore
+        }
     }
 
     // Implementation of SrsRtmpListener.
@@ -294,6 +291,26 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         }
     }
 
+    @Override
+    public void onRtmpSocketException(SocketException e) {
+        handleException(e);
+    }
+
+    @Override
+    public void onRtmpIOException(IOException e) {
+        handleException(e);
+    }
+
+    @Override
+    public void onRtmpIllegalArgumentException(IllegalArgumentException e) {
+        handleException(e);
+    }
+
+    @Override
+    public void onRtmpIllegalStateException(IllegalStateException e) {
+        handleException(e);
+    }
+
     // Implementation of SrsRecordHandler.
 
     @Override
@@ -316,7 +333,17 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         Toast.makeText(getApplicationContext(), "MP4 file saved: " + msg, Toast.LENGTH_SHORT).show();
     }
 
-    // Implementation of SrsNetworkHandler.
+    @Override
+    public void onRecordIOException(IOException e) {
+        handleException(e);
+    }
+
+    @Override
+    public void onRecordIllegalArgumentException(IllegalArgumentException e) {
+        handleException(e);
+    }
+
+    // Implementation of SrsEncodeHandler.
 
     @Override
     public void onNetworkWeak() {
@@ -326,5 +353,10 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
     @Override
     public void onNetworkResume() {
         Toast.makeText(getApplicationContext(), "Network resume", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onEncodeIllegalArgumentException(IllegalArgumentException e) {
+        handleException(e);
     }
 }

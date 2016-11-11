@@ -3,7 +3,9 @@ package com.github.faucamp.simplertmp;
 import android.os.Handler;
 import android.os.Message;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.net.SocketException;
 
 /**
  * Created by leo.ma on 2016/11/3.
@@ -20,6 +22,11 @@ public class RtmpHandler extends Handler {
     private static final int MSG_RTMP_VIDEO_FPS_CHANGED = 6;
     private static final int MSG_RTMP_VIDEO_BITRATE_CHANGED = 7;
     private static final int MSG_RTMP_AUDIO_BITRATE_CHANGED = 8;
+
+    private static final int MSG_RTMP_SOCKET_EXCEPTION = 9;
+    private static final int MSG_RTMP_IO_EXCEPTION = 10;
+    private static final int MSG_RTMP_ILLEGAL_ARGUMENT_EXCEPTION = 11;
+    private static final int MSG_RTMP_ILLEGAL_STATE_EXCEPTION = 12;
 
     private WeakReference<RtmpListener> mWeakListener;
 
@@ -63,6 +70,22 @@ public class RtmpHandler extends Handler {
         obtainMessage(MSG_RTMP_AUDIO_BITRATE_CHANGED, bitrate).sendToTarget();
     }
 
+    public void notifyRtmpSocketException(SocketException e) {
+        obtainMessage(MSG_RTMP_SOCKET_EXCEPTION, e).sendToTarget();
+    }
+
+    public void notifyRtmpIOException(IOException e) {
+        obtainMessage(MSG_RTMP_IO_EXCEPTION, e).sendToTarget();
+    }
+
+    public void notifyRtmpIllegalArgumentException(IllegalArgumentException e) {
+        obtainMessage(MSG_RTMP_ILLEGAL_ARGUMENT_EXCEPTION, e).sendToTarget();
+    }
+
+    public void notifyRtmpIllegalStateException(IllegalStateException e) {
+        obtainMessage(MSG_RTMP_ILLEGAL_STATE_EXCEPTION, e).sendToTarget();
+    }
+
     @Override  // runs on UI thread
     public void handleMessage(Message msg) {
         RtmpListener listener = mWeakListener.get();
@@ -98,6 +121,18 @@ public class RtmpHandler extends Handler {
             case MSG_RTMP_AUDIO_BITRATE_CHANGED:
                 listener.onRtmpAudioBitrateChanged((double) msg.obj);
                 break;
+            case MSG_RTMP_SOCKET_EXCEPTION:
+                listener.onRtmpSocketException((SocketException) msg.obj);
+                break;
+            case MSG_RTMP_IO_EXCEPTION:
+                listener.onRtmpIOException((IOException) msg.obj);
+                break;
+            case MSG_RTMP_ILLEGAL_ARGUMENT_EXCEPTION:
+                listener.onRtmpIllegalArgumentException((IllegalArgumentException) msg.obj);
+                break;
+            case MSG_RTMP_ILLEGAL_STATE_EXCEPTION:
+                listener.onRtmpIllegalStateException((IllegalStateException) msg.obj);
+                break;
             default:
                 throw new RuntimeException("unknown msg " + msg.what);
         }
@@ -122,5 +157,13 @@ public class RtmpHandler extends Handler {
         void onRtmpVideoBitrateChanged(double bitrate);
 
         void onRtmpAudioBitrateChanged(double bitrate);
+
+        void onRtmpSocketException(SocketException e);
+
+        void onRtmpIOException(IOException e);
+
+        void onRtmpIllegalArgumentException(IllegalArgumentException e);
+
+        void onRtmpIllegalStateException(IllegalStateException e);
     }
 }

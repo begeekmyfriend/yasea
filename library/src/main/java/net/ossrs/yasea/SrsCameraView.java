@@ -21,8 +21,8 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     private int mCamId = -1;
     private PreviewCallback mPrevCb;
     private byte[] mYuvPreviewFrame;
-    private int previewWidth;
-    private int previewHeight;
+    private int mPreviewWidth;
+    private int mPreviewHeight;
 
     public interface PreviewCallback {
         void onGetYuvFrame(byte[] data);
@@ -54,8 +54,8 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void setPreviewResolution(int width, int height) {
-        previewWidth = width;
-        previewHeight = height;
+        mPreviewWidth = width;
+        mPreviewHeight = height;
     }
     
     public boolean startCamera() {
@@ -86,17 +86,17 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         }
 
         Camera.Parameters params = mCamera.getParameters();
-        Camera.Size size = mCamera.new Size(previewWidth, previewHeight);
+        Camera.Size size = mCamera.new Size(mPreviewWidth, mPreviewHeight);
         if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
             Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
             stopCamera();
             return false;
         }
 
-        mYuvPreviewFrame = new byte[previewWidth * previewHeight * 3 / 2];
+        mYuvPreviewFrame = new byte[mPreviewWidth * mPreviewHeight * 3 / 2];
 
-        params.setPictureSize(previewWidth, previewHeight);
-        params.setPreviewSize(previewWidth, previewHeight);
+        params.setPictureSize(mPreviewWidth, mPreviewHeight);
+        params.setPreviewSize(mPreviewWidth, mPreviewHeight);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewFormat(ImageFormat.NV21);

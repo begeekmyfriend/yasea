@@ -17,9 +17,8 @@ public interface RtmpPublisher {
      *
      * @param url specify the RTMP url
      * @return If succeeded return true else return false
-     * @throws IOException if a network/IO error occurs
      */
-    boolean connect(String url) throws IOException;
+    boolean connect(String url);
     
     /**
      * Issues an RTMP "publish" command and write the media content stream packets (audio and video). 
@@ -27,19 +26,13 @@ public interface RtmpPublisher {
      * @param publishType specify the way to publish raw RTMP packets among "live", "record" and "append"
      * @return If succeeded return true else return false
      * @throws IllegalStateException if the client is not connected to a RTMP server
-     * @throws IOException if a network/IO error occurs
      */
-    boolean publish(String publishType) throws IllegalStateException, IOException;
+    boolean publish(String publishType);
      
     /**
-     * Stops and closes the current RTMP stream
+     * Stop and close the current RTMP streaming client.
      */
-    void closeStream() throws IllegalStateException;
-    
-    /**
-     * Shuts down the RTMP client and stops all threads associated with it
-     */
-    void shutdown();
+    void close();
 
     /**
      * publish a video content packet to server
@@ -47,7 +40,7 @@ public interface RtmpPublisher {
      * @param data video stream byte array
      * @param dts video stream decoding timestamp
      */
-    void publishVideoData(byte[] data, int dts) throws IllegalStateException;
+    void publishVideoData(byte[] data, int dts);
 
     /**
      * publish an audio content packet to server
@@ -55,7 +48,7 @@ public interface RtmpPublisher {
      * @param data audio stream byte array
      * @param dts audio stream decoding timestamp
      */
-    void publishAudioData(byte[] data, int dts) throws IllegalStateException;
+    void publishAudioData(byte[] data, int dts);
 
     /**
      * obtain video frame number cached in publisher
@@ -80,8 +73,8 @@ public interface RtmpPublisher {
     /**
      * set video resolution
      *
-     * @param width
-     * @param height
+     * @param width video width
+     * @param height video height
      */
     void setVideoResolution(int width, int height);
 

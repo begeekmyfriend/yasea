@@ -74,9 +74,12 @@ public class SrsEncoder {
     // NV16 -> YUV422SP  yyyy uv uv
     // YUY2 -> YUV422SP  yuyv yuyv
 
-    public SrsEncoder(SrsEncodeHandler handler) {
-        mHandler = handler;
+    public SrsEncoder() {
         mVideoColorFormat = chooseVideoEncoder();
+    }
+
+    public void setEncodeHandler(SrsEncodeHandler handler) {
+        mHandler = handler;
     }
 
     public void setFlvMuxer(SrsFlvMuxer flvMuxer) {

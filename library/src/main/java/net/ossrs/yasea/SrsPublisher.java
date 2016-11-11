@@ -13,7 +13,6 @@ import java.io.IOException;
  * Created by Leo Ma on 2016/7/25.
  */
 public class SrsPublisher {
-    private static final String TAG = "SrsPublisher";
 
     private AudioRecord mic;
     private boolean aloop = false;
@@ -28,7 +27,7 @@ public class SrsPublisher {
 
     private SrsFlvMuxer mFlvMuxer;
     private SrsMp4Muxer mMp4Muxer;
-    private SrsEncoder mEncoder;
+    private SrsEncoder mEncoder = new SrsEncoder();
 
     public SrsPublisher(SrsCameraView view) {
         mCameraView = view;
@@ -243,25 +242,15 @@ public class SrsPublisher {
 
     public void setRtmpHandler(RtmpHandler handler) {
         mFlvMuxer = new SrsFlvMuxer(handler);
-        if (mEncoder != null) {
-            mEncoder.setFlvMuxer(mFlvMuxer);
-        }
+        mEncoder.setFlvMuxer(mFlvMuxer);
     }
 
     public void setRecordHandler(SrsRecordHandler handler) {
         mMp4Muxer = new SrsMp4Muxer(handler);
-        if (mEncoder != null) {
-            mEncoder.setMp4Muxer(mMp4Muxer);
-        }
+        mEncoder.setMp4Muxer(mMp4Muxer);
     }
 
     public void setEncodeHandler(SrsEncodeHandler handler) {
-        mEncoder = new SrsEncoder(handler);
-        if (mFlvMuxer != null) {
-            mEncoder.setFlvMuxer(mFlvMuxer);
-        }
-        if (mMp4Muxer != null) {
-            mEncoder.setMp4Muxer(mMp4Muxer);
-        }
+        mEncoder.setEncodeHandler(handler);
     }
 }

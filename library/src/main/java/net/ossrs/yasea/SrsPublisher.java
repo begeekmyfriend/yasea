@@ -32,7 +32,7 @@ public class SrsPublisher {
 
     public SrsPublisher(SrsCameraView view) {
         mCameraView = view;
-        mCameraView.setPreviewResolution(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
+//        mCameraView.setPreviewResolution(mEncoder.getPreviewWidth(), mEncoder.getPreviewHeight());
         mCameraView.setPreviewCallback(new SrsCameraView.PreviewCallback() {
             @Override
             public void onGetYuvFrame(byte[] data) {
@@ -165,7 +165,8 @@ public class SrsPublisher {
     }
 
     public void setPreviewResolution(int width, int height) {
-        mEncoder.setPreviewResolution(width, height);
+        mCameraView.setPreviewResolution(new SrsCameraView.Resolution(width, height));
+        mEncoder.setPreviewResolution(mCameraView.getPreviewResolution().width, mCameraView.getPreviewResolution().height);
     }
 
     public void setOutputResolution(int width, int height) {
@@ -194,7 +195,7 @@ public class SrsPublisher {
 
     public void setSendAudioOnly(boolean flag) {
         sendAudioOnly = flag;
-    }    
+    }
 
     public void switchCameraFace(int id) {
         mCameraView.setCameraId(id);

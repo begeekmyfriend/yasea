@@ -21,8 +21,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     private int mCamId = -1;
     private PreviewCallback mPrevCb;
     private byte[] mYuvPreviewFrame;
-    private int previewWidth;
-    private int previewHeight;
+    private Resolution mResolution = new Resolution(SrsEncoder.vPrevWidth, SrsEncoder.vPrevHeight);
 
     public interface PreviewCallback {
         void onGetYuvFrame(byte[] data);
@@ -53,50 +52,92 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         getHolder().addCallback(this);
     }
 
-    public void setPreviewResolution(int width, int height) {
-        previewWidth = width;
-        previewHeight = height;
+    private Resolution getBestCameraResolution(Camera.Parameters parameters,Resolution screenResolution) {
+        float tmp;
+        float mindiff = 100f;
+        float x_d_y = (float) screenResolution.width / (float) screenResolution.height;
+        Camera.Size best = null;
+        List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
+        for (Camera.Size s : supportedPreviewSizes) {
+            tmp = Math.abs(((float) s.height / (float) s.width) - x_d_y);
+            if (tmp < mindiff) {
+                mindiff = tmp;
+                best = s;
+            }
+        }
+        return new Resolution(best.width, best.height);
     }
-    
+
+    private Camera createCamera() {
+        Camera camera;
+        if (mCamId < 0) {
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            int numCameras = Camera.getNumberOfCameras();
+            int frontId = -1;
+            int defaultId = -1;
+            for (int i = 0; i < numCameras; i++) {
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    defaultId = i;
+                }
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    frontId = i;
+                    break;
+                }
+            }
+            if (frontId != -1) {
+                mCamId = frontId;
+            } else if (defaultId != -1) {
+                mCamId = defaultId;
+            } else {
+                mCamId = 0;
+            }
+        }
+        camera = Camera.open(mCamId);
+        return camera;
+    }
+
+    public Resolution setPreviewResolution(Resolution resolution) {
+        mResolution.width = resolution.width;
+        mResolution.height = resolution.height;
+        if (mCamId < Camera.getNumberOfCameras()) {
+            Camera camera = createCamera();
+            if (camera != null) {
+                Resolution rs = getBestCameraResolution(camera.getParameters(), mResolution);
+                if (rs != null) {
+                    mResolution = rs;
+                }
+                camera.release();
+            }
+        }
+        return mResolution;
+    }
+
+    public Resolution getPreviewResolution() {
+        return mResolution;
+    }
+
     public boolean startCamera() {
         if (mCamera != null) {
             return false;
         }
-        if (mCamId > (Camera.getNumberOfCameras() - 1)) {
+
+        mCamera = createCamera();
+        if (mCamera == null) {
             return false;
         }
 
-        if (mCamId < 0) {
-            Camera.CameraInfo info = new Camera.CameraInfo();
-            int numCameras = Camera.getNumberOfCameras();
-            for (int i = 0; i < numCameras; i++) {
-                Camera.getCameraInfo(i, info);
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mCamera = Camera.open(i);
-                    mCamId = i;
-                    break;
-                }
-            }
-        } else {
-            mCamera = Camera.open(mCamId);
-        }
-        if (mCamera == null) {
-            mCamera = Camera.open();
-            mCamId = 0;
-        }
-
         Camera.Parameters params = mCamera.getParameters();
-        Camera.Size size = mCamera.new Size(previewWidth, previewHeight);
-        if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
+        Camera.Size size = mCamera.new Size(mResolution.width, mResolution.height);
+        if (!params.getSupportedPreviewSizes().contains(size)) {
             Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
             stopCamera();
             return false;
         }
 
-        mYuvPreviewFrame = new byte[previewWidth * previewHeight * 3 / 2];
+        mYuvPreviewFrame = new byte[mResolution.width * mResolution.height * 3 / 2];
 
-        params.setPictureSize(previewWidth, previewHeight);
-        params.setPreviewSize(previewWidth, previewHeight);
+        params.setPreviewSize(mResolution.width, mResolution.height);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewFormat(ImageFormat.NV21);
@@ -179,5 +220,31 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
+    }
+
+    public static class Resolution {
+        int width;
+        int height;
+
+        public Resolution(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public void setHeight(int height) {
+            this.height = height;
+        }
+
+        public int getWidth() {
+            return width;
+        }
+
+        public void setWidth(int width) {
+            this.width = width;
+        }
     }
 }

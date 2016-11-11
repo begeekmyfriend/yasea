@@ -38,7 +38,7 @@ public class SrsEncoder {
     public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
     public static final int ABITRATE = 32 * 1000;  // 32kbps
 
-    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+    private SrsEncodeHandler mHandler;
 
     private SrsFlvMuxer flvMuxer;
     private SrsMp4Muxer mp4Muxer;
@@ -49,7 +49,6 @@ public class SrsEncoder {
     private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
-    private SrsNetworkHandler mHandler;
     private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
     private boolean useSoftEncoder = false;
@@ -74,7 +73,8 @@ public class SrsEncoder {
     // NV16 -> YUV422SP  yyyy uv uv
     // YUY2 -> YUV422SP  yuyv yuyv
 
-    public SrsEncoder() {
+    public SrsEncoder(SrsEncodeHandler handler) {
+        mHandler = handler;
         mVideoColorFormat = chooseVideoEncoder();
     }
 
@@ -84,10 +84,6 @@ public class SrsEncoder {
 
     public void setMp4Muxer(SrsMp4Muxer mp4Muxer) {
         this.mp4Muxer = mp4Muxer;
-    }
-
-    public void setNetworkEventHandler(SrsNetworkHandler handler) {
-        mHandler = handler;
     }
 
     public boolean start() {
@@ -261,11 +257,10 @@ public class SrsEncoder {
     }
 
     public void setScreenOrientation(int orientation) {
-        mOrientation = orientation;
-        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
             vOutWidth = vPortraitWidth;
             vOutHeight = vPortraitHeight;
-        } else if (mOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+        } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             vOutWidth = vLandscapeWidth;
             vOutHeight = vLandscapeHeight;
         }
@@ -316,26 +311,16 @@ public class SrsEncoder {
 
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        try {
-            ByteBuffer record = es.duplicate();
-            mp4Muxer.writeSampleData(videoMp4Track, record, bi);
-            flvMuxer.writeSampleData(videoFlvTrack, es, bi);
-        } catch (Exception e) {
-            Log.e(TAG, "muxer write video sample failed.");
-            e.printStackTrace();
-        }
+        ByteBuffer record = es.duplicate();
+        mp4Muxer.writeSampleData(videoMp4Track, record, bi);
+        flvMuxer.writeSampleData(videoFlvTrack, es, bi);
     }
 
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        try {
-            ByteBuffer record = es.duplicate();
-            mp4Muxer.writeSampleData(audioMp4Track, record, bi);
-            flvMuxer.writeSampleData(audioFlvTrack, es, bi);
-        } catch (Exception e) {
-            Log.e(TAG, "muxer write audio sample failed.");
-            e.printStackTrace();
-        }
+        ByteBuffer record = es.duplicate();
+        mp4Muxer.writeSampleData(audioMp4Track, record, bi);
+        flvMuxer.writeSampleData(audioFlvTrack, es, bi);
     }
 
     public void onGetPcmFrame(byte[] data, int size) {
@@ -376,8 +361,7 @@ public class SrsEncoder {
                 if (processedData != null) {
                     onProcessedYuvFrame(processedData, pts);
                 } else {
-                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                            new IllegalArgumentException("libyuv failure"));
+                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
                 }
             }
 

@@ -98,7 +98,7 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     @Override
-    public boolean connect(String url) throws IOException {
+    public boolean connect(String url) {
         Matcher matcher = rtmpUrlPattern.matcher(url);
         if (matcher.matches()) {
             tcUrl = url.substring(0, url.lastIndexOf('/'));
@@ -110,7 +110,9 @@ public class RtmpConnection implements RtmpPublisher {
             appName = matcher.group(4);
             streamName = matcher.group(6);
         } else {
-            throw new IllegalArgumentException("Invalid RTMP URL. Must be in format: rtmp://host[:port]/application[/streamName]");
+            mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException(
+                "Invalid RTMP URL. Must be in format: rtmp://host[:port]/application[/streamName]"));
+            return false;
         }
 
         // socket connection
@@ -119,12 +121,18 @@ public class RtmpConnection implements RtmpPublisher {
         rtmpDecoder = new RtmpDecoder(rtmpSessionInfo);
         socket = new Socket();
         SocketAddress socketAddress = new InetSocketAddress(host, port);
-        socket.connect(socketAddress, 3000);
-        inputStream = new BufferedInputStream(socket.getInputStream());
-        outputStream = new BufferedOutputStream(socket.getOutputStream());
-        Log.d(TAG, "connect(): socket connection established, doing handhake...");
-        handshake(inputStream, outputStream);
-        Log.d(TAG, "connect(): handshake done");
+        try {
+            socket.connect(socketAddress, 3000);
+            inputStream = new BufferedInputStream(socket.getInputStream());
+            outputStream = new BufferedOutputStream(socket.getOutputStream());
+            Log.d(TAG, "connect(): socket connection established, doing handhake...");
+            handshake(inputStream, outputStream);
+            Log.d(TAG, "connect(): handshake done");
+        } catch (IOException e) {
+            e.printStackTrace();
+            mHandler.notifyRtmpIOException(e);
+            return false;
+        }
 
         // Start the "main" handling thread
         rxPacketHandler = new Thread(new Runnable() {
@@ -144,9 +152,10 @@ public class RtmpConnection implements RtmpPublisher {
         return rtmpConnect();
     }
 
-    private boolean rtmpConnect() throws IllegalStateException {
+    private boolean rtmpConnect() {
         if (connected) {
-            throw new IllegalStateException("Already connected to RTMP server");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Already connected to RTMP server"));
+            return false;
         }
 
         // Mark session timestamp of all chunk stream information on connection.
@@ -186,17 +195,23 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     @Override
-    public boolean publish(String type) throws IllegalStateException, IOException {
+    public boolean publish(String type) {
+        if (type == null) {
+            mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException("No publish type specified"));
+            return false;
+        }
         publishType = type;
         return createStream();
     }
 
     private boolean createStream() {
         if (!connected) {
-            throw new IllegalStateException("Not connected to RTMP server");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not connected to RTMP server"));
+            return false;
         }
         if (currentStreamId != 0) {
-            throw new IllegalStateException("Current stream object has existed");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Current stream object has existed"));
+            return false;
         }
 
         Log.d(TAG, "createStream(): Sending releaseStream command...");
@@ -238,12 +253,14 @@ public class RtmpConnection implements RtmpPublisher {
         return publishPermitted;
     }
 
-    private void fmlePublish() throws IllegalStateException {
+    private void fmlePublish() {
         if (!connected) {
-            throw new IllegalStateException("Not connected to RTMP server");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not connected to RTMP server"));
+            return;
         }
         if (currentStreamId == 0) {
-            throw new IllegalStateException("No current stream object exists");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("No current stream object exists"));
+            return;
         }
 
         Log.d(TAG, "fmlePublish(): Sending publish command...");
@@ -257,12 +274,14 @@ public class RtmpConnection implements RtmpPublisher {
         sendRtmpPacket(publish);
     }
 
-    private void onMetaData() throws IllegalStateException {
+    private void onMetaData() {
         if (!connected) {
-            throw new IllegalStateException("Not connected to RTMP server");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not connected to RTMP server"));
+            return;
         }
         if (currentStreamId == 0) {
-            throw new IllegalStateException("No current stream object exists");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("No current stream object exists"));
+            return;
         }
 
         Log.d(TAG, "onMetaData(): Sending empty onMetaData...");
@@ -285,15 +304,25 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     @Override
-    public void closeStream() throws IllegalStateException {
+    public void close() {
+        if (socket != null) {
+            closeStream();
+        }
+        shutdown();
+    }
+
+    private void closeStream() {
         if (!connected) {
-            throw new IllegalStateException("Not connected to RTMP server");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not connected to RTMP server"));
+            return;
         }
         if (currentStreamId == 0) {
-            throw new IllegalStateException("No current stream object exists");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("No current stream object exists"));
+            return;
         }
         if (!publishPermitted) {
-            throw new IllegalStateException("Not get _result(Netstream.Publish.Start)");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not get _result(Netstream.Publish.Start)"));
+            return;
         }
         Log.d(TAG, "closeStream(): setting current stream ID to 0");
         Command closeStream = new Command("closeStream", 0);
@@ -304,8 +333,7 @@ public class RtmpConnection implements RtmpPublisher {
         mHandler.notifyRtmpStopped();
     }
 
-    @Override
-    public void shutdown() {
+    private void shutdown() {
         if (socket != null) {
             try {
                 // It will raise EOFException in handleRxPacketThread
@@ -357,20 +385,28 @@ public class RtmpConnection implements RtmpPublisher {
         serverIpAddr = null;
         serverPid = null;
         serverId = null;
+        socket = null;
         rtmpSessionInfo = null;
         rtmpDecoder = null;
     }
 
     @Override
-    public void publishAudioData(byte[] data, int dts) throws IllegalStateException {
+    public void publishAudioData(byte[] data, int dts) {
+        if (data == null || data.length == 0 || dts < 0) {
+            mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException("Invalid Audio Data"));
+            return;
+        }
         if (!connected) {
-            throw new IllegalStateException("Not connected to RTMP server");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not connected to RTMP server"));
+            return;
         }
         if (currentStreamId == 0) {
-            throw new IllegalStateException("No current stream object exists");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("No current stream object exists"));
+            return;
         }
         if (!publishPermitted) {
-            throw new IllegalStateException("Not get _result(Netstream.Publish.Start)");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not get _result(Netstream.Publish.Start)"));
+            return;
         }
         Audio audio = new Audio();
         audio.setData(data);
@@ -382,15 +418,22 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     @Override
-    public void publishVideoData(byte[] data, int dts) throws IllegalStateException {
+    public void publishVideoData(byte[] data, int dts) {
+        if (data == null || data.length == 0 || dts < 0) {
+            mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException("Invalid Video Data"));
+            return;
+        }
         if (!connected) {
-            throw new IllegalStateException("Not connected to RTMP server");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not connected to RTMP server"));
+            return;
         }
         if (currentStreamId == 0) {
-            throw new IllegalStateException("No current stream object exists");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("No current stream object exists"));
+            return;
         }
         if (!publishPermitted) {
-            throw new IllegalStateException("Not get _result(Netstream.Publish.Start)");
+            mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Not get _result(Netstream.Publish.Start)"));
+            return;
         }
         Video video = new Video();
         video.setData(data);
@@ -447,14 +490,16 @@ public class RtmpConnection implements RtmpPublisher {
             }
             outputStream.flush();
         } catch (SocketException se) {
+            // Since there are still remaining AV frame in the cache, we set a flag to guarantee the
+            // socket exception only issue one time.
             if (!socketExceptionCause.contentEquals(se.getMessage())) {
                 socketExceptionCause = se.getMessage();
                 Log.e(TAG, "Caught SocketException during write loop, shutting down: " + se.getMessage());
-                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), se);
+                mHandler.notifyRtmpSocketException(se);
             }
         } catch (IOException ioe) {
             Log.e(TAG, "Caught IOException during write loop, shutting down: " + ioe.getMessage());
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ioe);
+            mHandler.notifyRtmpIOException(ioe);
         }
     }
 
@@ -475,7 +520,7 @@ public class RtmpConnection implements RtmpPublisher {
                             switch (user.getType()) {
                                 case STREAM_BEGIN:
                                     if (currentStreamId != user.getFirstEventData()) {
-                                        throw new IllegalStateException("Current stream ID error!");
+                                        mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Current stream ID error!"));
                                     }
                                     break;
                                 case PING_REQUEST:
@@ -520,10 +565,10 @@ public class RtmpConnection implements RtmpPublisher {
                 Thread.currentThread().interrupt();
             } catch (SocketException se) {
                 Log.e(TAG, "Caught SocketException while reading/decoding packet, shutting down: " + se.getMessage());
-                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), se);
+                mHandler.notifyRtmpSocketException(se);
             } catch (IOException ioe) {
                 Log.e(TAG, "Caught exception while reading/decoding packet, shutting down: " + ioe.getMessage());
-                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ioe);
+                mHandler.notifyRtmpIOException(ioe);
             }
         }
     }

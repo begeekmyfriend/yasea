@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Created by winlin on 5/2/15.
  * Updated by leoma on 4/1/16.
  * to POST the h.264/avc annexb frame to SRS over RTMP.
- * @remark we must start a worker thread to send data to server.
  * @see android.media.MediaMuxer https://developer.android.com/reference/android/media/MediaMuxer.html
  *
  * Usage:
@@ -48,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SrsFlvMuxer {
     private volatile boolean connected = false;
     private DefaultRtmpPublisher publisher;
+    private RtmpHandler mHandler;
 
     private Thread worker;
     private final Object txFrameLock = new Object();
@@ -67,6 +67,7 @@ public class SrsFlvMuxer {
      * @param handler the rtmp event handler.
      */
     public SrsFlvMuxer(RtmpHandler handler) {
+        mHandler = handler;
         publisher = new DefaultRtmpPublisher(handler);
     }
 
@@ -105,11 +106,10 @@ public class SrsFlvMuxer {
 
     private void disconnect() {
         try {
-            publisher.closeStream();
+            publisher.close();
         } catch (IllegalStateException e) {
             // Ignore illegal state.
         }
-        publisher.shutdown();
         connected = false;
         videoSequenceHeader = null;
         audioSequenceHeader = null;
@@ -117,23 +117,18 @@ public class SrsFlvMuxer {
     }
 
     private boolean connect(String url) {
-        try {
-            if (!connected) {
-                Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
-                if (publisher.connect(url)) {
-                    connected = publisher.publish("live");
-                }
-                videoSequenceHeader = null;
-                audioSequenceHeader = null;
+        if (!connected) {
+            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
+            if (publisher.connect(url)) {
+                connected = publisher.publish("live");
             }
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), ioe);
+            videoSequenceHeader = null;
+            audioSequenceHeader = null;
         }
         return connected;
     }
 
-    private void sendFlvTag(SrsFlvFrame frame) throws IllegalStateException, IOException {
+    private void sendFlvTag(SrsFlvFrame frame) {
         if (!connected || frame == null) {
             return;
         }
@@ -153,8 +148,7 @@ public class SrsFlvMuxer {
     /**
      * start to the remote SRS for remux.
      */
-    public void start(final String rtmpUrl) throws IOException {
-
+    public void start(final String rtmpUrl) {
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -165,25 +159,20 @@ public class SrsFlvMuxer {
                 while (!Thread.interrupted()) {
                     while (!frameCache.isEmpty()) {
                         SrsFlvFrame frame = frameCache.poll();
-                        try {
-                            if (frame.is_sequenceHeader()) {
-                                if (frame.is_video()) {
-                                    videoSequenceHeader = frame;
-                                    sendFlvTag(videoSequenceHeader);
-                                } else if (frame.is_audio()) {
-                                    audioSequenceHeader = frame;
-                                    sendFlvTag(audioSequenceHeader);
-                                }
-                            } else {
-                                if (frame.is_video() && videoSequenceHeader != null) {
-                                    sendFlvTag(frame);
-                                } else if (frame.is_audio() && audioSequenceHeader != null) {
-                                    sendFlvTag(frame);
-                                }
+                        if (frame.is_sequenceHeader()) {
+                            if (frame.is_video()) {
+                                videoSequenceHeader = frame;
+                                sendFlvTag(videoSequenceHeader);
+                            } else if (frame.is_audio()) {
+                                audioSequenceHeader = frame;
+                                sendFlvTag(audioSequenceHeader);
                             }
-                        } catch (IOException ioe) {
-                            ioe.printStackTrace();
-                            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(worker, ioe);
+                        } else {
+                            if (frame.is_video() && videoSequenceHeader != null) {
+                                sendFlvTag(frame);
+                            } else if (frame.is_audio() && audioSequenceHeader != null) {
+                                sendFlvTag(frame);
+                            }
                         }
                     }
                     // Waiting for next frame
@@ -205,13 +194,6 @@ public class SrsFlvMuxer {
      * stop the muxer, disconnect RTMP connection from SRS.
      */
     public void stop() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                disconnect();
-            }
-        }).start();
-
         if (worker != null) {
             worker.interrupt();
             try {
@@ -223,10 +205,16 @@ public class SrsFlvMuxer {
             frameCache.clear();
             worker = null;
         }
-
         flv.reset();
         needToFindKeyFrame = true;
         Log.i(TAG, "SrsFlvMuxer closed");
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                disconnect();
+            }
+        }).start();
     }
 
     /**
@@ -235,7 +223,7 @@ public class SrsFlvMuxer {
      * @param byteBuf The encoded sample.
      * @param bufferInfo The buffer information related to this sample.
      */
-    public void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) throws IllegalArgumentException {
+    public void writeSampleData(int trackIndex, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) {
         if (bufferInfo.offset > 0) {
             Log.w(TAG, String.format("encoded frame %dB, offset=%d pts=%dms",
                     bufferInfo.size, bufferInfo.offset, bufferInfo.presentationTimeUs / 1000
@@ -279,7 +267,7 @@ public class SrsFlvMuxer {
     //     3 = disposable inter frame (H.263 only)
     //     4 = generated key frame (reserved for server use only)
     //     5 = video info/command frame
-    class SrsCodecVideoAVCFrame
+    private class SrsCodecVideoAVCFrame
     {
         // set to the zero to reserved, for array map.
         public final static int Reserved = 0;
@@ -298,7 +286,7 @@ public class SrsFlvMuxer {
     //     1 = AVC NALU
     //     2 = AVC end of sequence (lower level NALU sequence ender is
     //         not required or supported)
-    class SrsCodecVideoAVCType
+    private class SrsCodecVideoAVCType
     {
         // set to the max value to reserved, for array map.
         public final static int Reserved                    = 3;
@@ -311,7 +299,7 @@ public class SrsFlvMuxer {
     /**
      * E.4.1 FLV Tag, page 75
      */
-    class SrsCodecFlvTag
+    private class SrsCodecFlvTag
     {
         // set to the zero to reserved, for array map.
         public final static int Reserved = 0;
@@ -333,7 +321,7 @@ public class SrsFlvMuxer {
     //     5 = On2 VP6 with alpha channel
     //     6 = Screen video version 2
     //     7 = AVC
-    class SrsCodecVideo
+    private class SrsCodecVideo
     {
         // set to the zero to reserved, for array map.
         public final static int Reserved                = 0;
@@ -356,7 +344,7 @@ public class SrsFlvMuxer {
      * for AudioSpecificConfig, @see aac-mp4a-format-ISO_IEC_14496-3+2001.pdf, page 33
      * for audioObjectType, @see aac-mp4a-format-ISO_IEC_14496-3+2001.pdf, page 23
      */
-    class SrsAacObjectType
+    private class SrsAacObjectType
     {
         public final static int Reserved = 0;
 
@@ -376,7 +364,7 @@ public class SrsFlvMuxer {
      * the aac profile, for ADTS(HLS/TS)
      * @see https://github.com/simple-rtmp-server/srs/issues/310
      */
-    class SrsAacProfile
+    private class SrsAacProfile
     {
         public final static int Reserved = 3;
 
@@ -394,7 +382,7 @@ public class SrsFlvMuxer {
      * 2 = 22 kHz = 22050 Hz
      * 3 = 44 kHz = 44100 Hz
      */
-    class SrsCodecAudioSampleRate
+    private class SrsCodecAudioSampleRate
     {
         // set to the max value to reserved, for array map.
         public final static int Reserved                 = 4;
@@ -409,7 +397,7 @@ public class SrsFlvMuxer {
      * Table 7-1 – NAL unit type codes, syntax element categories, and NAL unit type classes
      * H.264-AVC-ISO_IEC_14496-10-2012.pdf, page 83.
      */
-    class SrsAvcNaluType
+    private class SrsAvcNaluType
     {
         // Unspecified
         public final static int Reserved = 0;
@@ -499,7 +487,7 @@ public class SrsFlvMuxer {
     /**
      * the search result for annexb.
      */
-    class SrsAnnexbSearch {
+    private class SrsAnnexbSearch {
         public int nb_start_code = 0;
         public boolean match = false;
     }
@@ -507,7 +495,7 @@ public class SrsFlvMuxer {
     /**
      * the demuxed tag frame.
      */
-    class SrsFlvFrameBytes {
+    private class SrsFlvFrameBytes {
         public ByteBuffer data;
         public int size;
     }
@@ -515,7 +503,7 @@ public class SrsFlvMuxer {
     /**
      * the muxed flv frame.
      */
-    class SrsFlvFrame {
+    private class SrsFlvFrame {
         // the tag bytes.
         public ByteBuffer flvTag;
         // the codec type for audio/aac and video/avc for instance.
@@ -547,7 +535,7 @@ public class SrsFlvMuxer {
     /**
      * the raw h.264 stream, in annexb.
      */
-    class SrsRawH264Stream {
+    private class SrsRawH264Stream {
         private SrsUtils utils;
         private final static String TAG = "SrsFlvMuxer";
 
@@ -727,7 +715,7 @@ public class SrsFlvMuxer {
             return flv_tag;
         }
 
-        public SrsFlvFrameBytes annexb_demux(ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
+        public SrsFlvFrameBytes annexb_demux(ByteBuffer bb, MediaCodec.BufferInfo bi) {
             SrsFlvFrameBytes tbb = new SrsFlvFrameBytes();
 
             while (bb.position() < bi.size) {
@@ -737,7 +725,8 @@ public class SrsFlvMuxer {
                 if (!tbbsc.match || tbbsc.nb_start_code < 3) {
                     Log.e(TAG, "annexb not match.");
                     SrsFlvMuxer.srs_print_bytes(TAG, bb, 16);
-                    throw new IllegalArgumentException(String.format("annexb not match for %dB, pos=%d", bi.size, bb.position()));
+                    mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException(
+                        String.format("annexb not match for %dB, pos=%d", bi.size, bb.position())));
                 }
 
                 // the start codes.
@@ -765,7 +754,7 @@ public class SrsFlvMuxer {
         }
     }
 
-    class SrsRawAacStreamCodec {
+    private class SrsRawAacStreamCodec {
         public byte protection_absent;
         // SrsAacObjectType
         public int aac_object;
@@ -786,7 +775,7 @@ public class SrsFlvMuxer {
     /**
      * remux the annexb to flv tags.
      */
-    class SrsFlv {
+    private class SrsFlv {
         private MediaFormat videoTrack;
         private MediaFormat audioTrack;
         private int achannel;
@@ -941,7 +930,7 @@ public class SrsFlvMuxer {
             frame[offset + 6] |= 0x0;
         }
 
-        public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) throws IllegalArgumentException {
+        public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
             int pts = (int)(bi.presentationTimeUs / 1000);
             int dts = (int)pts;
 

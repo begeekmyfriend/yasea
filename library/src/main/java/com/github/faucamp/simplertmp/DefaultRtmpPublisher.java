@@ -19,41 +19,27 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public boolean connect(String url) throws IOException {
+    public boolean connect(String url) {
         return rtmpConnection.connect(url);
     }
 
     @Override
-    public void shutdown() {
-        rtmpConnection.shutdown();
-    }
-
-    @Override
-    public boolean publish(String publishType) throws IllegalStateException, IOException {
-        if (publishType == null) {
-            throw new IllegalStateException("No publish type specified");
-        }
+    public boolean publish(String publishType) {
         return rtmpConnection.publish(publishType);
     }
 
     @Override
-    public void closeStream() throws IllegalStateException {
-        rtmpConnection.closeStream();
+    public void close() {
+        rtmpConnection.close();
     }
 
     @Override
-    public void publishVideoData(byte[] data, int dts) throws IllegalStateException {
-        if (data == null || data.length == 0 || dts < 0) {
-            throw new IllegalStateException("Invalid Video Data");
-        }
+    public void publishVideoData(byte[] data, int dts) {
         rtmpConnection.publishVideoData(data, dts);
     }
 
     @Override
-    public void publishAudioData(byte[] data, int dts) throws IllegalStateException {
-        if (data == null || data.length == 0 || dts < 0) {
-            throw new IllegalStateException("Invalid Audio Data");
-        }
+    public void publishAudioData(byte[] data, int dts) {
         rtmpConnection.publishAudioData(data, dts);
     }
 

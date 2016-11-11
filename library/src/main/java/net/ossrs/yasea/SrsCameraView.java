@@ -53,41 +53,37 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         getHolder().addCallback(this);
     }
 
-    public void setPreviewResolution(int width, int height) {
+    public int[] setPreviewResolution(int width, int height) {
         mPreviewWidth = width;
         mPreviewHeight = height;
+        if (mCamId < Camera.getNumberOfCameras()) {
+            Camera camera = createCamera();
+            Camera.Size size = camera.new Size(width, height);
+            if (camera != null) {
+                Camera.Size rs = getBestCameraResolution(camera.getParameters(), size);
+                if (rs != null) {
+                    mPreviewWidth = rs.width;
+                    mPreviewHeight = rs.height;
+                }
+                camera.release();
+            }
+        }
+        return new int[]{mPreviewWidth,mPreviewHeight};
     }
     
     public boolean startCamera() {
         if (mCamera != null) {
             return false;
         }
-        if (mCamId > (Camera.getNumberOfCameras() - 1)) {
-            return false;
-        }
 
-        if (mCamId < 0) {
-            Camera.CameraInfo info = new Camera.CameraInfo();
-            int numCameras = Camera.getNumberOfCameras();
-            for (int i = 0; i < numCameras; i++) {
-                Camera.getCameraInfo(i, info);
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mCamera = Camera.open(i);
-                    mCamId = i;
-                    break;
-                }
-            }
-        } else {
-            mCamera = Camera.open(mCamId);
-        }
+        mCamera = createCamera();
         if (mCamera == null) {
-            mCamera = Camera.open();
-            mCamId = 0;
+            return false;
         }
 
         Camera.Parameters params = mCamera.getParameters();
         Camera.Size size = mCamera.new Size(mPreviewWidth, mPreviewHeight);
-        if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
+        if (!params.getSupportedPreviewSizes().contains(size)) {
             Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
             stopCamera();
             return false;
@@ -95,7 +91,6 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
         mYuvPreviewFrame = new byte[mPreviewWidth * mPreviewHeight * 3 / 2];
 
-        params.setPictureSize(mPreviewWidth, mPreviewHeight);
         params.setPreviewSize(mPreviewWidth, mPreviewHeight);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
@@ -179,5 +174,54 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
+    }
+
+    private Camera.Size getBestCameraResolution(Camera.Parameters parameters, Camera.Size screenResolution) {
+        float tmp;
+        float diff = 100f;
+        float xdy = (float) screenResolution.width / (float) screenResolution.height;
+        Camera.Size best = null;
+        List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
+        for (Camera.Size s : supportedPreviewSizes) {
+            if (s.equals(screenResolution)) {
+                best = s;
+                break;
+            }
+            tmp = Math.abs(((float) s.width / (float) s.height) - xdy);
+            if (tmp < diff) {
+                diff = tmp;
+                best = s;
+            }
+        }
+        return best;
+    }
+
+    private Camera createCamera() {
+        Camera camera;
+        if (mCamId < 0) {
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            int numCameras = Camera.getNumberOfCameras();
+            int frontId = -1;
+            int defaultId = -1;
+            for (int i = 0; i < numCameras; i++) {
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    defaultId = i;
+                }
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    frontId = i;
+                    break;
+                }
+            }
+            if (frontId != -1) {
+                mCamId = frontId;
+            } else if (defaultId != -1) {
+                mCamId = defaultId;
+            } else {
+                mCamId = 0;
+            }
+        }
+        camera = Camera.open(mCamId);
+        return camera;
     }
 }

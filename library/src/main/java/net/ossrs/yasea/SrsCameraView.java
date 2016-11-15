@@ -8,7 +8,6 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.util.AttributeSet;
-import android.widget.Toast;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
@@ -30,9 +29,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Renderer {
 
     private GPUImageFilter magicFilter;
-
     private SurfaceTexture surfaceTexture;
-
     private int mOESTextureId = OpenGLUtils.NO_TEXTURE;
     private int mSurfaceWidth;
     private int mSurfaceHeight;
@@ -45,7 +42,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private float[] mTransformMatrix = new float[16];
 
     private Camera mCamera;
-    private ByteBuffer mGlPreviewBuffer;
+    private ByteBuffer mGLPreviewBuffer;
     private int mCamId = -1;
     private int mPreviewRotation = 90;
 
@@ -132,11 +129,23 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         mPrevCb = cb;
     }
 
-    public void setPreviewResolution(int width, int height) {
+    public int[] setPreviewResolution(int width, int height) {
+        mCamera = openCamera();
+
         mPreviewWidth = width;
         mPreviewHeight = height;
-        mGlPreviewBuffer = ByteBuffer.allocate(width * height * 4);
-        mInputAspectRatio = width > height ? (float) width / height : (float) height / width;
+        Camera.Size rs = adaptPreviewResolution(mCamera.new Size(width, height));
+        if (rs != null) {
+            mPreviewWidth = rs.width;
+            mPreviewHeight = rs.height;
+        }
+        mCamera.getParameters().setPreviewSize(mPreviewWidth, mPreviewHeight);
+
+        mGLPreviewBuffer = ByteBuffer.allocate(mPreviewWidth * mPreviewHeight * 4);
+        mInputAspectRatio = mPreviewWidth > mPreviewHeight ?
+            (float) mPreviewWidth / mPreviewHeight : (float) mPreviewHeight / mPreviewWidth;
+
+        return new int[] { mPreviewWidth, mPreviewHeight };
     }
 
     public boolean setFilter(final MagicFilterType type) {
@@ -187,21 +196,14 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     public boolean startCamera() {
-        if (mCamera != null) {
-            return false;
-        }
-        if (mCamId > (Camera.getNumberOfCameras() - 1)) {
-            return false;
-        }
-
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (!Thread.interrupted()) {
                     while (!mGLIntBufferCache.isEmpty()) {
                         IntBuffer picture = mGLIntBufferCache.poll();
-                        mGlPreviewBuffer.asIntBuffer().put(picture.array());
-                        mPrevCb.onGetRgbaFrame(mGlPreviewBuffer.array(), mPreviewWidth, mPreviewHeight);
+                        mGLPreviewBuffer.asIntBuffer().put(picture.array());
+                        mPrevCb.onGetRgbaFrame(mGLPreviewBuffer.array(), mPreviewWidth, mPreviewHeight);
                     }
                     // Waiting for next frame
                     synchronized (writeLock) {
@@ -217,32 +219,14 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         });
         worker.start();
 
-        if (mCamId < 0) {
-            Camera.CameraInfo info = new Camera.CameraInfo();
-            int numCameras = Camera.getNumberOfCameras();
-            for (int i = 0; i < numCameras; i++) {
-                Camera.getCameraInfo(i, info);
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mCamera = Camera.open(i);
-                    mCamId = i;
-                    break;
-                }
-            }
-        } else {
-            mCamera = Camera.open(mCamId);
-        }
         if (mCamera == null) {
-            mCamera = Camera.open();
-            mCamId = 0;
+            mCamera = openCamera();
+            if (mCamera == null) {
+                return false;
+            }
         }
 
         Camera.Parameters params = mCamera.getParameters();
-        Camera.Size size = mCamera.new Size(mPreviewWidth, mPreviewHeight);
-        if (!params.getSupportedPreviewSizes().contains(size) || !params.getSupportedPictureSizes().contains(size)) {
-            Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
-            stopCamera();
-            return false;
-        }
 
         List<String> supportedFocusModes = params.getSupportedFocusModes();
         if (!supportedFocusModes.isEmpty()) {
@@ -253,10 +237,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         }
 
-        /***** set parameters *****/
         params.setPictureSize(mPreviewWidth, mPreviewHeight);
         params.setPreviewSize(mPreviewWidth, mPreviewHeight);
-        int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
+        int[] range = adaptFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewFormat(ImageFormat.NV21);
         params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
@@ -299,7 +282,53 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         }
     }
 
-    private int[] findClosestFpsRange(int expectedFps, List<int[]> fpsRanges) {
+    private Camera openCamera() {
+        Camera camera;
+        if (mCamId < 0) {
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            int numCameras = Camera.getNumberOfCameras();
+            int frontCamId = -1;
+            int backCamId = -1;
+            for (int i = 0; i < numCameras; i++) {
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    backCamId = i;
+                }
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    frontCamId = i;
+                    break;
+                }
+            }
+            if (frontCamId != -1) {
+                mCamId = frontCamId;
+            } else if (backCamId != -1) {
+                mCamId = backCamId;
+            } else {
+                mCamId = 0;
+            }
+        }
+        camera = Camera.open(mCamId);
+        return camera;
+    }
+
+    private Camera.Size adaptPreviewResolution(Camera.Size resolution) {
+        float diff = 100f;
+        float xdy = (float) resolution.width / (float) resolution.height;
+        Camera.Size best = null;
+        for (Camera.Size size : mCamera.getParameters().getSupportedPreviewSizes()) {
+            if (size.equals(resolution)) {
+                return size;
+            }
+            float tmp = Math.abs(((float) size.width / (float) size.height) - xdy);
+            if (tmp < diff) {
+                diff = tmp;
+                best = size;
+            }
+        }
+        return best;
+    }
+
+    private int[] adaptFpsRange(int expectedFps, List<int[]> fpsRanges) {
         expectedFps *= 1000;
         int[] closestRange = fpsRanges.get(0);
         int measure = Math.abs(closestRange[0] - expectedFps) + Math.abs(closestRange[1] - expectedFps);

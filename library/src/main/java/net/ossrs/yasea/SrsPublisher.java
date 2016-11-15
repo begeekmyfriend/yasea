@@ -3,18 +3,21 @@ package net.ossrs.yasea;
 import android.content.Context;
 import android.media.AudioManager;
 import android.media.AudioRecord;
+import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.AutomaticGainControl;
 
 import com.github.faucamp.simplertmp.RtmpHandler;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * Created by Leo Ma on 2016/7/25.
  */
 public class SrsPublisher {
 
-    private AudioRecord mic;
+    private static AudioRecord mic;
+    private static AcousticEchoCanceler aec;
+    private static AutomaticGainControl agc;
     private boolean aloop = false;
     private Thread aworker;
 
@@ -61,6 +64,20 @@ public class SrsPublisher {
         mic = mEncoder.chooseAudioRecord();
         if (mic == null) {
             return;
+        }
+
+        if (AcousticEchoCanceler.isAvailable()) {
+            aec = AcousticEchoCanceler.create(mic.getAudioSessionId());
+            if (aec != null) {
+                aec.setEnabled(true);
+            }
+        }
+
+        if (AutomaticGainControl.isAvailable()) {
+            agc = AutomaticGainControl.create(mic.getAudioSessionId());
+            if (agc != null) {
+                agc.setEnabled(true);
+            }
         }
 
         if (!mCameraView.startCamera()) {
@@ -228,6 +245,18 @@ public class SrsPublisher {
             mic.stop();
             mic.release();
             mic = null;
+        }
+
+        if (aec != null) {
+            aec.setEnabled(false);
+            aec.release();
+            aec = null;
+        }
+
+        if (agc != null) {
+            agc.setEnabled(false);
+            agc.release();
+            agc = null;
         }
     }
 

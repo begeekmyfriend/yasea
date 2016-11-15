@@ -6,7 +6,6 @@ import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.List;
@@ -54,7 +53,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public int[] setPreviewResolution(int width, int height) {
-        mCamera = createCamera();
+        mCamera = openCamera();
 
         mPreviewWidth = width;
         mPreviewHeight = height;
@@ -70,14 +69,14 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     
     public boolean startCamera() {
         if (mCamera == null) {
-            mCamera = createCamera();
+            mCamera = openCamera();
             if (mCamera == null) {
                 return false;
             }
         }
 
         Camera.Parameters params = mCamera.getParameters();
-        int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
+        int[] range = adaptPreviewFps(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewFormat(ImageFormat.NV21);
         params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
@@ -110,7 +109,62 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         return true;
     }
 
-    private int[] findClosestFpsRange(int expectedFps, List<int[]> fpsRanges) {
+    public void stopCamera() {
+        if (mCamera != null) {
+            mCamera.setPreviewCallback(null);
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+        }
+    }
+
+    private Camera openCamera() {
+        Camera camera;
+        if (mCamId < 0) {
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            int numCameras = Camera.getNumberOfCameras();
+            int frontCamId = -1;
+            int backCamId = -1;
+            for (int i = 0; i < numCameras; i++) {
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    backCamId = i;
+                }
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    frontCamId = i;
+                    break;
+                }
+            }
+            if (frontCamId != -1) {
+                mCamId = frontCamId;
+            } else if (backCamId != -1) {
+                mCamId = backCamId;
+            } else {
+                mCamId = 0;
+            }
+        }
+        camera = Camera.open(mCamId);
+        return camera;
+    }
+
+    private Camera.Size adaptPreviewResolution(Camera.Size resolution) {
+        float diff = 100f;
+        float xdy = (float) resolution.width / (float) resolution.height;
+        Camera.Size best = null;
+        for (Camera.Size size : mCamera.getParameters().getSupportedPreviewSizes()) {
+            if (size.equals(resolution)) {
+                return size;
+            }
+            float tmp = Math.abs(((float) size.width / (float) size.height) - xdy);
+            if (tmp < diff) {
+                diff = tmp;
+                best = size;
+            }
+        }
+        return best;
+    }
+
+    private int[] adaptPreviewFps(int expectedFps, List<int[]> fpsRanges) {
         expectedFps *= 1000;
         int[] closestRange = fpsRanges.get(0);
         int measure = Math.abs(closestRange[0] - expectedFps) + Math.abs(closestRange[1] - expectedFps);
@@ -124,16 +178,6 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
             }
         }
         return closestRange;
-    }
-
-    public void stopCamera() {
-        if (mCamera != null) {
-            // need to SET NULL CB before stop preview!!!
-            mCamera.setPreviewCallback(null);
-            mCamera.stopPreview();
-            mCamera.release();
-            mCamera = null;
-        }
     }
 
     @Override
@@ -159,51 +203,5 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
-    }
-
-    private Camera.Size adaptPreviewResolution(Camera.Size resolution) {
-        float diff = 100f;
-        float xdy = (float) resolution.width / (float) resolution.height;
-        Camera.Size best = null;
-        for (Camera.Size size : mCamera.getParameters().getSupportedPreviewSizes()) {
-            if (size.equals(resolution)) {
-                return size;
-            }
-            float tmp = Math.abs(((float) size.width / (float) size.height) - xdy);
-            if (tmp < diff) {
-                diff = tmp;
-                best = size;
-            }
-        }
-        return best;
-    }
-
-    private Camera createCamera() {
-        Camera camera;
-        if (mCamId < 0) {
-            Camera.CameraInfo info = new Camera.CameraInfo();
-            int numCameras = Camera.getNumberOfCameras();
-            int frontId = -1;
-            int defaultId = -1;
-            for (int i = 0; i < numCameras; i++) {
-                Camera.getCameraInfo(i, info);
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    defaultId = i;
-                }
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    frontId = i;
-                    break;
-                }
-            }
-            if (frontId != -1) {
-                mCamId = frontId;
-            } else if (defaultId != -1) {
-                mCamId = defaultId;
-            } else {
-                mCamId = 0;
-            }
-        }
-        camera = Camera.open(mCamId);
-        return camera;
     }
 }

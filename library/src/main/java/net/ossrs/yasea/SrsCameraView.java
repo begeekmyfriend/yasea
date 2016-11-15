@@ -54,44 +54,29 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public int[] setPreviewResolution(int width, int height) {
+        mCamera = createCamera();
+
         mPreviewWidth = width;
         mPreviewHeight = height;
-        if (mCamId < Camera.getNumberOfCameras()) {
-            Camera camera = createCamera();
-            Camera.Size size = camera.new Size(width, height);
-            if (camera != null) {
-                Camera.Size rs = getBestCameraResolution(camera.getParameters(), size);
-                if (rs != null) {
-                    mPreviewWidth = rs.width;
-                    mPreviewHeight = rs.height;
-                }
-                camera.release();
-            }
+        Camera.Size rs = adaptPreviewResolution(mCamera.new Size(width, height));
+        if (rs != null) {
+            mPreviewWidth = rs.width;
+            mPreviewHeight = rs.height;
         }
-        return new int[]{mPreviewWidth,mPreviewHeight};
+        mCamera.getParameters().setPreviewSize(mPreviewWidth, mPreviewHeight);
+        mYuvPreviewFrame = new byte[mPreviewWidth * mPreviewHeight * 3 / 2];
+        return new int[] { mPreviewWidth, mPreviewHeight };
     }
     
     public boolean startCamera() {
-        if (mCamera != null) {
-            return false;
-        }
-
-        mCamera = createCamera();
         if (mCamera == null) {
-            return false;
+            mCamera = createCamera();
+            if (mCamera == null) {
+                return false;
+            }
         }
 
         Camera.Parameters params = mCamera.getParameters();
-        Camera.Size size = mCamera.new Size(mPreviewWidth, mPreviewHeight);
-        if (!params.getSupportedPreviewSizes().contains(size)) {
-            Toast.makeText(getContext(), String.format("Unsupported resolution %dx%d", size.width, size.height), Toast.LENGTH_SHORT).show();
-            stopCamera();
-            return false;
-        }
-
-        mYuvPreviewFrame = new byte[mPreviewWidth * mPreviewHeight * 3 / 2];
-
-        params.setPreviewSize(mPreviewWidth, mPreviewHeight);
         int[] range = findClosestFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewFormat(ImageFormat.NV21);
@@ -176,21 +161,18 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     public void surfaceDestroyed(SurfaceHolder arg0) {
     }
 
-    private Camera.Size getBestCameraResolution(Camera.Parameters parameters, Camera.Size screenResolution) {
-        float tmp;
+    private Camera.Size adaptPreviewResolution(Camera.Size resolution) {
         float diff = 100f;
-        float xdy = (float) screenResolution.width / (float) screenResolution.height;
+        float xdy = (float) resolution.width / (float) resolution.height;
         Camera.Size best = null;
-        List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
-        for (Camera.Size s : supportedPreviewSizes) {
-            if (s.equals(screenResolution)) {
-                best = s;
-                break;
+        for (Camera.Size size : mCamera.getParameters().getSupportedPreviewSizes()) {
+            if (size.equals(resolution)) {
+                return size;
             }
-            tmp = Math.abs(((float) s.width / (float) s.height) - xdy);
+            float tmp = Math.abs(((float) size.width / (float) size.height) - xdy);
             if (tmp < diff) {
                 diff = tmp;
-                best = s;
+                best = size;
             }
         }
         return best;

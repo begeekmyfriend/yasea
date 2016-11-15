@@ -17,6 +17,7 @@ Feature
 - [x] Front and back cameras hot switch.
 - [x] Recording to MP4 while streaming.
 - [x] Beautiful filters with GPUImage.
+- [x] Acoustic echo cancellation and automatic gain control support.
 
 Test
 ----

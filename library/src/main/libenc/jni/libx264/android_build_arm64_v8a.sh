@@ -1,8 +1,8 @@
 #!/bin/sh
 
-ANDROID_NDK=/home/leoma/MyOSP/android-ndk-r13b
+ANDROID_NDK=/l/android-ndk-r12b
 SYSROOT=$ANDROID_NDK/platforms/android-21/arch-arm64
-CROSS_PREFIX=$ANDROID_NDK/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-
+CROSS_PREFIX=$ANDROID_NDK/toolchains/aarch64-linux-android-4.9/prebuilt/windows-x86_64/bin/aarch64-linux-android-
 EXTRA_CFLAGS="-march=armv8-a -D__ANDROID__"
 EXTRA_LDFLAGS="-nostdlib"
 PREFIX=`pwd`/libs/arm64-v8a
@@ -23,10 +23,11 @@ PREFIX=`pwd`/libs/arm64-v8a
         --disable-lavf \
         --disable-ffms \
         --disable-gpac \
-        --disable-lsmash
+        --disable-lsmash \
+		--disable-asm
 
 make clean
-make STRIP= -j8 install || exit 1
+make install || exit 1
 
 cp -f $PREFIX/lib/libx264.a $PREFIX
 rm -rf $PREFIX/include $PREFIX/lib $PREFIX/pkgconfig

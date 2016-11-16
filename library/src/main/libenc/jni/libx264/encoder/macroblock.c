@@ -708,7 +708,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
         }
         for( int p = 0; p < plane_count; p++, i_qp = h->mb.i_chroma_qp )
         {
-            for( int i = (p == 0 && h->mb.i_skip_intra) ? 3 : 0 ; i < 4; i++ )
+            for( int i = (p == 0 && h->mb.i_skip_intra) ? 3 : 0; i < 4; i++ )
             {
                 int i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]];
                 x264_mb_encode_i8x8( h, p, i, i_qp, i_mode, NULL, 1 );
@@ -733,7 +733,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
         }
         for( int p = 0; p < plane_count; p++, i_qp = h->mb.i_chroma_qp )
         {
-            for( int i = (p == 0 && h->mb.i_skip_intra) ? 15 : 0 ; i < 16; i++ )
+            for( int i = (p == 0 && h->mb.i_skip_intra) ? 15 : 0; i < 16; i++ )
             {
                 pixel *p_dst = &h->mb.pic.p_fdec[p][block_idx_xy_fdec[i]];
                 int i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[i]];

@@ -99,8 +99,8 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
             break;
         }
     }
-    FAIL_IF_ERROR( strncmp( header, Y4M_MAGIC, sizeof(Y4M_MAGIC)-1 ), "bad sequence header magic\n" )
-    FAIL_IF_ERROR( i == MAX_YUV4_HEADER, "bad sequence header length\n" )
+    FAIL_IF_ERROR( strncmp( header, Y4M_MAGIC, sizeof(Y4M_MAGIC)-1 ), "bad sequence header magic\n" );
+    FAIL_IF_ERROR( i == MAX_YUV4_HEADER, "bad sequence header length\n" );
 
     /* Scan properties */
     header_end = &header[i+1]; /* Include space */
@@ -187,7 +187,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         h->bit_depth  = 8;
     }
 
-    FAIL_IF_ERROR( colorspace <= X264_CSP_NONE || colorspace >= X264_CSP_MAX, "colorspace unhandled\n" )
+    FAIL_IF_ERROR( colorspace <= X264_CSP_NONE || colorspace >= X264_CSP_MAX, "colorspace unhandled\n" );
     FAIL_IF_ERROR( h->bit_depth < 8 || h->bit_depth > 16, "unsupported bit depth `%d'\n", h->bit_depth );
 
     info->thread_safe = 1;
@@ -215,7 +215,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         int len = 1;
         while( len <= MAX_FRAME_HEADER && fgetc( h->fh ) != '\n' )
             len++;
-        FAIL_IF_ERROR( len > MAX_FRAME_HEADER || len < sizeof(Y4M_FRAME_MAGIC), "bad frame header length\n" )
+        FAIL_IF_ERROR( len > MAX_FRAME_HEADER || len < sizeof(Y4M_FRAME_MAGIC), "bad frame header length\n" );
         h->frame_header_len = len;
         h->frame_size += len;
 
@@ -252,7 +252,7 @@ static int read_frame_internal( cli_pic_t *pic, y4m_hnd_t *h, int bit_depth_uc )
          * produces y4m files with variable-length frame headers so just error out if that happens. */
         while( i <= h->frame_header_len && header[i-1] != '\n' )
             i++;
-        FAIL_IF_ERROR( i != h->frame_header_len, "bad frame header length\n" )
+        FAIL_IF_ERROR( i != h->frame_header_len, "bad frame header length\n" );
     }
     else
     {
@@ -261,9 +261,9 @@ static int read_frame_internal( cli_pic_t *pic, y4m_hnd_t *h, int bit_depth_uc )
             return -1;
         while( i <= MAX_FRAME_HEADER && fgetc( h->fh ) != '\n' )
             i++;
-        FAIL_IF_ERROR( i > MAX_FRAME_HEADER, "bad frame header length\n" )
+        FAIL_IF_ERROR( i > MAX_FRAME_HEADER, "bad frame header length\n" );
     }
-    FAIL_IF_ERROR( memcmp( header, Y4M_FRAME_MAGIC, slen ), "bad frame header magic\n" )
+    FAIL_IF_ERROR( memcmp( header, Y4M_FRAME_MAGIC, slen ), "bad frame header magic\n" );
 
     for( i = 0; i < pic->img.planes; i++ )
     {

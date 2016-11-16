@@ -48,14 +48,14 @@ char **x264_split_options( const char *opt_str, const char * const *options )
             while( *option && (strlen( *option ) != length || strncmp( opt, *option, length )) )
                 option++;
 
-            RETURN_IF_ERROR( !*option, "Invalid option '%.*s'\n", length, opt )
+            RETURN_IF_ERROR( !*option, "Invalid option '%.*s'\n", length, opt );
             found_named = 1;
             length += strcspn( opt + length, "," );
         }
         else
         {
-            RETURN_IF_ERROR( opt_count >= options_count, "Too many options given\n" )
-            RETURN_IF_ERROR( found_named, "Ordered option given after named\n" )
+            RETURN_IF_ERROR( opt_count >= options_count, "Too many options given\n" );
+            RETURN_IF_ERROR( found_named, "Ordered option given after named\n" );
             size += strlen( options[opt_count] ) + 1;
         }
         opt_count++;
@@ -65,7 +65,7 @@ char **x264_split_options( const char *opt_str, const char * const *options )
     int offset = 2 * (opt_count+1) * sizeof(char*);
     size += offset + (opt - opt_str);
     char **opts = calloc( 1, size );
-    RETURN_IF_ERROR( !opts, "malloc failed\n" )
+    RETURN_IF_ERROR( !opts, "malloc failed\n" );
 
 #define insert_opt( src, length )\
 do {\

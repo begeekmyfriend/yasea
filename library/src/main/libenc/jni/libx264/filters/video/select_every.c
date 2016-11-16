@@ -67,16 +67,16 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         int val = x264_otoi( tok, -1 );
         if( p )
         {
-            FAIL_IF_ERROR( val <= 0, "invalid step `%s'\n", tok )
+            FAIL_IF_ERROR( val <= 0, "invalid step `%s'\n", tok );
             h->step_size = val;
             continue;
         }
-        FAIL_IF_ERROR( val < 0 || val >= h->step_size, "invalid offset `%s'\n", tok )
-        FAIL_IF_ERROR( h->pattern_len >= MAX_PATTERN_SIZE, "max pattern size %d reached\n", MAX_PATTERN_SIZE )
+        FAIL_IF_ERROR( val < 0 || val >= h->step_size, "invalid offset `%s'\n", tok );
+        FAIL_IF_ERROR( h->pattern_len >= MAX_PATTERN_SIZE, "max pattern size %d reached\n", MAX_PATTERN_SIZE );
         offsets[h->pattern_len++] = val;
     }
-    FAIL_IF_ERROR( !h->step_size, "no step size provided\n" )
-    FAIL_IF_ERROR( !h->pattern_len, "no offsets supplied\n" )
+    FAIL_IF_ERROR( !h->step_size, "no step size provided\n" );
+    FAIL_IF_ERROR( !h->pattern_len, "no offsets supplied\n" );
 
     h->pattern = malloc( h->pattern_len * sizeof(int) );
     if( !h->pattern )

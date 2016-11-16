@@ -221,7 +221,6 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
     }
     else if( !strcasecmp( preset, "veryfast" ) )
     {
-        param->analyse.i_me_method = X264_ME_HEX;
         param->analyse.i_subpel_refine = 2;
         param->i_frame_reference = 1;
         param->analyse.b_mixed_references = 0;
@@ -250,11 +249,10 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
     }
     else if( !strcasecmp( preset, "slow" ) )
     {
-        param->analyse.i_me_method = X264_ME_UMH;
         param->analyse.i_subpel_refine = 8;
         param->i_frame_reference = 5;
-        param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
         param->analyse.i_direct_mv_pred = X264_DIRECT_PRED_AUTO;
+        param->analyse.i_trellis = 2;
         param->rc.i_lookahead = 50;
     }
     else if( !strcasecmp( preset, "slower" ) )
@@ -1074,18 +1072,6 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
 /****************************************************************************
  * x264_log:
  ****************************************************************************/
-#ifdef __ANDROID__
-    #include <android/log.h>
-    #define LIBX264_LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, "libx264", __VA_ARGS__))
-    #define LIBX264_LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO , "libx264", __VA_ARGS__))
-    #define LIBX264_LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN , "libx264", __VA_ARGS__))
-    #define LIBX264_LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "libx264", __VA_ARGS__))
-#else
-    #define LIBX264_LOGD(...) do {} while (0)
-    #define LIBX264_LOGI(...) do {} while (0)
-    #define LIBX264_LOGW(...) do {} while (0)
-    #define LIBX264_LOGE(...) do {} while (0)
-#endif
 void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... )
 {
     if( !h || i_level <= h->param.i_log_level )
@@ -1107,25 +1093,20 @@ static void x264_log_default( void *p_unused, int i_level, const char *psz_fmt, 
     {
         case X264_LOG_ERROR:
             psz_prefix = "error";
-            LIBX264_LOGE(psz_fmt, arg);
             break;
         case X264_LOG_WARNING:
             psz_prefix = "warning";
-            LIBX264_LOGW(psz_fmt, arg);
             break;
         case X264_LOG_INFO:
             psz_prefix = "info";
-            LIBX264_LOGI(psz_fmt, arg);
             break;
         case X264_LOG_DEBUG:
             psz_prefix = "debug";
-            LIBX264_LOGD(psz_fmt, arg);
             break;
         default:
             psz_prefix = "unknown";
             break;
     }
-
     fprintf( stderr, "x264 [%s]: ", psz_prefix );
     x264_vfprintf( stderr, psz_fmt, arg );
 }

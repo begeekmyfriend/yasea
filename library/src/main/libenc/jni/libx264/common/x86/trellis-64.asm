@@ -53,14 +53,14 @@
 
 SECTION_RODATA
 
-pd_8: times 4 dd 8
 pd_m16: times 4 dd -16
-pd_0123: dd 0, 1, 2, 3
-pd_4567: dd 4, 5, 6, 7
 sq_1: dq 1, 0
 pq_128: times 2 dq 128
 pq_ffffffff: times 2 dq 0xffffffff
 
+cextern pd_8
+cextern pd_0123
+cextern pd_4567
 cextern cabac_entropy
 cextern cabac_transition
 cextern cabac_size_unary

@@ -863,7 +863,7 @@ static void ALWAYS_INLINE x264_cabac_block_residual_internal( x264_t *h, x264_ca
         x264_cabac_encode_bypass( cb, 0 ); // sign
     }
 
-    for( int i = last-1 ; i >= 0; i-- )
+    for( int i = last-1; i >= 0; i-- )
     {
         if( l[i] )
         {

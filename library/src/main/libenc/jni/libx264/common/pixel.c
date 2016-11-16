@@ -556,6 +556,7 @@ INTRA_MBCMP(satd, 16x16,  v, h, dc,  ,, _c )
 #if HIGH_BIT_DEPTH
 #define x264_predict_8x8c_v_mmx2 x264_predict_8x8c_v_mmx
 #define x264_predict_8x16c_v_mmx2 x264_predict_8x16c_v_c
+#define x264_predict_16x16_dc_mmx2 x264_predict_16x16_dc_c
 #define x264_predict_8x8c_v_sse2 x264_predict_8x8c_v_sse
 #define x264_predict_8x16c_v_sse2 x264_predict_8x16c_v_sse
 #define x264_predict_16x16_v_sse2 x264_predict_16x16_v_sse
@@ -884,7 +885,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT8( ssd, _mmx2 );
         INIT_ADS( _mmx2 );
 
-        pixf->ssd_nv12_core = x264_pixel_ssd_nv12_core_mmx2;
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_mmx2;
         pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_mmx2;
 #if ARCH_X86
@@ -1070,7 +1070,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_mmx2;
         pixf->var[PIXEL_8x16]  = x264_pixel_var_8x16_mmx2;
         pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_mmx2;
-        pixf->ssd_nv12_core    = x264_pixel_ssd_nv12_core_mmx2;
 #if ARCH_X86
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_mmx2;
         pixf->sa8d[PIXEL_8x8]   = x264_pixel_sa8d_8x8_mmx2;

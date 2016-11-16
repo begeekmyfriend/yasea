@@ -370,8 +370,8 @@ static ALWAYS_INLINE int x264_mb_predict_mv_direct16x16_spatial( x264_t *h, int 
             h->mb.i_partition = partition_col[0];
         }
     }
-    int i_mb_4x4 = b_interlaced ? 4 * (h->mb.i_b4_stride*mb_y + mb_x) : h->mb.i_b4_xy ;
-    int i_mb_8x8 = b_interlaced ? 2 * (h->mb.i_b8_stride*mb_y + mb_x) : h->mb.i_b8_xy ;
+    int i_mb_4x4 = b_interlaced ? 4 * (h->mb.i_b4_stride*mb_y + mb_x) : h->mb.i_b4_xy;
+    int i_mb_8x8 = b_interlaced ? 2 * (h->mb.i_b8_stride*mb_y + mb_x) : h->mb.i_b8_xy;
 
     int8_t *l1ref0 = &h->fref[1][0]->ref[0][i_mb_8x8];
     int8_t *l1ref1 = &h->fref[1][0]->ref[1][i_mb_8x8];

@@ -67,7 +67,6 @@ pf_256:    times 4 dd 256.0
 pf_inv256: times 4 dd 0.00390625
 
 pd_16: times 4 dd 16
-pd_0f: times 4 dd 0xffff
 
 pad10: times 8 dw    10*PIXEL_MAX
 pad20: times 8 dw    20*PIXEL_MAX
@@ -94,6 +93,8 @@ cextern pw_00ff
 cextern pw_3fff
 cextern pw_pixel_max
 cextern pw_0to15
+cextern pd_8
+cextern pd_0123
 cextern pd_ffff
 
 %macro LOAD_ADD 4
@@ -285,7 +286,7 @@ cglobal hpel_filter_c, 3,3,10
     psrad      m1, 10
     psrad      m2, 10
     pslld      m2, 16
-    pand       m1, [pd_0f]
+    pand       m1, [pd_ffff]
     por        m1, m2
     CLIPW      m1, [pb_0], [pw_pixel_max]
     mova  [r0+r2], m1
@@ -2178,7 +2179,7 @@ MBTREE_AVX
 
 %macro MBTREE_PROPAGATE_LIST 0
 ;-----------------------------------------------------------------------------
-; void mbtree_propagate_list_internal( int16_t (*mvs)[2], int *propagate_amount, uint16_t *lowres_costs,
+; void mbtree_propagate_list_internal( int16_t (*mvs)[2], int16_t *propagate_amount, uint16_t *lowres_costs,
 ;                                      int16_t *output, int bipred_weight, int mb_y, int len )
 ;-----------------------------------------------------------------------------
 cglobal mbtree_propagate_list_internal, 4,6,8
@@ -2267,6 +2268,67 @@ INIT_XMM ssse3
 MBTREE_PROPAGATE_LIST
 INIT_XMM avx
 MBTREE_PROPAGATE_LIST
+
+INIT_YMM avx2
+cglobal mbtree_propagate_list_internal, 4+2*UNIX64,5+UNIX64,8
+    mova          xm4, [pw_0xc000]
+%if UNIX64
+    shl           r4d, 9
+    shl           r5d, 16
+    movd          xm5, r4d
+    movd          xm6, r5d
+    vpbroadcastw  xm5, xm5
+    vpbroadcastd   m6, xm6
+%else
+    vpbroadcastw  xm5, r4m
+    vpbroadcastd   m6, r5m
+    psllw         xm5, 9             ; bipred_weight << 9
+    pslld          m6, 16
+%endif
+    mov           r4d, r6m
+    lea            r1, [r1+r4*2]
+    lea            r2, [r2+r4*2]
+    lea            r0, [r0+r4*4]
+    neg            r4
+    por            m6, [pd_0123]     ; 0 y 1 y 2 y 3 y 4 y 5 y 6 y 7 y
+    vbroadcasti128 m7, [pw_31]
+.loop:
+    mova          xm3, [r1+r4*2]
+    pand          xm0, xm4, [r2+r4*2]
+    pmulhrsw      xm1, xm3, xm5      ; bipred_amount = (propagate_amount * bipred_weight + 32) >> 6
+    pcmpeqw       xm0, xm4
+    pblendvb      xm3, xm3, xm1, xm0 ; (lists_used == 3) ? bipred_amount : propagate_amount
+    vpermq         m3, m3, q1100
+
+    movu           m0, [r0+r4*4]     ; {x, y}
+    vbroadcasti128 m1, [pd_8]
+    psraw          m2, m0, 5
+    paddw          m2, m6            ; {mbx, mby} = ({x, y} >> 5) + {h->mb.i_mb_x, h->mb.i_mb_y}
+    paddw          m6, m1            ; i_mb_x += 8
+    mova         [r3], m2
+
+    mova           m1, [pw_32]
+    pand           m0, m7
+    psubw          m1, m0
+    packuswb       m1, m0            ; {32-x, 32-y} {x, y} {32-x, 32-y} {x, y}
+    psrlw          m0, m1, 3
+    pand           m1, [pw_00ff]     ; 32-x x 32-x x
+    pandn          m0, m7, m0        ; (32-y y 32-y y) << 5
+    pshufd         m2, m1, q1032
+    pmullw         m1, m0            ; idx0 idx3 idx0 idx3
+    pmullw         m2, m0            ; idx1 idx2 idx1 idx2
+
+    pmulhrsw       m0, m1, m3        ; (idx0 idx3 idx0 idx3) * propagate_amount + 512 >> 10
+    pmulhrsw       m2, m3            ; (idx1 idx2 idx1 idx2) * propagate_amount + 512 >> 10
+    psignw         m0, m1            ; correct potential overflow in the idx0 input to pmulhrsw
+    punpcklwd      m1, m0, m2        ; idx01weight
+    punpckhwd      m2, m0            ; idx23weight
+    mova      [r3+32], m1
+    mova      [r3+64], m2
+    add            r3, 3*mmsize
+    add            r4, 8
+    jl .loop
+    RET
 
 %macro MBTREE_FIX8 0
 ;-----------------------------------------------------------------------------

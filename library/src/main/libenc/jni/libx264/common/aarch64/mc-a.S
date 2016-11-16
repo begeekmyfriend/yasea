@@ -1253,7 +1253,7 @@ load_deinterleave_chroma:
     ret
 endfunc
 
-function x264_plane_copy_neon, export=1
+function x264_plane_copy_core_neon, export=1
     add         x8,  x4,  #15
     and         x4,  x8,  #~15
     sub         x1,  x1,  x4
@@ -1271,6 +1271,34 @@ function x264_plane_copy_neon, export=1
     subs        w8,  w8,  #32
     ldp         q0,  q1,  [x2], #32
     stp         q0,  q1,  [x0], #32
+    b.gt        32b
+0:
+    subs        w5,  w5,  #1
+    add         x2,  x2,  x3
+    add         x0,  x0,  x1
+    b.gt        1b
+
+    ret
+endfunc
+
+function x264_plane_copy_swap_core_neon, export=1
+    lsl         w4,  w4,  #1
+    sub         x1,  x1,  x4
+    sub         x3,  x3,  x4
+1:
+    mov         w8,  w4
+    tbz         w4,  #4,  32f
+    subs        w8,  w8,  #16
+    ld1         {v0.16b}, [x2], #16
+    rev16       v0.16b, v0.16b
+    st1         {v0.16b}, [x0], #16
+    b.eq        0f
+32:
+    subs        w8,  w8,  #32
+    ld1         {v0.16b,v1.16b}, [x2], #32
+    rev16       v0.16b, v0.16b
+    rev16       v1.16b, v1.16b
+    st1         {v0.16b,v1.16b}, [x0], #32
     b.gt        32b
 0:
     subs        w5,  w5,  #1
@@ -1352,7 +1380,7 @@ function x264_plane_copy_deinterleave_rgb_neon, export=1
     ret
 endfunc
 
-function x264_plane_copy_interleave_neon, export=1
+function x264_plane_copy_interleave_core_neon, export=1
     add         w9,  w6,  #15
     and         w9,  w9,  #0xfffffff0
     sub         x1,  x1,  x9,  lsl #1

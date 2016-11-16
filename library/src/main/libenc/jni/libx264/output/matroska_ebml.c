@@ -245,7 +245,7 @@ static int mk_write_bin( mk_context *c, unsigned id, const void *data, unsigned 
 {
     CHECK( mk_write_id( c, id ) );
     CHECK( mk_write_size( c, size ) );
-    CHECK( mk_append_context_data( c, data, size ) ) ;
+    CHECK( mk_append_context_data( c, data, size ) );
     return 0;
 }
 

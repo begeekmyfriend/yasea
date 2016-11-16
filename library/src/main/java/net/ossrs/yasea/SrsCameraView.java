@@ -78,6 +78,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         Camera.Parameters params = mCamera.getParameters();
         int[] range = adaptPreviewFps(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
+        params.setPreviewSize(mPreviewWidth, mPreviewHeight);
         params.setPreviewFormat(ImageFormat.NV21);
         params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
         params.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_AUTO);

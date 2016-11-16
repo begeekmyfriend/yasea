@@ -52,18 +52,18 @@ static int handle_opts( crop_hnd_t *h, video_info_t *info, char **opts, const ch
     for( int i = 0; i < 4; i++ )
     {
         char *opt = x264_get_option( optlist[i], opts );
-        FAIL_IF_ERROR( !opt, "%s crop value not specified\n", optlist[i] )
+        FAIL_IF_ERROR( !opt, "%s crop value not specified\n", optlist[i] );
         h->dims[i] = x264_otoi( opt, -1 );
-        FAIL_IF_ERROR( h->dims[i] < 0, "%s crop value `%s' is less than 0\n", optlist[i], opt )
+        FAIL_IF_ERROR( h->dims[i] < 0, "%s crop value `%s' is less than 0\n", optlist[i], opt );
         int dim_mod = i&1 ? (h->csp->mod_height << info->interlaced) : h->csp->mod_width;
-        FAIL_IF_ERROR( h->dims[i] % dim_mod, "%s crop value `%s' is not a multiple of %d\n", optlist[i], opt, dim_mod )
+        FAIL_IF_ERROR( h->dims[i] % dim_mod, "%s crop value `%s' is not a multiple of %d\n", optlist[i], opt, dim_mod );
     }
     return 0;
 }
 
 static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x264_param_t *param, char *opt_string )
 {
-    FAIL_IF_ERROR( x264_cli_csp_is_invalid( info->csp ), "invalid csp %d\n", info->csp )
+    FAIL_IF_ERROR( x264_cli_csp_is_invalid( info->csp ), "invalid csp %d\n", info->csp );
     crop_hnd_t *h = calloc( 1, sizeof(crop_hnd_t) );
     if( !h )
         return -1;
@@ -81,7 +81,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
 
     h->dims[2] = info->width  - h->dims[0] - h->dims[2];
     h->dims[3] = info->height - h->dims[1] - h->dims[3];
-    FAIL_IF_ERROR( h->dims[2] <= 0 || h->dims[3] <= 0, "invalid output resolution %dx%d\n", h->dims[2], h->dims[3] )
+    FAIL_IF_ERROR( h->dims[2] <= 0 || h->dims[3] <= 0, "invalid output resolution %dx%d\n", h->dims[2], h->dims[3] );
 
     if( info->width != h->dims[2] || info->height != h->dims[3] )
         x264_cli_log( NAME, X264_LOG_INFO, "cropping to %dx%d\n", h->dims[2], h->dims[3] );

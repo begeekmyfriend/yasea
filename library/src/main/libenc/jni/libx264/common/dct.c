@@ -990,10 +990,11 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf_progressive, x264_zig
         pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_mmx;
     if( cpu&X264_CPU_MMX2 )
     {
-        pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_mmx2;
         pf_interlaced->scan_8x8  = x264_zigzag_scan_8x8_field_mmx2;
         pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_mmx2;
     }
+    if( cpu&X264_CPU_SSE )
+        pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_sse;
     if( cpu&X264_CPU_SSE2_IS_FAST )
         pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_sse2;
     if( cpu&X264_CPU_SSSE3 )

@@ -28,7 +28,6 @@
 
 #ifdef _WIN32
 #include <io.h>
-#include <windows.h>
 #elif HAVE_MMAP
 #include <sys/mman.h>
 #include <unistd.h>
@@ -154,6 +153,8 @@ int x264_cli_mmap_init( cli_mmap_t *h, FILE *fh )
         SYSTEM_INFO si;
         GetSystemInfo( &si );
         h->align_mask = si.dwAllocationGranularity - 1;
+        h->prefetch_virtual_memory = (void*)GetProcAddress( GetModuleHandleW( L"kernel32.dll" ), "PrefetchVirtualMemory" );
+        h->process_handle = GetCurrentProcess();
         h->map_handle = CreateFileMappingW( osfhandle, NULL, PAGE_READONLY, 0, 0, NULL );
         return !h->map_handle;
     }
@@ -173,9 +174,16 @@ void *x264_cli_mmap( cli_mmap_t *h, int64_t offset, size_t size )
     size   += align;
 #ifdef _WIN32
     uint8_t *base = MapViewOfFile( h->map_handle, FILE_MAP_READ, offset >> 32, offset, size );
-    /* TODO: Would PrefetchVirtualMemory() (only available on Win8+) be beneficial? */
     if( base )
+    {
+        /* PrefetchVirtualMemory() is only available on Windows 8 and newer. */
+        if( h->prefetch_virtual_memory )
+        {
+            struct { void *addr; size_t size; } mem_range = { base, size };
+            h->prefetch_virtual_memory( h->process_handle, 1, &mem_range, 0 );
+        }
         return base + align;
+    }
 #else
     uint8_t *base = mmap( NULL, size, PROT_READ, MAP_PRIVATE, h->fd, offset );
     if( base != MAP_FAILED )

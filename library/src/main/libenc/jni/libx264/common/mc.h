@@ -100,6 +100,98 @@ static void x264_mbtree_propagate_list_##cpu( x264_t *h, uint16_t *ref_costs, in
     }\
 }
 
+void x264_plane_copy_c( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
+
+#define PLANE_COPY(align, cpu)\
+static void x264_plane_copy_##cpu( pixel *dst, intptr_t i_dst, pixel *src, intptr_t i_src, int w, int h )\
+{\
+    int c_w = (align) / sizeof(pixel) - 1;\
+    if( w < 256 ) /* tiny resolutions don't want non-temporal hints. dunno the exact threshold. */\
+        x264_plane_copy_c( dst, i_dst, src, i_src, w, h );\
+    else if( !(w&c_w) )\
+        x264_plane_copy_core_##cpu( dst, i_dst, src, i_src, w, h );\
+    else\
+    {\
+        if( --h > 0 )\
+        {\
+            if( i_src > 0 )\
+            {\
+                x264_plane_copy_core_##cpu( dst, i_dst, src, i_src, (w+c_w)&~c_w, h );\
+                dst += i_dst * h;\
+                src += i_src * h;\
+            }\
+            else\
+                x264_plane_copy_core_##cpu( dst+i_dst, i_dst, src+i_src, i_src, (w+c_w)&~c_w, h );\
+        }\
+        /* use plain memcpy on the last line (in memory order) to avoid overreading src. */\
+        memcpy( dst, src, w*sizeof(pixel) );\
+    }\
+}
+
+void x264_plane_copy_swap_c( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
+
+#define PLANE_COPY_SWAP(align, cpu)\
+static void x264_plane_copy_swap_##cpu( pixel *dst, intptr_t i_dst, pixel *src, intptr_t i_src, int w, int h )\
+{\
+    int c_w = (align>>1) / sizeof(pixel) - 1;\
+    if( !(w&c_w) )\
+        x264_plane_copy_swap_core_##cpu( dst, i_dst, src, i_src, w, h );\
+    else if( w > c_w )\
+    {\
+        if( --h > 0 )\
+        {\
+            if( i_src > 0 )\
+            {\
+                x264_plane_copy_swap_core_##cpu( dst, i_dst, src, i_src, (w+c_w)&~c_w, h );\
+                dst += i_dst * h;\
+                src += i_src * h;\
+            }\
+            else\
+                x264_plane_copy_swap_core_##cpu( dst+i_dst, i_dst, src+i_src, i_src, (w+c_w)&~c_w, h );\
+        }\
+        x264_plane_copy_swap_core_##cpu( dst, 0, src, 0, w&~c_w, 1 );\
+        for( int x = 2*(w&~c_w); x < 2*w; x += 2 )\
+        {\
+            dst[x]   = src[x+1];\
+            dst[x+1] = src[x];\
+        }\
+    }\
+    else\
+        x264_plane_copy_swap_c( dst, i_dst, src, i_src, w, h );\
+}
+
+void x264_plane_copy_interleave_c( pixel *dst,  intptr_t i_dst,
+                                   pixel *srcu, intptr_t i_srcu,
+                                   pixel *srcv, intptr_t i_srcv, int w, int h );
+
+#define PLANE_INTERLEAVE(cpu) \
+static void x264_plane_copy_interleave_##cpu( pixel *dst,  intptr_t i_dst,\
+                                              pixel *srcu, intptr_t i_srcu,\
+                                              pixel *srcv, intptr_t i_srcv, int w, int h )\
+{\
+    int c_w = 16 / sizeof(pixel) - 1;\
+    if( !(w&c_w) )\
+        x264_plane_copy_interleave_core_##cpu( dst, i_dst, srcu, i_srcu, srcv, i_srcv, w, h );\
+    else if( w > c_w && (i_srcu ^ i_srcv) >= 0 ) /* only works correctly for strides with identical signs */\
+    {\
+        if( --h > 0 )\
+        {\
+            if( i_srcu > 0 )\
+            {\
+                x264_plane_copy_interleave_core_##cpu( dst, i_dst, srcu, i_srcu, srcv, i_srcv, (w+c_w)&~c_w, h );\
+                dst  += i_dst  * h;\
+                srcu += i_srcu * h;\
+                srcv += i_srcv * h;\
+            }\
+            else\
+                x264_plane_copy_interleave_core_##cpu( dst+i_dst, i_dst, srcu+i_srcu, i_srcu, srcv+i_srcv, i_srcv, (w+c_w)&~c_w, h );\
+        }\
+        x264_plane_copy_interleave_c( dst, 0, srcu, 0, srcv, 0, w, 1 );\
+    }\
+    else\
+        x264_plane_copy_interleave_c( dst, i_dst, srcu, i_srcu, srcv, i_srcv, w, h );\
+}
+
 struct x264_weight_t;
 typedef void (* weight_fn_t)( pixel *, intptr_t, pixel *,intptr_t, const struct x264_weight_t *, int );
 typedef struct x264_weight_t

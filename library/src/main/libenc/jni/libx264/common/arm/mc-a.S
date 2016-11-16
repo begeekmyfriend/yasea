@@ -1468,7 +1468,7 @@ function x264_load_deinterleave_chroma_fenc_neon
     bx              lr
 endfunc
 
-function x264_plane_copy_neon
+function x264_plane_copy_core_neon
     push            {r4,lr}
     ldr             r4,  [sp, #8]
     ldr             lr,  [sp, #12]
@@ -1577,7 +1577,7 @@ block4:
     pop             {r4-r8, r10, r11, pc}
 endfunc
 
-function x264_plane_copy_interleave_neon
+function x264_plane_copy_interleave_core_neon
     push            {r4-r7, lr}
     ldrd            r6, r7, [sp, #28]
     ldrd            r4, r5, [sp, #20]
@@ -1604,7 +1604,7 @@ blocki:
     pop             {r4-r7, pc}
 endfunc
 
-function x264_plane_copy_swap_neon
+function x264_plane_copy_swap_core_neon
     push            {r4-r5, lr}
     ldrd            r4, r5, [sp, #12]
     add             lr,  r4,  #15

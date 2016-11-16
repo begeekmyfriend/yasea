@@ -786,7 +786,7 @@ int x264_ratecontrol_new( x264_t *h )
         x264_reduce_fraction64( &num, &denom );
         rc->hrd_multiply_denom = 90000 / num;
 
-        double bits_required = log2( 90000 / rc->hrd_multiply_denom )
+        double bits_required = log2( num )
                              + log2( h->sps->vui.i_time_scale )
                              + log2( h->sps->vui.hrd.i_cpb_size_unscaled );
         if( bits_required >= 63 )

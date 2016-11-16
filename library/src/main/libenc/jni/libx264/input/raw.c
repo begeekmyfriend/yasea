@@ -54,7 +54,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
     else
         sscanf( opt->resolution, "%dx%d", &info->width, &info->height );
-    FAIL_IF_ERROR( !info->width || !info->height, "raw input requires a resolution.\n" )
+    FAIL_IF_ERROR( !info->width || !info->height, "raw input requires a resolution.\n" );
     if( opt->colorspace )
     {
         for( info->csp = X264_CSP_CLI_MAX-1; info->csp > X264_CSP_NONE; info->csp-- )

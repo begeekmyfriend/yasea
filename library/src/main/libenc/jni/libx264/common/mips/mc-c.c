@@ -3430,7 +3430,7 @@ uint8_t *x264_get_ref_msa( uint8_t *p_dst, intptr_t *p_dst_stride,
                 x264_mc_weight_w8_msa( p_dst, *p_dst_stride,
                                        p_dst, *p_dst_stride,
                                        pWeight, i_h4w );
-                for( i_cnt = i_h4w; i_cnt < i_height ; i_cnt++ )
+                for( i_cnt = i_h4w; i_cnt < i_height; i_cnt++ )
                 {
                     uint64_t temp0;
                     v16i8 zero = {0};
@@ -3666,7 +3666,7 @@ uint8_t *x264_get_ref_msa( uint8_t *p_dst, intptr_t *p_dst_stride,
                                    pWeight, i_h4w );
             p_src1 = src1_org + i_h4w * i_src_stride;
 
-            for( i_cnt = i_h4w; i_cnt < i_height ; i_cnt++ )
+            for( i_cnt = i_h4w; i_cnt < i_height; i_cnt++ )
             {
                 uint64_t u_temp0;
                 v16i8 zero = {0};
@@ -3761,9 +3761,11 @@ uint8_t *x264_get_ref_msa( uint8_t *p_dst, intptr_t *p_dst_stride,
         return p_src1;
     }
 }
+#endif // !HIGH_BIT_DEPTH
 
 void x264_mc_init_mips( int32_t cpu, x264_mc_functions_t *pf  )
 {
+#if !HIGH_BIT_DEPTH
     if( cpu & X264_CPU_MSA )
     {
         pf->mc_luma = x264_mc_luma_msa;
@@ -3803,5 +3805,5 @@ void x264_mc_init_mips( int32_t cpu, x264_mc_functions_t *pf  )
         pf->memzero_aligned = x264_memzero_aligned_msa;
         pf->frame_init_lowres_core = x264_frame_init_lowres_core_msa;
     }
+#endif // !HIGH_BIT_DEPTH
 }
-#endif

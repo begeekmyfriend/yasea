@@ -1463,9 +1463,9 @@ cglobal zigzag_scan_4x4_frame, 2,2
 ; void zigzag_scan_4x4_field( int32_t level[16], int32_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 INIT_XMM sse2
-cglobal zigzag_scan_4x4_field, 2,3
-    movu       m4, [r1+ 8]
-    pshufd     m0, m4, q3102
+cglobal zigzag_scan_4x4_field, 2,2
+    movu       m0, [r1+ 8]
+    pshufd     m0, m0, q3102
     mova       m1, [r1+32]
     mova       m2, [r1+48]
     movu  [r0+ 8], m0
@@ -1480,19 +1480,14 @@ cglobal zigzag_scan_4x4_field, 2,3
 ;-----------------------------------------------------------------------------
 ; void zigzag_scan_4x4_field( int16_t level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-; sse2 is only 1 cycle faster, and ssse3/pshufb is slower on core2
-INIT_MMX mmx2
-cglobal zigzag_scan_4x4_field, 2,3
-    pshufw      m0, [r1+4], q3102
-    mova        m1, [r1+16]
-    mova        m2, [r1+24]
-    movu    [r0+4], m0
-    mova   [r0+16], m1
-    mova   [r0+24], m2
-    mov        r2d, [r1]
-    mov       [r0], r2d
-    mov        r2d, [r1+12]
-    mov    [r0+12], r2d
+INIT_XMM sse
+cglobal zigzag_scan_4x4_field, 2,2
+    mova       m0, [r1]
+    mova       m1, [r1+16]
+    pshufw    mm0, [r1+4], q3102
+    mova     [r0], m0
+    mova  [r0+16], m1
+    movq   [r0+4], mm0
     RET
 %endif ; HIGH_BIT_DEPTH
 

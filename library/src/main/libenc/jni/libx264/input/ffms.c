@@ -33,10 +33,6 @@
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 #define PROGRESS_LENGTH 36
 
 typedef struct
@@ -106,14 +102,14 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( !idx )
     {
         FFMS_Indexer *indexer = FFMS_CreateIndexer( psz_filename, &e );
-        FAIL_IF_ERROR( !indexer, "could not create indexer\n" )
+        FAIL_IF_ERROR( !indexer, "could not create indexer\n" );
 
         if( opt->progress )
             FFMS_SetProgressCallback( indexer, update_progress, &h->time );
 
         idx = FFMS_DoIndexing2( indexer, FFMS_IEH_ABORT, &e );
         fprintf( stderr, "%*c", PROGRESS_LENGTH+1, '\r' );
-        FAIL_IF_ERROR( !idx, "could not create index\n" )
+        FAIL_IF_ERROR( !idx, "could not create index\n" );
 
         if( opt->index_file && FFMS_WriteIndex( opt->index_file, idx, &e ) )
             x264_cli_log( "ffms", X264_LOG_WARNING, "could not write index file\n" );
@@ -124,8 +120,8 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         h->video_source = FFMS_CreateVideoSource( psz_filename, trackno, idx, 1, seekmode, &e );
     FFMS_DestroyIndex( idx );
 
-    FAIL_IF_ERROR( trackno < 0, "could not find video track\n" )
-    FAIL_IF_ERROR( !h->video_source, "could not create video source\n" )
+    FAIL_IF_ERROR( trackno < 0, "could not find video track\n" );
+    FAIL_IF_ERROR( !h->video_source, "could not create video source\n" );
 
     const FFMS_VideoProperties *videop = FFMS_GetVideoProperties( h->video_source );
     info->num_frames   = h->num_frames = videop->NumFrames;
@@ -138,7 +134,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     info->thread_safe  = 0;
 
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, 0, &e );
-    FAIL_IF_ERROR( !frame, "could not read frame 0\n" )
+    FAIL_IF_ERROR( !frame, "could not read frame 0\n" );
 
     info->fullrange  = 0;
     info->width      = frame->EncodedWidth;
@@ -189,7 +185,7 @@ static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
     FFMS_ErrorInfo e;
     e.BufferSize = 0;
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, i_frame, &e );
-    FAIL_IF_ERROR( !frame, "could not read frame %d \n", i_frame )
+    FAIL_IF_ERROR( !frame, "could not read frame %d \n", i_frame );
 
     memcpy( pic->img.stride, frame->Linesize, sizeof(pic->img.stride) );
     memcpy( pic->img.plane, frame->Data, sizeof(pic->img.plane) );
@@ -198,7 +194,7 @@ static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
     {
         const FFMS_FrameInfo *info = FFMS_GetFrameInfo( h->track, i_frame );
         FAIL_IF_ERROR( info->PTS == AV_NOPTS_VALUE, "invalid timestamp. "
-                       "Use --force-cfr and specify a framerate with --fps\n" )
+                       "Use --force-cfr and specify a framerate with --fps\n" );
 
         pic->pts = info->PTS >> h->reduce_pts;
         pic->duration = 0;

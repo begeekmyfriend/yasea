@@ -29,6 +29,10 @@
 #include "common/common.h"
 #include "common/cpu.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 // GCC doesn't align stack variables on ARM, so use .bss
 #if ARCH_ARM
 #undef ALIGNED_16
@@ -1021,8 +1025,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_zigzag_function_t zigzag_ref[2];
     x264_zigzag_function_t zigzag_asm[2];
 
-    ALIGNED_16( dctcoef level1[64] );
-    ALIGNED_16( dctcoef level2[64] );
+    ALIGNED_ARRAY_16( dctcoef, level1,[64] );
+    ALIGNED_ARRAY_16( dctcoef, level2,[64] );
 
 #define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size ) \
     if( zigzag_asm[interlace].name != zigzag_ref[interlace].name ) \
@@ -2197,7 +2201,7 @@ static int check_quant( int cpu_ref, int cpu_new )
                 int dmf = h->dequant4_mf[CQM_4IC][qpdc%6][0] << qpdc/6; \
                 if( dmf > 32*64 ) \
                     continue; \
-                for( int i = 16; ; i <<= 1 ) \
+                for( int i = 16;; i <<= 1 ) \
                 { \
                     int res_c, res_asm; \
                     int max = X264_MIN( i, PIXEL_MAX*16 ); \

@@ -49,7 +49,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
 {
     thread_hnd_t *h = malloc( sizeof(thread_hnd_t) );
     FAIL_IF_ERR( !h || cli_input.picture_alloc( &h->pic, *p_handle, info->csp, info->width, info->height ),
-                 "x264", "malloc failed\n" )
+                 "x264", "malloc failed\n" );
     h->input = cli_input;
     h->p_handle = *p_handle;
     h->next_frame = -1;

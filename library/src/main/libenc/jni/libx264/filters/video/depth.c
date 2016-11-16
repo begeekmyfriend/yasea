@@ -217,13 +217,13 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info,
             ret = 1;
     }
 
-    FAIL_IF_ERROR( bit_depth != X264_BIT_DEPTH, "this build supports only bit depth %d\n", X264_BIT_DEPTH )
-    FAIL_IF_ERROR( ret, "unsupported bit depth conversion.\n" )
+    FAIL_IF_ERROR( bit_depth != X264_BIT_DEPTH, "this build supports only bit depth %d\n", X264_BIT_DEPTH );
+    FAIL_IF_ERROR( ret, "unsupported bit depth conversion.\n" );
 
     /* only add the filter to the chain if it's needed */
     if( change_fmt || bit_depth != 8 * x264_cli_csp_depth_factor( csp ) )
     {
-        FAIL_IF_ERROR( !depth_filter_csp_is_supported(csp), "unsupported colorspace.\n" )
+        FAIL_IF_ERROR( !depth_filter_csp_is_supported(csp), "unsupported colorspace.\n" );
         depth_hnd_t *h = x264_malloc( sizeof(depth_hnd_t) + (info->width+1)*sizeof(int16_t) );
 
         if( !h )

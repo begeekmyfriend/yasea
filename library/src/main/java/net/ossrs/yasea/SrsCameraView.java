@@ -1,12 +1,14 @@
 package net.ossrs.yasea;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.os.Build;
 import android.util.AttributeSet;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -45,6 +47,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private ByteBuffer mGLPreviewBuffer;
     private int mCamId = -1;
     private int mPreviewRotation = 90;
+    private int mPreviewOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     private Thread worker;
     private final Object writeLock = new Object();
@@ -172,7 +175,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     private void deleteTextures() {
-        if(mOESTextureId != OpenGLUtils.NO_TEXTURE){
+        if (mOESTextureId != OpenGLUtils.NO_TEXTURE) {
             queueEvent(new Runnable() {
                 @Override
                 public void run() {
@@ -183,12 +186,28 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         }
     }
 
-    public void setPreviewRotation(int rotation) {
-        mPreviewRotation = rotation;
-    }
-
     public void setCameraId(int id) {
         mCamId = id;
+        setPreviewOrientation(mPreviewOrientation);
+    }
+
+    public void setPreviewOrientation(int orientation) {
+        mPreviewOrientation = orientation;
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(mCamId, info);
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+            if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+                mPreviewRotation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? 270 : 90;
+            } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                mPreviewRotation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? 180 : 0;
+            }
+        } else if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+                mPreviewRotation = 90;
+            } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                mPreviewRotation = 0;
+            }
+        }
     }
 
     public int getCameraId() {
@@ -293,8 +312,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 Camera.getCameraInfo(i, info);
                 if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                     backCamId = i;
-                }
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                } else if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                     frontCamId = i;
                     break;
                 }

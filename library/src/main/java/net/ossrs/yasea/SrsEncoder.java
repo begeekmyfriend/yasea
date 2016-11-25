@@ -31,7 +31,7 @@ public class SrsEncoder {
     public static int vLandscapeHeight = 720;
     public static int vOutWidth = 720;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vOutHeight = 1280;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static int vBitrate = 500 * 1000;  // 500kbps
+    public static int vBitrate = 1200 * 1000;  // 1200kbps
     public static final int VFPS = 24;
     public static final int VGOP = 48;
     public static final int ASAMPLERATE = 44100;
@@ -98,7 +98,7 @@ public class SrsEncoder {
         // Since Y component is quadruple size as U and V component, the stride must be set as 32x
         if (!useSoftEncoder && vOutWidth % 32 != 0 || vOutHeight % 32 != 0) {
             if (vmci.getName().contains("MTK")) {
-                throw new AssertionError("MTK encoding revolution stride must be 32x");
+                //throw new AssertionError("MTK encoding revolution stride must be 32x");
             }
         }
 

@@ -187,11 +187,8 @@ public class SrsPublisher {
     }
 
     public void setScreenOrientation(int orientation) {
+        mCameraView.setPreviewOrientation(orientation);
         mEncoder.setScreenOrientation(orientation);
-    }
-
-    public void setPreviewRotation(int rotation) {
-        mCameraView.setPreviewRotation(rotation);
     }
 
     public void setVideoHDMode() {

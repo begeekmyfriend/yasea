@@ -473,11 +473,8 @@ public class SrsEncoder {
     private native void setEncoderGop(int gop);
     private native void setEncoderBitrate(int bitrate);
     private native void setEncoderPreset(String preset);
-    private native byte[] NV21ToI420(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
-    private native byte[] NV21ToNV12(byte[] yuvFrame, int width, int height, boolean flip, int rotate);
     private native byte[] RGBAToI420(byte[] rgbaFrame, int width, int height, boolean flip, int rotate);
     private native byte[] RGBAToNV12(byte[] rgbaFrame, int width, int height, boolean flip, int rotate);
-    private native int NV21SoftEncode(byte[] yuvFrame, int width, int height, boolean flip, int rotate, long pts);
     private native int RGBASoftEncode(byte[] rgbaFrame, int width, int height, boolean flip, int rotate, long pts);
     private native boolean openSoftEncoder();
     private native void closeSoftEncoder();

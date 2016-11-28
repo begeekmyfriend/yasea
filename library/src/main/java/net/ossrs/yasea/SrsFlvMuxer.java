@@ -812,7 +812,7 @@ public class SrsFlvMuxer {
         }
 
         public void writeAudioSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
-            int pts = (int)(bi.presentationTimeUs / 1000);
+            int pts = ((int) (bi.presentationTimeUs / 1000)) & 0x7fffffff;
             int dts = pts;
 
             byte[] frame = new byte[bi.size + 2];
@@ -931,7 +931,7 @@ public class SrsFlvMuxer {
         }
 
         public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
-            int pts = (int)(bi.presentationTimeUs / 1000);
+            int pts = ((int) (bi.presentationTimeUs / 1000)) & 0x7fffffff;
             int dts = (int)pts;
 
             ArrayList<SrsFlvFrameBytes> ibps = new ArrayList<SrsFlvFrameBytes>();

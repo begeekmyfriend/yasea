@@ -197,9 +197,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         Camera.getCameraInfo(mCamId, info);
         if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
             if (orientation == Configuration.ORIENTATION_PORTRAIT) {
-                mPreviewRotation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? 270 : 90;
+                mPreviewRotation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? 270 : 90;
             } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                mPreviewRotation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? 180 : 0;
+                mPreviewRotation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? 180 : 0;
             }
         } else if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             if (orientation == Configuration.ORIENTATION_PORTRAIT) {

@@ -133,8 +133,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     public int[] setPreviewResolution(int width, int height) {
-        mCamera = openCamera();
+        getHolder().setFixedSize(width, height);
 
+        mCamera = openCamera();
         mPreviewWidth = width;
         mPreviewHeight = height;
         Camera.Size rs = adaptPreviewResolution(mCamera.new Size(width, height));

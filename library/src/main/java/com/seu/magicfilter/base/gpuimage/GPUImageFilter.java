@@ -49,11 +49,6 @@ public class GPUImageFilter {
     private int mGLTextureCoordinateIndex;
     private int mGLTextureTransformIndex;
 
-    private int mGLScreenProgId;
-    private int mGLScreenPositionIndex;
-    private int mGLScreenInputImageTextureIndex;
-    private int mGLScreenTextureCoordinateIndex;
-
     protected int mInputWidth;
     protected int mInputHeight;
     protected int mOutputWidth;
@@ -74,11 +69,11 @@ public class GPUImageFilter {
     }
 
     public GPUImageFilter(MagicFilterType type) {
-        this(type, R.raw.vertex_oes, R.raw.fragment_oes);
+        this(type, R.raw.vertex, R.raw.fragment);
     }
 
     public GPUImageFilter(MagicFilterType type, int fragmentShaderId) {
-        this(type, R.raw.vertex_oes, fragmentShaderId);
+        this(type, R.raw.vertex, fragmentShaderId);
     }
 
     public GPUImageFilter(MagicFilterType type, int vertexShaderId, int fragmentShaderId) {
@@ -106,8 +101,7 @@ public class GPUImageFilter {
 
     protected void onInit() {
         initVbo();
-        loadExternalSamplerShader();
-        loadInternalSamplerShader();
+        loadSamplerShader();
     }
 
     protected void onInitialized() {
@@ -119,7 +113,6 @@ public class GPUImageFilter {
         destroyFboTexture();
         destoryVbo();
         GLES20.glDeleteProgram(mGLProgId);
-        GLES20.glDeleteProgram(mGLScreenProgId);
         onDestroy();
     }
 
@@ -137,21 +130,13 @@ public class GPUImageFilter {
         mOutputHeight = height;
     }
 
-    private void loadExternalSamplerShader() {
+    private void loadSamplerShader() {
         mGLProgId = OpenGLUtils.loadProgram(OpenGLUtils.readShaderFromRawResource(getContext(), mVertexShaderId),
             OpenGLUtils.readShaderFromRawResource(getContext(), mFragmentShaderId));
         mGLPositionIndex = GLES20.glGetAttribLocation(mGLProgId, "position");
         mGLTextureCoordinateIndex = GLES20.glGetAttribLocation(mGLProgId,"inputTextureCoordinate");
         mGLTextureTransformIndex = GLES20.glGetUniformLocation(mGLProgId, "textureTransform");
         mGLInputImageTextureIndex = GLES20.glGetUniformLocation(mGLProgId, "inputImageTexture");
-    }
-
-    private void loadInternalSamplerShader() {
-        mGLScreenProgId = OpenGLUtils.loadProgram(OpenGLUtils.readShaderFromRawResource(getContext(), R.raw.vertex_default),
-            OpenGLUtils.readShaderFromRawResource(getContext(), R.raw.fragment_default));
-        mGLScreenPositionIndex = GLES20.glGetAttribLocation(mGLScreenProgId, "position");
-        mGLScreenTextureCoordinateIndex = GLES20.glGetAttribLocation(mGLScreenProgId,"inputTextureCoordinate");
-        mGLScreenInputImageTextureIndex = GLES20.glGetUniformLocation(mGLScreenProgId, "inputImageTexture");
     }
 
     private void initVbo() {
@@ -245,11 +230,6 @@ public class GPUImageFilter {
     }
 
     public int onDrawFrame(int cameraTextureId) {
-        int fboTexId = DrawToFboTexture(cameraTextureId);
-        return DrawToScreen(fboTexId);
-    }
-
-    private int DrawToFboTexture(int textureId) {
         if (!mIsInitialized) {
             return OpenGLUtils.NOT_INIT;
         }
@@ -272,7 +252,7 @@ public class GPUImageFilter {
         GLES20.glUniformMatrix4fv(mGLTextureTransformIndex, 1, false, mGLTextureTransformMatrix, 0);
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTextureId);
         GLES20.glUniform1i(mGLInputImageTextureIndex, 0);
 
         onDrawArraysPre();
@@ -284,6 +264,8 @@ public class GPUImageFilter {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
         GLES20.glViewport(0, 0, mOutputWidth, mOutputHeight);
 
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
         onDrawArraysAfter();
 
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
@@ -294,41 +276,6 @@ public class GPUImageFilter {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
 
         return mGLFboTexId[0];
-    }
-
-    private int DrawToScreen(int textureId) {
-        if (!mIsInitialized) {
-            return OpenGLUtils.NOT_INIT;
-        }
-
-        if (mGLFboId == null) {
-            return OpenGLUtils.NO_TEXTURE;
-        }
-
-        GLES20.glUseProgram(mGLScreenProgId);
-
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLCubeId[0]);
-        GLES20.glEnableVertexAttribArray(mGLScreenPositionIndex);
-        GLES20.glVertexAttribPointer(mGLScreenPositionIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
-
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mGLTextureCoordinateId[0]);
-        GLES20.glEnableVertexAttribArray(mGLScreenTextureCoordinateIndex);
-        GLES20.glVertexAttribPointer(mGLScreenTextureCoordinateIndex, 2, GLES20.GL_FLOAT, false, 4 * 2, 0);
-
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-        GLES20.glUniform1i(mGLScreenInputImageTextureIndex, 0);
-
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
-
-        GLES20.glDisableVertexAttribArray(mGLScreenPositionIndex);
-        GLES20.glDisableVertexAttribArray(mGLScreenTextureCoordinateIndex);
-
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
-
-        return OpenGLUtils.ON_DRAWN;
     }
 
     protected void onDrawArraysPre() {}

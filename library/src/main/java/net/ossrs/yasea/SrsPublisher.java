@@ -52,7 +52,7 @@ public class SrsPublisher {
             lastTimeMillis = System.nanoTime() / 1000000;
             videoFrameCount++;
         } else {
-            if (++videoFrameCount >= 48) {
+            if (++videoFrameCount >= SrsEncoder.VGOP) {
                 long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
                 mSamplingFps = (double) videoFrameCount * 1000 / diffTimeMillis;
                 videoFrameCount = 0;

@@ -7,7 +7,7 @@ uniform vec2 singleStepOffset;
 
 varying vec2 textureCoordinate;
 
-const vec4 params = vec4(0.33, 0.63, 0.4, 0.35);
+const vec4 params = vec4(0.748, 0.874, 0.241, 0.241);
 const vec3 W = vec3(0.299,0.587,0.114);
 const mat3 saturateMatrix = mat3(
                                 1.1102,-0.0598,-0.061,
@@ -106,4 +106,6 @@ void main() {
 
     vec3 satColor = gl_FragColor.rgb * saturateMatrix;
     gl_FragColor.rgb = mix(gl_FragColor.rgb, satColor, params.a);
+
+    gl_FragColor.rgb = vec3(gl_FragColor.rgb + vec3(-0.096));
 }

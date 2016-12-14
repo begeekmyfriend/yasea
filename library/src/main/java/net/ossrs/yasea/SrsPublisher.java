@@ -57,6 +57,11 @@ public class SrsPublisher {
     }
 
     public void startEncode() {
+
+        setEncoderFacing(mCameraView.getCurrentCameraFacing());
+
+
+
         if (!mEncoder.start()) {
             return;
         }
@@ -95,6 +100,17 @@ public class SrsPublisher {
         aloop = true;
         aworker.start();
     }
+
+
+    private void setEncoderFacing(SrsCameraView.CameraFacing facing) {
+        if(facing.equals(SrsCameraView.CameraFacing.BACK)){
+            mEncoder.setCameraBackFace();
+        }
+        else {
+            mEncoder.setCameraFrontFace();
+        }
+    }
+
 
     public void stopEncode() {
         stopAudio();

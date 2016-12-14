@@ -66,7 +66,10 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
 
-        mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.preview));
+        SrsCameraView srsCameraView = (SrsCameraView) findViewById(R.id.preview);
+//        srsCameraView.setCameraId(srsCameraView.getCameraIdByFacingDirection(SrsCameraView.CameraFacing.BACK));
+
+        mPublisher = new SrsPublisher(srsCameraView);
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));

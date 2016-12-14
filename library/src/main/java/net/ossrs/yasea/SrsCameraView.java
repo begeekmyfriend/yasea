@@ -225,4 +225,45 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
     }
+
+
+
+    public CameraFacing getCurrentCameraFacing() {
+        return getCameraFacing(mCamId);
+    }
+
+    private CameraFacing getCameraFacing(int id) {
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(id, info);
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+            return CameraFacing.BACK;
+        }
+        return CameraFacing.FRONT;
+    }
+
+    public int getCameraIdByFacingDirection(CameraFacing facing) {
+        int numCameras = Camera.getNumberOfCameras();
+        for (int i = 0; i < numCameras; i++) {
+            if (getCameraFacing(i).equals(facing)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+
+    public enum CameraFacing {
+        FRONT(Camera.CameraInfo.CAMERA_FACING_FRONT),
+        BACK(Camera.CameraInfo.CAMERA_FACING_BACK);
+
+        private int mValue = Camera.CameraInfo.CAMERA_FACING_BACK;
+
+        CameraFacing(int matchingInteger) {
+            mValue = matchingInteger;
+        }
+
+        public int getValue() {
+            return mValue;
+        }
+    }
 }

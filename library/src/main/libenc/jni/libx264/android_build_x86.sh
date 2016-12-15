@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ANDROID_NDK=/home/leoma/MyOSP/android-ndk-r13b
-SYSROOT=$ANDROID_NDK/platforms/android-21/arch-x86
+SYSROOT=$ANDROID_NDK/platforms/android-19/arch-x86
 CROSS_PREFIX=$ANDROID_NDK/toolchains/x86-4.9/prebuilt/linux-x86_64/bin/i686-linux-android-
 EXTRA_CFLAGS="-D__ANDROID__ -D__i686__"
 EXTRA_LDFLAGS="-nostdlib"

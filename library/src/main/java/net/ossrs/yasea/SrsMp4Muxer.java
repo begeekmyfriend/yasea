@@ -112,7 +112,11 @@ public class SrsMp4Muxer {
     /**
      * start recording.
      */
-    public void record(File outputFile) {
+    public boolean record(File outputFile) {
+        if (videoFormat == null && audioFormat == null) {
+            return false;
+        }
+
         mRecFile = outputFile;
         createMovie(mRecFile);
         mHandler.notifyRecordStarted(mRecFile.getPath());
@@ -145,6 +149,8 @@ public class SrsMp4Muxer {
             }
         });
         worker.start();
+
+        return true;
     }
 
     /**
@@ -680,10 +686,12 @@ public class SrsMp4Muxer {
         }
 
         public void addTrack(MediaFormat format, boolean isAudio) {
-            if (isAudio) {
-                tracks.put(AUDIO_TRACK, new Track(tracks.size(), format, true));
-            } else {
-                tracks.put(VIDEO_TRACK, new Track(tracks.size(), format, false));
+            if (format != null) {
+                if (isAudio) {
+                    tracks.put(AUDIO_TRACK, new Track(tracks.size(), format, true));
+                } else {
+                    tracks.put(VIDEO_TRACK, new Track(tracks.size(), format, false));
+                }
             }
         }
 

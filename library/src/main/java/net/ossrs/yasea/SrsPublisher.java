@@ -117,10 +117,8 @@ public class SrsPublisher {
         }
     }
 
-    public void startRecord(String recPath) {
-        if (mMp4Muxer != null) {
-            mMp4Muxer.record(new File(recPath));
-        }
+    public boolean startRecord(String recPath) {
+        return mMp4Muxer != null && mMp4Muxer.record(new File(recPath));
     }
 
     public void stopRecord() {
@@ -255,15 +253,6 @@ public class SrsPublisher {
             agc.release();
             agc = null;
         }
-    }
-
-    public void switchMute() {
-        AudioManager audioManager = (AudioManager) mCameraView.getContext().getSystemService(Context.AUDIO_SERVICE);
-        int oldMode = audioManager.getMode();
-        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-        boolean isMute = !audioManager.isMicrophoneMute();
-        audioManager.setMicrophoneMute(isMute);
-        audioManager.setMode(oldMode);
     }
 
     public void setRtmpHandler(RtmpHandler handler) {

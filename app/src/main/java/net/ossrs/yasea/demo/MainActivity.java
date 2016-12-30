@@ -116,8 +116,9 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
             @Override
             public void onClick(View v) {
                 if (btnRecord.getText().toString().contentEquals("record")) {
-                    mPublisher.startRecord(recPath);
-                    btnRecord.setText("pause");
+                    if (mPublisher.startRecord(recPath)) {
+                        btnRecord.setText("pause");
+                    }
                 } else if (btnRecord.getText().toString().contentEquals("pause")) {
                     mPublisher.pauseRecord();
                     btnRecord.setText("resume");

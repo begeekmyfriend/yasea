@@ -18,6 +18,7 @@ public class SrsPublisher {
     private static AudioRecord mic;
     private static AcousticEchoCanceler aec;
     private static AutomaticGainControl agc;
+    private byte[] mPcmBuffer = new byte[4096];
     private boolean aloop = false;
     private Thread aworker;
 
@@ -211,14 +212,12 @@ public class SrsPublisher {
     private void startAudio() {
         if (mic != null) {
             mic.startRecording();
-
-            byte pcmBuffer[] = new byte[4096];
             while (aloop && !Thread.interrupted()) {
-                int size = mic.read(pcmBuffer, 0, pcmBuffer.length);
+                int size = mic.read(mPcmBuffer, 0, mPcmBuffer.length);
                 if (size <= 0) {
                     break;
                 }
-                mEncoder.onGetPcmFrame(pcmBuffer, size);
+                mEncoder.onGetPcmFrame(mPcmBuffer, size);
             }
         }
     }

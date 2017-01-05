@@ -31,12 +31,12 @@ public class SrsEncoder {
     public static int vLandscapeHeight = 384;
     public static int vOutWidth = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-    public static int vBitrate = 500 * 1000;  // 500kbps
+    public static int vBitrate = 1200 * 1024;  // 1200 kbps
     public static final int VFPS = 24;
     public static final int VGOP = 48;
     public static final int ASAMPLERATE = 44100;
     public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
-    public static final int ABITRATE = 32 * 1000;  // 32kbps
+    public static final int ABITRATE = 128 * 1024;  // 128 kbps
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
@@ -235,12 +235,12 @@ public class SrsEncoder {
     }
 
     public void setVideoHDMode() {
-        vBitrate = 1200 * 1000;  // 1200 kbps
+        vBitrate = 1200 * 1024;  // 1200 kbps
         x264Preset = "veryfast";
     }
 
     public void setVideoSmoothMode() {
-        vBitrate = 500 * 1000;  // 500 kbps
+        vBitrate = 500 * 1024;  // 500 kbps
         x264Preset = "superfast";
     }
 
@@ -447,10 +447,11 @@ public class SrsEncoder {
     }
 
     public AudioRecord chooseAudioRecord() {
-        int minBufferSize = AudioRecord.getMinBufferSize(SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT);
-        AudioRecord mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
+        AudioRecord mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE,
+            AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, getPcmBufferSize() * 4);
         if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
-            mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
+            mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE,
+                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, getPcmBufferSize() * 4);
             if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
                 mic = null;
             } else {
@@ -461,6 +462,12 @@ public class SrsEncoder {
         }
 
         return mic;
+    }
+
+    private int getPcmBufferSize() {
+        int pcmBufSize = AudioRecord.getMinBufferSize(ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO,
+            AudioFormat.ENCODING_PCM_16BIT) + 8191;
+        return pcmBufSize - (pcmBufSize % 8192);
     }
 
     // choose the video encoder by name.

@@ -144,12 +144,12 @@ public class SrsPublisher {
         }
     }
 
-    public void swithToSoftEncoder() {
-        mEncoder.swithToSoftEncoder();
+    public void switchToSoftEncoder() {
+        mEncoder.switchToSoftEncoder();
     }
 
-    public void swithToHardEncoder() {
-        mEncoder.swithToHardEncoder();
+    public void switchToHardEncoder() {
+        mEncoder.switchToHardEncoder();
     }
 
     public boolean isSoftEncoder() {
@@ -207,14 +207,16 @@ public class SrsPublisher {
     }
 
     public void switchCameraFace(int id) {
-        mCameraView.setCameraId(id);
-        mCameraView.stopCamera();
-        if (id == 0) {
-            mEncoder.setCameraBackFace();
-        } else {
-            mEncoder.setCameraFrontFace();
+        if (mEncoder.isEnabled()) {
+            mCameraView.stopCamera();
+            mCameraView.setCameraId(id);
+            if (id == 0) {
+                mEncoder.setCameraBackFace();
+            } else {
+                mEncoder.setCameraFrontFace();
+            }
+            mCameraView.startCamera();
         }
-        mCameraView.startCamera();
     }
 
     private void startAudio() {

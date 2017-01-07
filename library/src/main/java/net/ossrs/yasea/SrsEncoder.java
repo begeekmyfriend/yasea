@@ -52,6 +52,7 @@ public class SrsEncoder {
     private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
     private boolean useSoftEncoder = false;
+    private boolean canSoftEncoder = false;
 
     private long mPresentTimeUs;
 
@@ -113,8 +114,11 @@ public class SrsEncoder {
         setEncoderBitrate(vBitrate);
         setEncoderPreset(x264Preset);
 
-        if (useSoftEncoder && !openSoftEncoder()) {
-            return false;
+        if (useSoftEncoder) {
+            canSoftEncode = openSoftEncoder();
+            if (!canSoftEncode) {
+                return false;
+            }
         }
 
         // aencoder pcm to aac raw stream.
@@ -170,6 +174,7 @@ public class SrsEncoder {
     public void stop() {
         if (useSoftEncoder) {
             closeSoftEncoder();
+            canSoftEncode = false;
         }
 
         if (aencoder != null) {
@@ -195,16 +200,28 @@ public class SrsEncoder {
         mCameraFaceFront = false;
     }
 
-    public void swithToSoftEncoder() {
+    public void switchToSoftEncoder() {
         useSoftEncoder = true;
     }
 
-    public void swithToHardEncoder() {
+    public void switchToHardEncoder() {
         useSoftEncoder = false;
     }
 
     public boolean isSoftEncoder() {
         return useSoftEncoder;
+    }
+
+    public boolean canHardEncode() {
+        return vencoder != null;
+    }
+
+    public boolean canSoftEncode() {
+        return canSoftEncode;
+    }
+
+    public boolean isEnabled() {
+        return canHardEncode() || canSoftEncode();
     }
 
     public void setPreviewResolution(int width, int height) {

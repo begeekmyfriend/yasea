@@ -105,9 +105,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         btnSwitchCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (Camera.getNumberOfCameras() > 0) {
-                    mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % Camera.getNumberOfCameras());
-                }
+                mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % Camera.getNumberOfCameras());
             }
         });
 

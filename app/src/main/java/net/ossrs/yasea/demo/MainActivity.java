@@ -131,10 +131,10 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
             @Override
             public void onClick(View v) {
                 if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
-                    mPublisher.swithToSoftEncoder();
+                    mPublisher.switchToSoftEncoder();
                     btnSwitchEncoder.setText("hard encoder");
                 } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoder")) {
-                    mPublisher.swithToHardEncoder();
+                    mPublisher.switchToHardEncoder();
                     btnSwitchEncoder.setText("soft encoder");
                 }
             }

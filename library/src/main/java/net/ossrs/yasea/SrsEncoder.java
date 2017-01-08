@@ -52,7 +52,7 @@ public class SrsEncoder {
     private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
     private boolean useSoftEncoder = false;
-    private boolean canSoftEncoder = false;
+    private boolean canSoftEncode = false;
 
     private long mPresentTimeUs;
 

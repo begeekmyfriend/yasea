@@ -286,7 +286,7 @@ public class SrsEncoder {
         // Since Y component is quadruple size as U and V component, the stride must be set as 32x
         if (!useSoftEncoder && vOutWidth % 32 != 0 || vOutHeight % 32 != 0) {
             if (vmci.getName().contains("MTK")) {
-                throw new AssertionError("MTK encoding revolution stride must be 32x");
+                //throw new AssertionError("MTK encoding revolution stride must be 32x");
             }
         }
 

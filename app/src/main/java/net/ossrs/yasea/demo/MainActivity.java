@@ -72,6 +72,8 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
         mPublisher.setPreviewResolution(640, 480);
+        mPublisher.setOutputResolution(720, 1280);
+        mPublisher.setVideoHDMode();
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -82,8 +84,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
 
-                    mPublisher.setOutputResolution(720, 1280);
-                    mPublisher.setVideoHDMode();
+                    mPublisher.startCamera();
                     mPublisher.startPublish(rtmpUrl);
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {

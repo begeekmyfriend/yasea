@@ -25,6 +25,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     private byte[] mYuvPreviewFrame;
     private int mPreviewWidth;
     private int mPreviewHeight;
+    private boolean mIsEncoding;
 
     public interface PreviewCallback {
         void onGetYuvFrame(byte[] data);
@@ -86,7 +87,15 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         mYuvPreviewFrame = new byte[mPreviewWidth * mPreviewHeight * 3 / 2];
         return new int[] { mPreviewWidth, mPreviewHeight };
     }
-    
+
+    public void enableEncoding() {
+        mIsEncoding = true;
+    }
+
+    public void disableEncoding() {
+        mIsEncoding = false;
+    }
+
     public boolean startCamera() {
         if (mCamera == null) {
             mCamera = openCamera();
@@ -105,7 +114,6 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         params.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
 
         List<String> supportedFocusModes = params.getSupportedFocusModes();
-
         if (!supportedFocusModes.isEmpty()) {
             if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                 params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
@@ -131,6 +139,8 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void stopCamera() {
+        disableEncoding();
+
         if (mCamera != null) {
             mCamera.setPreviewCallback(null);
             mCamera.stopPreview();
@@ -203,8 +213,10 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
-        mPrevCb.onGetYuvFrame(data);
-        camera.addCallbackBuffer(mYuvPreviewFrame);
+        if (mIsEncoding) {
+            mPrevCb.onGetYuvFrame(data);
+            camera.addCallbackBuffer(mYuvPreviewFrame);
+        }
     }
 
     @Override

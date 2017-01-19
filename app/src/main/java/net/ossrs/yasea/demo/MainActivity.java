@@ -70,6 +70,9 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
+        mPublisher.setPreviewResolution(1280, 720);
+        mPublisher.setOutputResolution(384, 640);
+        mPublisher.setVideoSmoothMode();
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -80,9 +83,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
 
-                    mPublisher.setPreviewResolution(1280, 720);
-                    mPublisher.setOutputResolution(384, 640);
-                    mPublisher.setVideoSmoothMode();
+                    mPublisher.startCamera();
                     mPublisher.startPublish(rtmpUrl);
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
@@ -130,10 +131,10 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
             @Override
             public void onClick(View v) {
                 if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
-                    mPublisher.swithToSoftEncoder();
+                    mPublisher.switchToSoftEncoder();
                     btnSwitchEncoder.setText("hard encoder");
                 } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoder")) {
-                    mPublisher.swithToHardEncoder();
+                    mPublisher.switchToHardEncoder();
                     btnSwitchEncoder.setText("soft encoder");
                 }
             }

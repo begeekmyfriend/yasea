@@ -31,30 +31,41 @@ public class SrsPublisher {
 
     private SrsFlvMuxer mFlvMuxer;
     private SrsMp4Muxer mMp4Muxer;
-    private SrsEncoder mEncoder = new SrsEncoder();
+    private SrsEncoder mEncoder;
 
     public SrsPublisher(SrsCameraView view) {
         mCameraView = view;
         mCameraView.setPreviewCallback(new SrsCameraView.PreviewCallback() {
             @Override
             public void onGetYuvFrame(byte[] data) {
-                // Calculate YUV sampling FPS
-                if (videoFrameCount == 0) {
-                    lastTimeMillis = System.nanoTime() / 1000000;
-                    videoFrameCount++;
-                } else {
-                    if (++videoFrameCount >= SrsEncoder.VGOP) {
-                        long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
-                        mSamplingFps = (double) videoFrameCount * 1000 / diffTimeMillis;
-                        videoFrameCount = 0;
-                    }
-                }
-
+                calcSamplingFps();
                 if (!sendAudioOnly) {
                     mEncoder.onGetYuvFrame(data);
                 }
             }
         });
+    }
+
+    private void calcSamplingFps() {
+        // Calculate sampling FPS
+        if (videoFrameCount == 0) {
+            lastTimeMillis = System.nanoTime() / 1000000;
+            videoFrameCount++;
+        } else {
+            if (++videoFrameCount >= SrsEncoder.VGOP) {
+                long diffTimeMillis = System.nanoTime() / 1000000 - lastTimeMillis;
+                mSamplingFps = (double) videoFrameCount * 1000 / diffTimeMillis;
+                videoFrameCount = 0;
+            }
+        }
+    }
+
+    public void startCamera() {
+        mCameraView.startCamera();
+    }
+
+    public void stopCamera() {
+        mCameraView.stopCamera();
     }
 
     public void startEncode() {
@@ -81,10 +92,7 @@ public class SrsPublisher {
             }
         }
 
-        if (!mCameraView.startCamera()) {
-            mEncoder.stop();
-            return;
-        }
+        mCameraView.enableEncoding();
 
         aworker = new Thread(new Runnable() {
             @Override
@@ -99,7 +107,7 @@ public class SrsPublisher {
 
     public void stopEncode() {
         stopAudio();
-        mCameraView.stopCamera();
+        stopCamera();
         mEncoder.stop();
     }
 
@@ -169,7 +177,7 @@ public class SrsPublisher {
     }
 
     public void setPreviewResolution(int width, int height) {
-        int[] resolution = mCameraView.setPreviewResolution(width, height);
+        int resolution[] = mCameraView.setPreviewResolution(width, height);
         mEncoder.setPreviewResolution(resolution[0], resolution[1]);
     }
 
@@ -258,15 +266,25 @@ public class SrsPublisher {
 
     public void setRtmpHandler(RtmpHandler handler) {
         mFlvMuxer = new SrsFlvMuxer(handler);
-        mEncoder.setFlvMuxer(mFlvMuxer);
+        if (mEncoder != null) {
+            mEncoder.setFlvMuxer(mFlvMuxer);
+        }
     }
 
     public void setRecordHandler(SrsRecordHandler handler) {
         mMp4Muxer = new SrsMp4Muxer(handler);
-        mEncoder.setMp4Muxer(mMp4Muxer);
+        if (mEncoder != null) {
+            mEncoder.setMp4Muxer(mMp4Muxer);
+        }
     }
 
     public void setEncodeHandler(SrsEncodeHandler handler) {
-        mEncoder.setEncodeHandler(handler);
+        mEncoder = new SrsEncoder(handler);
+        if (mFlvMuxer != null) {
+            mEncoder.setFlvMuxer(mFlvMuxer);
+        }
+        if (mMp4Muxer != null) {
+            mEncoder.setMp4Muxer(mMp4Muxer);
+        }
     }
 }

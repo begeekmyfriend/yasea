@@ -75,12 +75,9 @@ public class SrsEncoder {
     // NV16 -> YUV422SP  yyyy uv uv
     // YUY2 -> YUV422SP  yuyv yuyv
 
-    public SrsEncoder() {
-        mVideoColorFormat = chooseVideoEncoder();
-    }
-
-    public void setEncodeHandler(SrsEncodeHandler handler) {
+    public SrsEncoder(SrsEncodeHandler handler) {
         mHandler = handler;
+        mVideoColorFormat = chooseVideoEncoder();
     }
 
     public void setFlvMuxer(SrsFlvMuxer flvMuxer) {
@@ -388,8 +385,7 @@ public class SrsEncoder {
                 if (processedData != null) {
                     onProcessedYuvFrame(processedData, pts);
                 } else {
-                    Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(),
-                            new IllegalArgumentException("libyuv failure"));
+                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
                 }
             }
 

@@ -97,7 +97,17 @@ public class SetPeerBandwidth extends RtmpPacket {
         Util.writeUnsignedInt32(out, acknowledgementWindowSize);
         out.write(limitType.getIntValue());
     }
-    
+
+    @Override
+    protected byte[] array() {
+        return null;
+    }
+
+    @Override
+    protected int size() {
+        return 0;
+    }
+
     @Override
     public String toString() {
         return "RTMP Set Peer Bandwidth";

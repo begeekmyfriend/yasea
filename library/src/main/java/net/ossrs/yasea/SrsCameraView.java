@@ -105,7 +105,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         }
 
         Camera.Parameters params = mCamera.getParameters();
-        int[] range = adaptPreviewFps(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
+        int[] range = adaptFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());
         params.setPreviewFpsRange(range[0], range[1]);
         params.setPreviewSize(mPreviewWidth, mPreviewHeight);
         params.setPreviewFormat(ImageFormat.NV21);
@@ -160,8 +160,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
                 Camera.getCameraInfo(i, info);
                 if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                     backCamId = i;
-                }
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                } else if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                     frontCamId = i;
                     break;
                 }
@@ -195,7 +194,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         return best;
     }
 
-    private int[] adaptPreviewFps(int expectedFps, List<int[]> fpsRanges) {
+    private int[] adaptFpsRange(int expectedFps, List<int[]> fpsRanges) {
         expectedFps *= 1000;
         int[] closestRange = fpsRanges.get(0);
         int measure = Math.abs(closestRange[0] - expectedFps) + Math.abs(closestRange[1] - expectedFps);

@@ -391,7 +391,7 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     @Override
-    public void publishAudioData(byte[] data, int dts) {
+    public void publishAudioData(byte[] data, int size, int dts) {
         if (data == null || data.length == 0 || dts < 0) {
             mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException("Invalid Audio Data"));
             return;
@@ -409,7 +409,7 @@ public class RtmpConnection implements RtmpPublisher {
             return;
         }
         Audio audio = new Audio();
-        audio.setData(data);
+        audio.setData(data, size);
         audio.getHeader().setAbsoluteTimestamp(dts);
         audio.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(audio);
@@ -418,7 +418,7 @@ public class RtmpConnection implements RtmpPublisher {
     }
 
     @Override
-    public void publishVideoData(byte[] data, int dts) {
+    public void publishVideoData(byte[] data, int size, int dts) {
         if (data == null || data.length == 0 || dts < 0) {
             mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException("Invalid Video Data"));
             return;
@@ -436,7 +436,7 @@ public class RtmpConnection implements RtmpPublisher {
             return;
         }
         Video video = new Video();
-        video.setData(data);
+        video.setData(data, size);
         video.getHeader().setAbsoluteTimestamp(dts);
         video.getHeader().setMessageStreamId(currentStreamId);
         sendRtmpPacket(video);

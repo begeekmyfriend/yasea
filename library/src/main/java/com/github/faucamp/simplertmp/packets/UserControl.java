@@ -236,6 +236,16 @@ public class UserControl extends RtmpPacket {
     }
 
     @Override
+    protected byte[] array() {
+        return null;
+    }
+
+    @Override
+    protected int size() {
+        return 0;
+    }
+
+    @Override
     public String toString() {
         return "RTMP User Control (type: " + type + ", event data: " + eventData + ")";
     }

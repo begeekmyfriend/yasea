@@ -1,5 +1,7 @@
 package com.github.faucamp.simplertmp.packets;
 
+import android.support.annotation.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,6 +16,7 @@ import com.github.faucamp.simplertmp.Util;
 public abstract class ContentData extends RtmpPacket {
 
     protected byte[] data;
+    protected int size;
 
     public ContentData(RtmpHeader header) {
         super(header);
@@ -23,8 +26,9 @@ public abstract class ContentData extends RtmpPacket {
         return data;
     }
 
-    public void setData(byte[] data) {
+    public void setData(byte[] data, int size) {
         this.data = data;
+        this.size = size;
     }
 
     @Override
@@ -40,6 +44,15 @@ public abstract class ContentData extends RtmpPacket {
      */
     @Override
     public void writeBody(OutputStream out) throws IOException {
-        out.write(data);
+    }
+
+    @Override
+    public byte[] array() {
+        return data;
+    }
+
+    @Override
+    public int size() {
+        return size;
     }
 }

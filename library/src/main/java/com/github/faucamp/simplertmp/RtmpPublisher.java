@@ -1,6 +1,5 @@
 package com.github.faucamp.simplertmp;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -38,17 +37,19 @@ public interface RtmpPublisher {
      * publish a video content packet to server
      *
      * @param data video stream byte array
+     * @param size video stream byte size (not the whole length of byte array)
      * @param dts video stream decoding timestamp
      */
-    void publishVideoData(byte[] data, int dts);
+    void publishVideoData(byte[] data, int size, int dts);
 
     /**
      * publish an audio content packet to server
      *
      * @param data audio stream byte array
+     * @param size audio stream byte size (not the whole length of byte array)
      * @param dts audio stream decoding timestamp
      */
-    void publishAudioData(byte[] data, int dts);
+    void publishAudioData(byte[] data, int size, int dts);
 
     /**
      * obtain video frame number cached in publisher

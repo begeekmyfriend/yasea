@@ -73,7 +73,17 @@ public class Command extends VariableBodyRtmpPacket {
         // Write body data
         writeVariableData(out);
     }
-    
+
+    @Override
+    protected byte[] array() {
+        return null;
+    }
+
+    @Override
+    protected int size() {
+        return 0;
+    }
+
     @Override
     public String toString() {
         return "RTMP Command (command: " + commandName + ", transaction ID: " + transactionId + ")";

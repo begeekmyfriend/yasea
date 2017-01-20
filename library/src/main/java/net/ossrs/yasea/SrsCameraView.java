@@ -37,6 +37,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private int mSurfaceHeight;
     private int mPreviewWidth;
     private int mPreviewHeight;
+    private boolean mIsEncoding;
     private float mInputAspectRatio;
     private float mOutputAspectRatio;
     private float[] mProjectionMatrix = new float[16];
@@ -122,7 +123,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         magicFilter.setTextureTransformMatrix(mTransformMatrix);
         magicFilter.onDrawFrame(mOESTextureId);
 
-        if (worker != null) {
+        if (mIsEncoding) {
             mGLIntBufferCache.add(magicFilter.getGLFboBuffer());
             synchronized (writeLock) {
                 writeLock.notifyAll();
@@ -240,9 +241,13 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         });
         worker.start();
+        mIsEncoding = true;
     }
 
     public void disableEncoding() {
+        mIsEncoding = false;
+        mGLIntBufferCache.clear();
+
         if (worker != null) {
             worker.interrupt();
             try {
@@ -251,7 +256,6 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 e.printStackTrace();
                 worker.interrupt();
             }
-            mGLIntBufferCache.clear();
             worker = null;
         }
     }

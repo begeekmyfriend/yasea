@@ -42,6 +42,16 @@ public class Abort extends RtmpPacket {
     }
 
     @Override
+    protected byte[] array() {
+        return null;
+    }
+
+    @Override
+    protected int size() {
+        return 0;
+    }
+
+    @Override
     protected void writeBody(OutputStream out) throws IOException {
         Util.writeUnsignedInt32(out, chunkStreamId);
     }

@@ -1,6 +1,5 @@
 package com.github.faucamp.simplertmp;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.faucamp.simplertmp.io.RtmpConnection;
@@ -34,13 +33,13 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
     }
 
     @Override
-    public void publishVideoData(byte[] data, int dts) {
-        rtmpConnection.publishVideoData(data, dts);
+    public void publishVideoData(byte[] data, int size, int dts) {
+        rtmpConnection.publishVideoData(data, size, dts);
     }
 
     @Override
-    public void publishAudioData(byte[] data, int dts) {
-        rtmpConnection.publishAudioData(data, dts);
+    public void publishAudioData(byte[] data, int size, int dts) {
+        rtmpConnection.publishAudioData(data, size, dts);
     }
 
     @Override

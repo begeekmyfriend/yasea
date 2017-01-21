@@ -243,6 +243,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnRecord.setText("record");
         mPublisher.setScreenOrientation(newConfig.orientation);
         if (btnPublish.getText().toString().contentEquals("stop")) {
+            mPublisher.startCamera();
             mPublisher.startEncode();
         }
     }

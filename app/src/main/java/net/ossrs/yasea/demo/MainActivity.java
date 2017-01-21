@@ -192,6 +192,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         btnRecord.setText("record");
         mPublisher.setScreenOrientation(newConfig.orientation);
         if (btnPublish.getText().toString().contentEquals("stop")) {
+            mPublisher.startCamera();
             mPublisher.startEncode();
         }
     }

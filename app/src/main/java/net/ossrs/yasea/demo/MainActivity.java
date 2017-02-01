@@ -84,8 +84,8 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
 
-                    mPublisher.startCamera();
                     mPublisher.startPublish(rtmpUrl);
+                    mPublisher.startCamera();
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
                         Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
@@ -243,8 +243,8 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnRecord.setText("record");
         mPublisher.setScreenOrientation(newConfig.orientation);
         if (btnPublish.getText().toString().contentEquals("stop")) {
-            mPublisher.startCamera();
             mPublisher.startEncode();
+            mPublisher.startCamera();
         }
     }
 

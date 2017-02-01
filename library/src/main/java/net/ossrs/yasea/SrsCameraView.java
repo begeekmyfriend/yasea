@@ -88,11 +88,11 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         return new int[] { mPreviewWidth, mPreviewHeight };
     }
 
-    public void enableEncoding() {
+    private void enableEncoding() {
         mIsEncoding = true;
     }
 
-    public void disableEncoding() {
+    private void disableEncoding() {
         mIsEncoding = false;
     }
 
@@ -103,6 +103,8 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
                 return false;
             }
         }
+
+        enableEncoding();
 
         Camera.Parameters params = mCamera.getParameters();
         int[] range = adaptFpsRange(SrsEncoder.VFPS, params.getSupportedPreviewFpsRange());

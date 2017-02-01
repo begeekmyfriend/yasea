@@ -218,7 +218,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         return mCamId;
     }
 
-    public void enableEncoding() {
+    private void enableEncoding() {
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -244,7 +244,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         mIsEncoding = true;
     }
 
-    public void disableEncoding() {
+    private void disableEncoding() {
         mIsEncoding = false;
         mGLIntBufferCache.clear();
 
@@ -267,6 +267,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 return false;
             }
         }
+
+        enableEncoding();
 
         Camera.Parameters params = mCamera.getParameters();
 

@@ -138,6 +138,8 @@ public class SrsPublisher {
             return;
         }
 
+        mCameraView.enableEncoding();
+
         startAudio();
     }
 
@@ -243,16 +245,14 @@ public class SrsPublisher {
     }
 
     public void switchCameraFace(int id) {
-        if (mEncoder.isEnabled()) {
-            mCameraView.stopCamera();
-            mCameraView.setCameraId(id);
-            if (id == 0) {
-                mEncoder.setCameraBackFace();
-            } else {
-                mEncoder.setCameraFrontFace();
-            }
-            mCameraView.startCamera();
+        mCameraView.stopCamera();
+        mCameraView.setCameraId(id);
+        if (id == 0) {
+            mEncoder.setCameraBackFace();
+        } else {
+            mEncoder.setCameraFrontFace();
         }
+        mCameraView.startCamera();
     }
 
     public void setRtmpHandler(RtmpHandler handler) {

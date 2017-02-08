@@ -148,7 +148,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         }
         mCamera.getParameters().setPreviewSize(mPreviewWidth, mPreviewHeight);
 
-        mGLPreviewBuffer = ByteBuffer.allocate(mPreviewWidth * mPreviewHeight * 4);
+        mGLPreviewBuffer = ByteBuffer.allocateDirect(mPreviewWidth * mPreviewHeight * 4);
         mInputAspectRatio = mPreviewWidth > mPreviewHeight ?
             (float) mPreviewWidth / mPreviewHeight : (float) mPreviewHeight / mPreviewWidth;
 

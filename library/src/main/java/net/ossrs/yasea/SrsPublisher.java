@@ -252,8 +252,8 @@ public class SrsPublisher {
         } else {
             mEncoder.setCameraFrontFace();
         }
-        if (mEncoder != NULL && mEncoder.isEnabled()) {
-                mCameraView.enableEncoding();
+        if (mEncoder != null && mEncoder.isEnabled()) {
+            mCameraView.enableEncoding();
         }
         mCameraView.startCamera();
     }

@@ -274,6 +274,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         if (!supportedFocusModes.isEmpty()) {
             if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                 params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            } else if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+                params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                mCamera.autoFocus(null);
             } else {
                 params.setFocusMode(supportedFocusModes.get(0));
             }

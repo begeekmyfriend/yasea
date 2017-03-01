@@ -114,7 +114,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         params.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
 
         List<String> supportedFocusModes = params.getSupportedFocusModes();
-        if (!supportedFocusModes.isEmpty()) {
+        if (supportedFocusModes != null && !supportedFocusModes.isEmpty()) {
             if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                 params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
             } else if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
@@ -122,6 +122,15 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
                 mCamera.autoFocus(null);
             } else {
                 params.setFocusMode(supportedFocusModes.get(0));
+            }
+        }
+
+        List<String> supportedFlashModes = params.getSupportedFlashModes();
+        if (supportedFlashModes != null && !supportedFlashModes.isEmpty()) {
+            if (supportedFlashModes.contains(Camera.Parameters.FLASH_MODE_TORCH)) {
+                params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+            } else {
+                params.setFlashMode(supportedFlashModes.get(0));
             }
         }
 

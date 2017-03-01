@@ -111,7 +111,13 @@ public class RtmpConnection implements RtmpPublisher {
             streamName = matcher.group(6);
         } else {
             mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException(
-                "Invalid RTMP URL. Must be in format: rtmp://host[:port]/application[/streamName]"));
+                "Invalid RTMP URL. Must be in format: rtmp://host[:port]/application/streamName"));
+            return false;
+        }
+
+        if (streamName == null || appName == null) {
+            mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException(
+                "Invalid RTMP URL. Must be in format: rtmp://host[:port]/application/streamName"));
             return false;
         }
 

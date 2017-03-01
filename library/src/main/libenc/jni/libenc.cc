@@ -287,7 +287,7 @@ static void libenc_closeSoftEncoder(JNIEnv* env, jobject thiz) {
 
 static jboolean libenc_openSoftEncoder(JNIEnv* env, jobject thiz) {
     // presetting
-    x264_param_default_preset(&x264_ctx.params, "superfast", "zerolatency");
+    x264_param_default_preset(&x264_ctx.params, x264_ctx.preset, "zerolatency");
 
     x264_ctx.params.b_repeat_headers = 0;
     x264_ctx.global_nal_header = true;

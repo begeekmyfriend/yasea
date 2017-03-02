@@ -519,8 +519,7 @@ public class SrsFlvMuxer {
     private class SrsRawH264Stream {
         private final static String TAG = "SrsFlvMuxer";
 
-        private SrsUtils utils = new SrsUtils();;
-        private SrsFlvFrameBytes nalu_header = new SrsFlvFrameBytes();
+        private SrsUtils utils = new SrsUtils();
         private SrsFlvFrameBytes seq_hdr = new SrsFlvFrameBytes();
         private SrsFlvFrameBytes sps_hdr = new SrsFlvFrameBytes();
         private SrsFlvFrameBytes sps_bb = new SrsFlvFrameBytes();
@@ -535,13 +534,10 @@ public class SrsFlvMuxer {
             return frame.size >= 1 && (frame.data.get(0) & 0x1f) == SrsAvcNaluType.PPS;
         }
 
-        public SrsFlvFrameBytes mux_nalu_header(SrsFlvFrameBytes frame) {
-            if (nalu_header.data == null) {
-                nalu_header.data = ByteBuffer.allocate(4);
-                nalu_header.size = 4;
-            }
-            nalu_header.data.rewind();
-
+        public SrsFlvFrameBytes mux_nalu_hdr(SrsFlvFrameBytes frame) {
+            SrsFlvFrameBytes nalu_hdr = new SrsFlvFrameBytes();
+            nalu_hdr.data = ByteBuffer.allocateDirect(4);
+            nalu_hdr.size = 4;
             // 5.3.4.2.1 Syntax, H.264-AVC-ISO_IEC_14496-15.pdf, page 16
             // lengthSizeMinusOne, or NAL_unit_length, always use 4bytes size
             int NAL_unit_length = frame.size;
@@ -549,11 +545,11 @@ public class SrsFlvMuxer {
             // mux the avc NALU in "ISO Base Media File Format"
             // from H.264-AVC-ISO_IEC_14496-15.pdf, page 20
             // NALUnitLength
-            nalu_header.data.putInt(NAL_unit_length);
+            nalu_hdr.data.putInt(NAL_unit_length);
 
             // reset the buffer.
-            nalu_header.data.rewind();
-            return nalu_header;
+            nalu_hdr.data.rewind();
+            return nalu_hdr;
         }
 
         public void mux_sequence_header(ByteBuffer sps, ByteBuffer pps, int dts, int pts,
@@ -894,6 +890,7 @@ public class SrsFlvMuxer {
         public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
             int pts = (int) (bi.presentationTimeUs / 1000);
             int dts = pts;
+
             int frame_type = SrsCodecVideoAVCFrame.InterFrame;
 
             // send each frame.
@@ -940,19 +937,14 @@ public class SrsFlvMuxer {
                     continue;
                 }
 
-                // ibp frame.
-                SrsFlvFrameBytes nalu_header = avc.mux_nalu_header(frame);
-                ipbs.add(nalu_header);
+                // IPB frame.
+                ipbs.add(avc.mux_nalu_hdr(frame));
                 ipbs.add(frame);
-
-                // Drop the es frames with huge size which are mostly generated at encoder stop
-                // since the encoder may work unsteadily at that moment.
-                if (nalu_header.size + frame.size <= VIDEO_ALLOC_SIZE) {
-                    write_h264_sps_pps(dts, pts);
-                    write_h264_ipb_frame(ipbs, frame_type, dts, pts);
-                }
-                ipbs.clear();
             }
+
+            write_h264_sps_pps(dts, pts);
+            write_h264_ipb_frame(ipbs, frame_type, dts, pts);
+            ipbs.clear();
         }
 
         private void write_h264_sps_pps(int dts, int pts) {
@@ -1014,17 +1006,17 @@ public class SrsFlvMuxer {
                 if (needToFindKeyFrame) {
                     if (frame.is_keyframe()) {
                         needToFindKeyFrame = false;
-                        flvFrameCacheAdd(frame);
+                        flvTagCacheAdd(frame);
                     }
                 } else {
-                    flvFrameCacheAdd(frame);
+                    flvTagCacheAdd(frame);
                 }
             } else if (frame.is_audio()) {
-                flvFrameCacheAdd(frame);
+                flvTagCacheAdd(frame);
             }
         }
 
-        private void flvFrameCacheAdd(SrsFlvFrame frame) {
+        private void flvTagCacheAdd(SrsFlvFrame frame) {
             mFlvTagCache.add(frame);
             if (frame.is_video()) {
                 getVideoFrameCacheNumber().incrementAndGet();

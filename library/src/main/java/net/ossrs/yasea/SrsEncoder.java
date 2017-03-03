@@ -328,15 +328,13 @@ public class SrsEncoder {
 
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        ByteBuffer record = es.duplicate();
-        mp4Muxer.writeSampleData(videoMp4Track, record, bi);
+        mp4Muxer.writeSampleData(videoMp4Track, es.duplicate(), bi);
         flvMuxer.writeSampleData(videoFlvTrack, es, bi);
     }
 
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        ByteBuffer record = es.duplicate();
-        mp4Muxer.writeSampleData(audioMp4Track, record, bi);
+        mp4Muxer.writeSampleData(audioMp4Track, es.duplicate(), bi);
         flvMuxer.writeSampleData(audioFlvTrack, es, bi);
     }
 

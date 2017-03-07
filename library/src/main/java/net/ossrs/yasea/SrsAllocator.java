@@ -58,9 +58,7 @@ public final class SrsAllocator {
     }
 
     private final int individualAllocationSize;
-    private final Allocation[] singleAllocationReleaseHolder;
-    private volatile int allocatedCount;
-    private volatile int availableCount;
+    private volatile int availableSentinel;
     private Allocation[] availableAllocations;
 
     /**
@@ -81,44 +79,38 @@ public final class SrsAllocator {
      */
     public SrsAllocator(int individualAllocationSize, int initialAllocationCount) {
         this.individualAllocationSize = individualAllocationSize;
-        this.availableCount = initialAllocationCount + 10;
-        this.availableAllocations = new Allocation[availableCount];
-        for (int i = 0; i < availableCount; i++) {
+        this.availableSentinel = initialAllocationCount + 10;
+        this.availableAllocations = new Allocation[availableSentinel];
+        for (int i = 0; i < availableSentinel; i++) {
             availableAllocations[i] = new Allocation(individualAllocationSize);
         }
-        singleAllocationReleaseHolder = new Allocation[1];
     }
 
-    public synchronized Allocation allocate() {
-        allocatedCount++;
-        Allocation allocation;
-        if (availableCount > 0) {
-            allocation = availableAllocations[--availableCount];
-            availableAllocations[availableCount] = null;
-        } else {
-            allocation = new Allocation(individualAllocationSize);
+    public synchronized Allocation allocate(int size) {
+        for (int i = 0; i < availableSentinel; i++) {
+            if (availableAllocations[i].size() >= size) {
+                Allocation ret = availableAllocations[i];
+                availableAllocations[i] = null;
+                return ret;
+            }
         }
-        return allocation;
+
+        return new Allocation(size > individualAllocationSize ? size : individualAllocationSize);
     }
 
     public synchronized void release(Allocation allocation) {
-        singleAllocationReleaseHolder[0] = allocation;
-        release(singleAllocationReleaseHolder);
-    }
+        allocation.clear();
 
-    public synchronized void release(Allocation[] allocations) {
-        if (availableCount + allocations.length >= availableAllocations.length) {
-            availableAllocations = Arrays.copyOf(availableAllocations,
-                Math.max(availableAllocations.length * 2, availableCount + allocations.length));
+        for (int i = 0; i < availableSentinel; i++) {
+            if (availableAllocations[i].size() == 0) {
+                availableAllocations[i] = allocation;
+                return;
+            }
         }
-        for (Allocation allocation : allocations) {
-            allocation.clear();
-            availableAllocations[availableCount++] = allocation;
-        }
-        allocatedCount -= allocations.length;
-    }
 
-    public synchronized int getTotalBytesAllocated() {
-        return allocatedCount * individualAllocationSize;
+        if (availableSentinel + 1 > availableAllocations.length) {
+            availableAllocations = Arrays.copyOf(availableAllocations, availableAllocations.length * 2);
+        }
+        availableAllocations[availableSentinel++] = allocation;
     }
 }

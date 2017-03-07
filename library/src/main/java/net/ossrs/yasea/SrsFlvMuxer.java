@@ -598,13 +598,17 @@ public class SrsFlvMuxer {
         }
 
         public SrsAllocator.Allocation muxFlvTag(ArrayList<SrsFlvFrameBytes> frames, int frame_type,
-                                                    int avc_packet_type, int dts, int pts, int size) {
+                                                 int avc_packet_type, int dts, int pts) {
             // for h264 in RTMP video payload, there is 5bytes header:
             //      1bytes, FrameType | CodecID
             //      1bytes, AVCPacketType
             //      3bytes, CompositionTime, the cts.
             // @see: E.4.3 Video Tags, video_file_format_spec_v10_1.pdf, page 78
-            SrsAllocator.Allocation allocation = mVideoAllocator.allocate(size + 5);
+            int size = 5;
+            for (int i = 0; i < frames.size(); i++) {
+                size += frames.get(i).size;
+            }
+            SrsAllocator.Allocation allocation = mVideoAllocator.allocate(size);
 
             // @see: E.4.3 Video Tags, video_file_format_spec_v10_1.pdf, page 78
             // Frame Type, Type of video frame.
@@ -921,12 +925,12 @@ public class SrsFlvMuxer {
                 ipbs.add(frame);
             }
 
-            writeH264SpsPps(dts, pts, bi.size);
-            writeH264IpbFrame(ipbs, type, dts, pts, bi.size);
+            writeH264SpsPps(dts, pts);
+            writeH264IpbFrame(ipbs, type, dts, pts);
             ipbs.clear();
         }
 
-        private void writeH264SpsPps(int dts, int pts, int size) {
+        private void writeH264SpsPps(int dts, int pts) {
             // when sps or pps changed, update the sequence header,
             // for the pps maybe not changed while sps changed.
             // so, we must check when each video ts message frame parsed.
@@ -946,7 +950,7 @@ public class SrsFlvMuxer {
             // h264 packet to flv packet.
             int frame_type = SrsCodecVideoAVCFrame.KeyFrame;
             int avc_packet_type = SrsCodecVideoAVCType.SequenceHeader;
-            video_tag = avc.muxFlvTag(frames, frame_type, avc_packet_type, dts, pts, size);
+            video_tag = avc.muxFlvTag(frames, frame_type, avc_packet_type, dts, pts);
 
             // the timestamp in rtmp message header is dts.
             writeRtmpPacket(SrsCodecFlvTag.Video, dts, frame_type, avc_packet_type, video_tag);
@@ -959,14 +963,14 @@ public class SrsFlvMuxer {
                 h264_sps.array().length, h264_pps.array().length));
         }
 
-        private void writeH264IpbFrame(ArrayList<SrsFlvFrameBytes> frames, int type, int dts, int pts, int size) {
+        private void writeH264IpbFrame(ArrayList<SrsFlvFrameBytes> frames, int type, int dts, int pts) {
             // when sps or pps not sent, ignore the packet.
             // @see https://github.com/simple-rtmp-server/srs/issues/203
             if (!h264_sps_pps_sent) {
                 return;
             }
 
-            video_tag = avc.muxFlvTag(frames, type, SrsCodecVideoAVCType.NALU, dts, pts, size);
+            video_tag = avc.muxFlvTag(frames, type, SrsCodecVideoAVCType.NALU, dts, pts);
 
             // the timestamp in rtmp message header is dts.
             writeRtmpPacket(SrsCodecFlvTag.Video, dts, type, SrsCodecVideoAVCType.NALU, video_tag);

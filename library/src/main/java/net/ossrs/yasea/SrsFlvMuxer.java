@@ -604,7 +604,7 @@ public class SrsFlvMuxer {
             //      1bytes, AVCPacketType
             //      3bytes, CompositionTime, the cts.
             // @see: E.4.3 Video Tags, video_file_format_spec_v10_1.pdf, page 78
-            SrsAllocator.Allocation allocation = mVideoAllocator.allocate(size);
+            SrsAllocator.Allocation allocation = mVideoAllocator.allocate(size + 5);
 
             // @see: E.4.3 Video Tags, video_file_format_spec_v10_1.pdf, page 78
             // Frame Type, Type of video frame.
@@ -754,7 +754,7 @@ public class SrsFlvMuxer {
             int pts = (int)(bi.presentationTimeUs / 1000);
             int dts = pts;
 
-            audio_tag = mAudioAllocator.allocate(bi.size);
+            audio_tag = mAudioAllocator.allocate(bi.size + 2);
             byte aac_packet_type = 1; // 1 = AAC raw
             if (!aac_specific_config_got) {
                 // @see aac-mp4a-format-ISO_IEC_14496-3+2001.pdf

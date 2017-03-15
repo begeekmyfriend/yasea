@@ -46,6 +46,9 @@ static JNIEnv *jenv;
 static struct x264_context x264_ctx;
 static uint8_t h264_es[1024 * 1024];
 
+static const int SRC_COLOR_FMT = FOURCC_RGBA;
+static const int DST_COLOR_FMT = FOURCC_NV12;
+
 static struct YuvFrame i420_rotated_frame;
 static struct YuvFrame i420_scaled_frame;
 static struct YuvFrame nv12_frame;
@@ -156,7 +159,7 @@ static jbyteArray libenc_RGBAToI420(JNIEnv* env, jobject thiz, jbyteArray frame,
                                     jint src_height, jboolean need_flip, jint rotate_degree) {
     jbyte* rgba_frame = env->GetByteArrayElements(frame, NULL);
 
-    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_RGBA)) {
+    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, SRC_COLOR_FMT)) {
         return NULL;
     }
 
@@ -173,7 +176,7 @@ static jbyteArray libenc_RGBAToNV12(JNIEnv* env, jobject thiz, jbyteArray frame,
                                     jint src_height, jboolean need_flip, jint rotate_degree) {
     jbyte* rgba_frame = env->GetByteArrayElements(frame, NULL);
 
-    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_RGBA)) {
+    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, SRC_COLOR_FMT)) {
         return NULL;
     }
 
@@ -182,7 +185,7 @@ static jbyteArray libenc_RGBAToNV12(JNIEnv* env, jobject thiz, jbyteArray frame,
                               i420_scaled_frame.v, i420_scaled_frame.width / 2,
                               nv12_frame.data, nv12_frame.width,
                               nv12_frame.width, nv12_frame.height,
-                              FOURCC_NV12);
+                              DST_COLOR_FMT);
     if (ret < 0) {
         LIBENC_LOGE("ConvertFromI420 failure");
         return NULL;
@@ -250,7 +253,7 @@ static jint libenc_RGBASoftEncode(JNIEnv* env, jobject thiz, jbyteArray frame, j
                                   jint src_height, jboolean need_flip, jint rotate_degree, jlong pts) {
     jbyte* rgba_frame = env->GetByteArrayElements(frame, NULL);
 
-    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, FOURCC_RGBA)) {
+    if (!convert_to_i420(rgba_frame, src_width, src_height, need_flip, rotate_degree, SRC_COLOR_FMT)) {
         return JNI_ERR;
     }
 

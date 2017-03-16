@@ -17,31 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Updated by leoma on 4/1/16.
  * to POST the h.264/avc annexb frame over RTMP.
  * @see android.media.MediaMuxer https://developer.android.com/reference/android/media/MediaMuxer.html
- *
- * Usage:
- *      muxer = new SrsRtmp("rtmp://ossrs.net/live/yasea");
- *      muxer.start();
- *
- *      MediaFormat aformat = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, asample_rate, achannel);
- *      // setup the aformat for audio.
- *      atrack = muxer.addTrack(aformat);
- *
- *      MediaFormat vformat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, vsize.width, vsize.height);
- *      // setup the vformat for video.
- *      vtrack = muxer.addTrack(vformat);
- *
- *      // encode the video frame from camera by h.264 codec to es and bi,
- *      // where es is the h.264 ES(element stream).
- *      ByteBuffer es, MediaCodec.BufferInfo bi;
- *      muxer.writeSampleData(vtrack, es, bi);
- *
- *      // encode the audio frame from microphone by aac codec to es and bi,
- *      // where es is the aac ES(element stream).
- *      ByteBuffer es, MediaCodec.BufferInfo bi;
- *      muxer.writeSampleData(atrack, es, bi);
- *
- *      muxer.stop();
- *      muxer.release();
  */
 public class SrsFlvMuxer {
 
@@ -152,7 +127,7 @@ public class SrsFlvMuxer {
     }
 
     /**
-     * start to the remote SRS for remux.
+     * start to the remote server for remux.
      */
     public void start(final String rtmpUrl) {
         worker = new Thread(new Runnable() {

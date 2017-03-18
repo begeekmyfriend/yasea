@@ -17,11 +17,13 @@ public class SrsPublisher {
     private static AcousticEchoCanceler aec;
     private static AutomaticGainControl agc;
     private byte[] mPcmBuffer = new byte[4096];
+    private byte[] mMuteBuffer = new byte[11];
     private Thread aworker;
 
     private SrsCameraView mCameraView;
 
     private boolean sendAudioOnly = false;
+    private boolean sendVideoOnly = false;
     private int videoFrameCount;
     private long lastTimeMillis;
     private double mSamplingFps;
@@ -91,11 +93,14 @@ public class SrsPublisher {
                 android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);
                 mic.startRecording();
                 while (!Thread.interrupted()) {
-                    int size = mic.read(mPcmBuffer, 0, mPcmBuffer.length);
-                    if (size <= 0) {
-                        break;
+                    if (sendVideoOnly) {
+                        mEncoder.onGetPcmFrame(mMuteBuffer, mMuteBuffer.length);
+                    } else {
+                        int size = mic.read(mPcmBuffer, 0, mPcmBuffer.length);
+                        if (size > 0) {
+                            mEncoder.onGetPcmFrame(mPcmBuffer, size);
+                        }
                     }
-                    mEncoder.onGetPcmFrame(mPcmBuffer, size);
                 }
             }
         });
@@ -238,6 +243,10 @@ public class SrsPublisher {
 
     public void setVideoSmoothMode() {
         mEncoder.setVideoSmoothMode();
+    }
+
+    public synchronized void setSendVideoOnly(boolean flag) {
+        sendVideoOnly = flag;
     }
 
     public void setSendAudioOnly(boolean flag) {

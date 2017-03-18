@@ -73,6 +73,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         mPublisher.setPreviewResolution(1280, 720);
         mPublisher.setOutputResolution(384, 640);
         mPublisher.setVideoSmoothMode();
+        mPublisher.startCamera();
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override

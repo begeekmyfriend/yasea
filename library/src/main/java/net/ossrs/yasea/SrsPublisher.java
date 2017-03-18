@@ -22,8 +22,8 @@ public class SrsPublisher {
 
     private SrsCameraView mCameraView;
 
-    private boolean sendAudioOnly = false;
     private boolean sendVideoOnly = false;
+    private boolean sendAudioOnly = false;
     private int videoFrameCount;
     private long lastTimeMillis;
     private double mSamplingFps;
@@ -245,7 +245,7 @@ public class SrsPublisher {
         mEncoder.setVideoSmoothMode();
     }
 
-    public synchronized void setSendVideoOnly(boolean flag) {
+    public void setSendVideoOnly(boolean flag) {
         sendVideoOnly = flag;
     }
 

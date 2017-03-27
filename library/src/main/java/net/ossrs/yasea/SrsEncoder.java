@@ -24,7 +24,7 @@ public class SrsEncoder {
     public static final String ACODEC = "audio/mp4a-latm";
     public static String x264Preset = "veryfast";
     public static int vPrevWidth = 640;
-    public static int vPrevHeight = 480;
+    public static int vPrevHeight = 360;
     public static int vPortraitWidth = 720;
     public static int vPortraitHeight = 1280;
     public static int vLandscapeWidth = 1280;

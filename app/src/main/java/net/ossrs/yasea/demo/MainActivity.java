@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
-        mPublisher.setPreviewResolution(640, 480);
+        mPublisher.setPreviewResolution(640, 360);
         mPublisher.setOutputResolution(720, 1280);
         mPublisher.setVideoHDMode();
         mPublisher.startCamera();

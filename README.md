@@ -51,7 +51,7 @@ Acknowledgements
 
 - [srs-sea](https://github.com/ossrs/srs-sea)
 - [SimpleRtmp](https://github.com/faucamp/SimpleRtmp)
-- [MagicCamera](https://github.com/begeekmyfriend/MagicCamera)
+- [MagicCamera](https://github.com/wuhaoyu1990/MagicCamera)
 - [x264](http://www.videolan.org/developers/x264.html)
 - [mp4parser](https://android.googlesource.com/platform/external/mp4parser)
 

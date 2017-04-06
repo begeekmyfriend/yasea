@@ -97,7 +97,7 @@ public class SrsEncoder {
 
         // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
         // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-        if (!useSoftEncoder && vOutWidth % 32 != 0 || vOutHeight % 32 != 0) {
+        if (!useSoftEncoder && (vOutWidth % 32 != 0 || vOutHeight % 32 != 0)) {
             if (vmci.getName().contains("MTK")) {
                 //throw new AssertionError("MTK encoding revolution stride must be 32x");
             }
@@ -284,7 +284,7 @@ public class SrsEncoder {
         
         // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
         // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-        if (!useSoftEncoder && vOutWidth % 32 != 0 || vOutHeight % 32 != 0) {
+        if (!useSoftEncoder && (vOutWidth % 32 != 0 || vOutHeight % 32 != 0)) {
             if (vmci.getName().contains("MTK")) {
                 //throw new AssertionError("MTK encoding revolution stride must be 32x");
             }

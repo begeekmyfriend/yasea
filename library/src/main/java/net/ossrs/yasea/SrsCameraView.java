@@ -9,6 +9,8 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
@@ -55,6 +57,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<IntBuffer> mGLIntBufferCache = new ConcurrentLinkedQueue<>();
     private PreviewCallback mPrevCb;
+    private Handler handler;
+    private boolean surfaceCreated;
 
     public SrsCameraView(Context context) {
         this(context, null);
@@ -94,6 +98,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 ioe.printStackTrace();
             }
         }
+        surfaceCreated=true;
     }
 
     @Override
@@ -313,8 +318,27 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         } catch (IOException e) {
             e.printStackTrace();
         }
-        mCamera.startPreview();
+        //Camera should be started after SurfaceView created
+        handler = new Handler(){
+            @Override
+            public void handleMessage(Message msg) {
+                if (msg.what==0){
+                    mCamera.startPreview();
+                }
+            }
+        };
 
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true){
+                    if (surfaceCreated){
+                        handler.sendEmptyMessage(0);
+                        break;
+                    }
+                }
+            }
+        }).start();
         return true;
     }
 

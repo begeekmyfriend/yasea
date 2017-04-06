@@ -194,8 +194,8 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         mPublisher.setScreenOrientation(newConfig.orientation);
         if (btnPublish.getText().toString().contentEquals("stop")) {
             mPublisher.startEncode();
-            mPublisher.startCamera();
         }
+        mPublisher.startCamera();
     }
 
     private static String getRandomAlphaString(int length) {

@@ -23,8 +23,6 @@ import android.opengl.GLES20;
 
 import com.seu.magicfilter.utils.MagicFilterType;
 import com.seu.magicfilter.utils.OpenGLUtils;
-import com.seu.magicfilter.utils.Rotation;
-import com.seu.magicfilter.utils.TextureRotationUtil;
 
 import net.ossrs.yasea.R;
 
@@ -81,16 +79,6 @@ public class GPUImageFilter {
         mRunOnDraw = new LinkedList<>();
         mVertexShaderId = vertexShaderId;
         mFragmentShaderId = fragmentShaderId;
-
-        mGLCubeBuffer = ByteBuffer.allocateDirect(TextureRotationUtil.CUBE.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
-        mGLCubeBuffer.put(TextureRotationUtil.CUBE).position(0);
-
-        mGLTextureBuffer = ByteBuffer.allocateDirect(TextureRotationUtil.TEXTURE_NO_ROTATION.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
-        mGLTextureBuffer.put(TextureRotationUtil.getRotation(Rotation.NORMAL, false, true)).position(0);
     }
 
     public void init(Context context) {
@@ -140,6 +128,28 @@ public class GPUImageFilter {
     }
 
     private void initVbo() {
+        final float VEX_CUBE[] = {
+            -1.0f, -1.0f, // Bottom left.
+            1.0f, -1.0f, // Bottom right.
+            -1.0f, 1.0f, // Top left.
+            1.0f, 1.0f, // Top right.
+        };
+
+        final float TEX_COORD[] = {
+            0.0f, 0.0f, // Bottom left.
+            1.0f, 0.0f, // Bottom right.
+            0.0f, 1.0f, // Top left.
+            1.0f, 1.0f // Top right.
+        };
+
+        mGLCubeBuffer = ByteBuffer.allocateDirect(VEX_CUBE.length * 4)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer();
+        mGLCubeBuffer.put(VEX_CUBE).position(0);
+
+        mGLTextureBuffer = ByteBuffer.allocateDirect(TEX_COORD.length * 4)
+            .order(ByteOrder.nativeOrder()).asFloatBuffer();
+        mGLTextureBuffer.put(TEX_COORD).position(0);
+
         mGLCubeId = new int[1];
         mGLTextureCoordinateId = new int[1];
 

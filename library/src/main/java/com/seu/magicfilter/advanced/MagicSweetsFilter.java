@@ -8,7 +8,6 @@ import com.seu.magicfilter.utils.MagicFilterType;
 import net.ossrs.yasea.R;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
-import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.OpenGLUtils;
 
 public class MagicSweetsFilter extends GPUImageFilter{

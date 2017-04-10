@@ -11,6 +11,7 @@ import android.opengl.Matrix;
 import android.util.AttributeSet;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
+import com.seu.magicfilter.utils.MagicFilterFactory;
 import com.seu.magicfilter.utils.MagicFilterType;
 import com.seu.magicfilter.utils.OpenGLUtils;
 
@@ -165,10 +166,12 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 if (magicFilter != null) {
                     magicFilter.destroy();
                 }
-                magicFilter = new GPUImageFilter(type);
-                magicFilter.init(getContext().getApplicationContext());
-                magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
-                magicFilter.onDisplaySizeChanged(mSurfaceWidth, mSurfaceHeight);
+                magicFilter = MagicFilterFactory.initFilters(type);
+                if (magicFilter != null) {
+                    magicFilter.init(getContext().getApplicationContext());
+                    magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
+                    magicFilter.onDisplaySizeChanged(mSurfaceWidth, mSurfaceHeight);
+                }
             }
         });
         requestRender();
@@ -189,10 +192,10 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     public void setCameraId(int id) {
         mCamId = id;
-        setPreviewRotation(mPreviewOrientation);
+        setPreviewOrientation(mPreviewOrientation);
     }
 
-    public void setPreviewRotation(int orientation) {
+    public void setPreviewOrientation(int orientation) {
         mPreviewOrientation = orientation;
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(mCamId, info);

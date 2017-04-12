@@ -247,6 +247,13 @@ public class SrsPublisher {
     }
 
     public void setSendVideoOnly(boolean flag) {
+        if (mic != null) {
+            if (flag) {
+                mic.startRecording();
+            } else {
+                mic.stop();
+            }
+        }
         sendVideoOnly = flag;
     }
 

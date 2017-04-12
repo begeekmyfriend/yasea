@@ -98,7 +98,7 @@ public class SrsPublisher {
                             // This is trivial...
                             Thread.sleep(20);
                         } catch (InterruptedException e) {
-                            // Do nothing
+                            break;
                         }
                     } else {
                         int size = mic.read(mPcmBuffer, 0, mPcmBuffer.length);

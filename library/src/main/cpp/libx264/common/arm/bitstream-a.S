@@ -1,7 +1,7 @@
 /*****************************************************************************
  * bitstream-a.S: arm bitstream functions
  *****************************************************************************
- * Copyright (C) 2014-2016 x264 project
+ * Copyright (C) 2014-2017 x264 project
  *
  * Authors: Janne Grunau <janne-x264@jannau.net>
  *

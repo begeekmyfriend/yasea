@@ -1,7 +1,7 @@
 /*****************************************************************************
  * example.c: libx264 API usage example
  *****************************************************************************
- * Copyright (C) 2014-2016 x264 project
+ * Copyright (C) 2014-2017 x264 project
  *
  * Authors: Anton Mitrofanov <BugMaster@narod.ru>
  *

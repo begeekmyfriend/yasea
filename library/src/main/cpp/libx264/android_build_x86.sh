@@ -1,13 +1,13 @@
 #!/bin/sh
 
-ANDROID_NDK=D:/Android/android-sdk/ndk-bundle
+ANDROID_NDK=$HOME/Android/Sdk/ndk-bundle
 SYSROOT=$ANDROID_NDK/platforms/android-19/arch-x86
-CROSS_PREFIX=$ANDROID_NDK/toolchains/x86-4.9/prebuilt/windows-x86_64/bin/i686-linux-android-
+CROSS_PREFIX=$ANDROID_NDK/toolchains/x86-4.9/prebuilt/linux-x86_64/bin/i686-linux-android-
 EXTRA_CFLAGS="-D__ANDROID__ -D__i686__"
 EXTRA_LDFLAGS="-nostdlib"
 PREFIX=`pwd`/libs/x86
 
-configure --prefix=$PREFIX \
+./configure --prefix=$PREFIX \
         --host=i686-linux \
         --sysroot=$SYSROOT \
         --cross-prefix=$CROSS_PREFIX \

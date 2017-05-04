@@ -1,7 +1,7 @@
 /*****************************************************************************
  * predict-c.c: msa intra prediction
  *****************************************************************************
- * Copyright (C) 2015-2016 x264 project
+ * Copyright (C) 2015-2017 x264 project
  *
  * Authors: Mandar Sahastrabuddhe <mandar.sahastrabuddhe@imgtec.com>
  *
@@ -101,7 +101,7 @@ static void intra_predict_horiz_16x16_msa( uint8_t *p_src, int32_t i_src_stride,
     uint8_t u_inp0, u_inp1, u_inp2, u_inp3;
     v16u8 src0, src1, src2, src3;
 
-    for ( u_row = 4; u_row--; )
+    for( u_row = 4; u_row--; )
     {
         u_inp0 = p_src[0];
         p_src += i_src_stride;
@@ -133,7 +133,7 @@ static void intra_predict_dc_4x4_msa( uint8_t *p_src_top, uint8_t *p_src_left,
     v8u16 sum_above;
     v4u32 sum;
 
-    if ( is_left && is_above )
+    if( is_left && is_above )
     {
         src_above = LD_UB( p_src_top );
 
@@ -141,7 +141,7 @@ static void intra_predict_dc_4x4_msa( uint8_t *p_src_top, uint8_t *p_src_left,
         sum = __msa_hadd_u_w( sum_above, sum_above );
         u_addition = __msa_copy_u_w( ( v4i32 ) sum, 0 );
 
-        for ( u_row = 0; u_row < 4; u_row++ )
+        for( u_row = 0; u_row < 4; u_row++ )
         {
             u_addition += p_src_left[u_row * i_src_stride_left];
         }
@@ -149,9 +149,9 @@ static void intra_predict_dc_4x4_msa( uint8_t *p_src_top, uint8_t *p_src_left,
         u_addition = ( u_addition + 4 ) >> 3;
         store = ( v16u8 ) __msa_fill_b( u_addition );
     }
-    else if ( is_left )
+    else if( is_left )
     {
-        for ( u_row = 0; u_row < 4; u_row++ )
+        for( u_row = 0; u_row < 4; u_row++ )
         {
             u_addition += p_src_left[u_row * i_src_stride_left];
         }
@@ -159,7 +159,7 @@ static void intra_predict_dc_4x4_msa( uint8_t *p_src_top, uint8_t *p_src_left,
         u_addition = ( u_addition + 2 ) >> 2;
         store = ( v16u8 ) __msa_fill_b( u_addition );
     }
-    else if ( is_above )
+    else if( is_above )
     {
         src_above = LD_UB( p_src_top );
 
@@ -217,7 +217,7 @@ static void intra_predict_dc_16x16_msa( uint8_t *p_src_top, uint8_t *p_src_left,
     v4u32 sum_top;
     v2u64 sum;
 
-    if ( is_left && is_above )
+    if( is_left && is_above )
     {
         src_above = LD_UB( p_src_top );
 
@@ -228,7 +228,7 @@ static void intra_predict_dc_16x16_msa( uint8_t *p_src_top, uint8_t *p_src_left,
         sum = __msa_hadd_u_d( sum_top, sum_top );
         u_addition = __msa_copy_u_w( ( v4i32 ) sum, 0 );
 
-        for ( u_row = 0; u_row < 16; u_row++ )
+        for( u_row = 0; u_row < 16; u_row++ )
         {
             u_addition += p_src_left[u_row * i_src_stride_left];
         }
@@ -236,9 +236,9 @@ static void intra_predict_dc_16x16_msa( uint8_t *p_src_top, uint8_t *p_src_left,
         u_addition = ( u_addition + 16 ) >> 5;
         store = ( v16u8 ) __msa_fill_b( u_addition );
     }
-    else if ( is_left )
+    else if( is_left )
     {
-        for ( u_row = 0; u_row < 16; u_row++ )
+        for( u_row = 0; u_row < 16; u_row++ )
         {
             u_addition += p_src_left[u_row * i_src_stride_left];
         }
@@ -246,7 +246,7 @@ static void intra_predict_dc_16x16_msa( uint8_t *p_src_top, uint8_t *p_src_left,
         u_addition = ( u_addition + 8 ) >> 4;
         store = ( v16u8 ) __msa_fill_b( u_addition );
     }
-    else if ( is_above )
+    else if( is_above )
     {
         src_above = LD_UB( p_src_top );
 
@@ -314,7 +314,7 @@ static void intra_predict_plane_8x8_msa( uint8_t *p_src, int32_t i_stride )
     vec5 = vec8 * int_multiplier;
     vec3 = vec8 * 4;
 
-    for ( u_lpcnt = 4; u_lpcnt--; )
+    for( u_lpcnt = 4; u_lpcnt--; )
     {
         vec0 = vec5;
         vec0 += vec4;
@@ -391,7 +391,7 @@ static void intra_predict_plane_16x16_msa( uint8_t *p_src, int32_t i_stride )
     vec6 = vec8 * 4;
     vec7 = vec8 * int_multiplier;
 
-    for ( u_lpcnt = 16; u_lpcnt--; )
+    for( u_lpcnt = 16; u_lpcnt--; )
     {
         vec0 = vec7;
         vec0 += vec4;
@@ -424,7 +424,7 @@ static void intra_predict_dc_4blk_8x8_msa( uint8_t *p_src, int32_t i_stride )
     u_src0 = __msa_copy_u_w( ( v4i32 ) sum, 0 );
     u_src1 = __msa_copy_u_w( ( v4i32 ) sum, 1 );
 
-    for ( u_lp_cnt = 0; u_lp_cnt < 4; u_lp_cnt++ )
+    for( u_lp_cnt = 0; u_lp_cnt < 4; u_lp_cnt++ )
     {
         u_src0 += p_src[u_lp_cnt * i_stride - 1];
         u_src2 += p_src[( 4 + u_lp_cnt ) * i_stride - 1];
@@ -440,7 +440,7 @@ static void intra_predict_dc_4blk_8x8_msa( uint8_t *p_src, int32_t i_stride )
     u_out2 = u_src2 * 0x01010101;
     u_out3 = u_src3 * 0x01010101;
 
-    for ( u_lp_cnt = 4; u_lp_cnt--; )
+    for( u_lp_cnt = 4; u_lp_cnt--; )
     {
         SW( u_out0, p_src );
         SW( u_out1, ( p_src + 4 ) );

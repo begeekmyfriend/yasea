@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc-c.c: arm motion compensation
  *****************************************************************************
- * Copyright (C) 2009-2016 x264 project
+ * Copyright (C) 2009-2017 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *          Janne Grunau <janne-x264@jannau.net>
@@ -102,10 +102,10 @@ void x264_hpel_filter_v_neon( uint8_t *, uint8_t *, int16_t *, intptr_t, int );
 void x264_hpel_filter_c_neon( uint8_t *, int16_t *, int );
 void x264_hpel_filter_h_neon( uint8_t *, uint8_t *, int );
 
-void integral_init4h_neon( uint16_t *, uint8_t *, intptr_t );
-void integral_init4v_neon( uint16_t *, uint16_t *, intptr_t );
-void integral_init8h_neon( uint16_t *, uint8_t *, intptr_t );
-void integral_init8v_neon( uint16_t *, intptr_t );
+void x264_integral_init4h_neon( uint16_t *, uint8_t *, intptr_t );
+void x264_integral_init4v_neon( uint16_t *, uint16_t *, intptr_t );
+void x264_integral_init8h_neon( uint16_t *, uint8_t *, intptr_t );
+void x264_integral_init8v_neon( uint16_t *, intptr_t );
 
 void x264_mbtree_propagate_cost_neon( int16_t *, uint16_t *, uint16_t *, uint16_t *, uint16_t *, float *, int );
 
@@ -161,7 +161,7 @@ static void mc_luma_neon( uint8_t *dst,    intptr_t i_dst_stride,
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     intptr_t offset = (mvy>>2)*i_src_stride + (mvx>>2);
     uint8_t *src1 = src[x264_hpel_ref0[qpel_idx]] + offset;
-    if ( (mvy&3) == 3 )             // explict if() to force conditional add
+    if( (mvy&3) == 3 )             // explict if() to force conditional add
         src1 += i_src_stride;
 
     if( qpel_idx & 5 ) /* qpel interpolation needed */
@@ -187,7 +187,7 @@ static uint8_t *get_ref_neon( uint8_t *dst,   intptr_t *i_dst_stride,
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
     intptr_t offset = (mvy>>2)*i_src_stride + (mvx>>2);
     uint8_t *src1 = src[x264_hpel_ref0[qpel_idx]] + offset;
-    if ( (mvy&3) == 3 )             // explict if() to force conditional add
+    if( (mvy&3) == 3 )             // explict if() to force conditional add
         src1 += i_src_stride;
 
     if( qpel_idx & 5 ) /* qpel interpolation needed */
@@ -291,10 +291,10 @@ void x264_mc_init_arm( int cpu, x264_mc_functions_t *pf )
     pf->hpel_filter = hpel_filter_neon;
     pf->frame_init_lowres_core = x264_frame_init_lowres_core_neon;
 
-    pf->integral_init4h = integral_init4h_neon;
-    pf->integral_init8h = integral_init8h_neon;
-    pf->integral_init4v = integral_init4v_neon;
-    pf->integral_init8v = integral_init8v_neon;
+    pf->integral_init4h = x264_integral_init4h_neon;
+    pf->integral_init8h = x264_integral_init8h_neon;
+    pf->integral_init4v = x264_integral_init4v_neon;
+    pf->integral_init8v = x264_integral_init8v_neon;
 
     pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_neon;
     pf->mbtree_propagate_list = x264_mbtree_propagate_list_neon;

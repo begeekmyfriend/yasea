@@ -1,7 +1,7 @@
 /*****************************************************************************
  * ratecontrol.c: ratecontrol
  *****************************************************************************
- * Copyright (C) 2005-2016 x264 project
+ * Copyright (C) 2005-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Michael Niedermayer <michaelni@gmx.at>
@@ -243,7 +243,7 @@ static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x2
     stride <<= b_field;
     if( b_chroma )
     {
-        ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*16] );
+        ALIGNED_ARRAY_N( pixel, pix,[FENC_STRIDE*16] );
         int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
         int shift = 7 - CHROMA_V_SHIFT;
 
@@ -1096,7 +1096,7 @@ int x264_ratecontrol_new( x264_t *h )
                                     &rce->weight[2][0], &rce->weight[2][1] );
                 if( count == 3 )
                     rce->i_weight_denom[1] = -1;
-                else if ( count != 8 )
+                else if( count != 8 )
                     rce->i_weight_denom[0] = rce->i_weight_denom[1] = -1;
             }
 
@@ -2869,7 +2869,7 @@ static int vbv_pass2( x264_t *h, double all_available_bits )
             t0 = 0;
             /* fix overflows */
             adj_min = 1;
-            while(adj_min && find_underflow( h, fills, &t0, &t1, 1 ))
+            while( adj_min && find_underflow( h, fills, &t0, &t1, 1 ) )
             {
                 adj_min = fix_underflow( h, t0, t1, adjustment, qscale_min, qscale_max );
                 t0 = t1;

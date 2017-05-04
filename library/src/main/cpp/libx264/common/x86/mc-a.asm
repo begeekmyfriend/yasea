@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* mc-a.asm: x86 motion compensation
 ;*****************************************************************************
-;* Copyright (C) 2003-2016 x264 project
+;* Copyright (C) 2003-2017 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Fiona Glaser <fiona@x264.com>
@@ -1244,10 +1244,10 @@ cglobal pixel_avg2_w16_cache64_ssse3
     mov   eax, r2m
     and   eax, 0x3f
     cmp   eax, 0x30
-    jb x264_pixel_avg2_w16_sse2
+    jb pixel_avg2_w16_sse2
     or    eax, r4m
     and   eax, 7
-    jz x264_pixel_avg2_w16_sse2
+    jz pixel_avg2_w16_sse2
 %endif
     PROLOGUE 6, 8
     lea    r6, [r4+r2]

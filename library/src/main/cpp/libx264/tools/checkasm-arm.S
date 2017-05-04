@@ -1,7 +1,7 @@
 /****************************************************************************
  * checkasm-arm.S: assembly check tool
  *****************************************************************************
- * Copyright (C) 2015-2016 x264 project
+ * Copyright (C) 2015-2017 x264 project
  *
  * Authors: Martin Storsjo <martin@martin.st>
  *
@@ -45,7 +45,10 @@ error_message:
 @ max number of args used by any x264 asm function.
 #define MAX_ARGS 15
 
-#define ARG_STACK 4*(MAX_ARGS - 2)
+#define ARG_STACK 4*(MAX_ARGS - 4)
+
+@ align the used stack space to 8 to preserve the stack alignment
+#define ARG_STACK_A (((ARG_STACK + pushed + 7) & ~7) - pushed)
 
 .macro clobbercheck variant
 .equ pushed, 4*10
@@ -64,10 +67,10 @@ function x264_checkasm_call_\variant
 
     push        {r1}
 
-    sub         sp,  sp,  #ARG_STACK
+    sub         sp,  sp,  #ARG_STACK_A
 .equ pos, 0
-.rept MAX_ARGS-2
-    ldr         r12, [sp, #ARG_STACK + pushed + 8 + pos]
+.rept MAX_ARGS-4
+    ldr         r12, [sp, #ARG_STACK_A + pushed + 8 + pos]
     str         r12, [sp, #pos]
 .equ pos, pos + 4
 .endr
@@ -75,9 +78,9 @@ function x264_checkasm_call_\variant
     mov         r12, r0
     mov         r0,  r2
     mov         r1,  r3
-    ldrd        r2,  r3,  [sp, #ARG_STACK + pushed]
+    ldrd        r2,  r3,  [sp, #ARG_STACK_A + pushed]
     blx         r12
-    add         sp,  sp,  #ARG_STACK
+    add         sp,  sp,  #ARG_STACK_A
     pop         {r2}
 
     push        {r0, r1}

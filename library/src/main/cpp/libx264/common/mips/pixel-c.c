@@ -1,7 +1,7 @@
 /*****************************************************************************
  * pixel-c.c: msa pixel metrics
  *****************************************************************************
- * Copyright (C) 2015-2016 x264 project
+ * Copyright (C) 2015-2017 x264 project
  *
  * Authors: Mandar Sahastrabuddhe <mandar.sahastrabuddhe@imgtec.com>
  *
@@ -65,7 +65,7 @@ static uint32_t sad_4width_msa( uint8_t *p_src, int32_t i_src_stride,
     v16u8 diff;
     v8u16 sad = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LW4( p_src, i_src_stride, u_src0, u_src1, u_src2, u_src3 );
         p_src += ( 4 * i_src_stride );
@@ -90,7 +90,7 @@ static uint32_t sad_8width_msa( uint8_t *p_src, int32_t i_src_stride,
     v16u8 src0, src1, src2, src3, ref0, ref1, ref2, ref3;
     v8u16 sad = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LD_UB4( p_src, i_src_stride, src0, src1, src2, src3 );
         p_src += ( 4 * i_src_stride );
@@ -113,7 +113,7 @@ static uint32_t sad_16width_msa( uint8_t *p_src, int32_t i_src_stride,
     v16u8 src0, src1, ref0, ref1;
     v8u16 sad = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LD_UB2( p_src, i_src_stride, src0, src1 );
         p_src += ( 2 * i_src_stride );
@@ -147,7 +147,7 @@ static void sad_4width_x3d_msa( uint8_t *p_src, int32_t i_src_stride,
     v8u16 sad1 = { 0 };
     v8u16 sad2 = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LW4( p_src, i_src_stride, src0, src1, src2, src3 );
         INSERT_W4_UB( src0, src1, src2, src3, src );
@@ -192,7 +192,7 @@ static void sad_8width_x3d_msa( uint8_t *p_src, int32_t i_src_stride,
     v8u16 sad1 = { 0 };
     v8u16 sad2 = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LD_UB4( p_src, i_src_stride, src0, src1, src2, src3 );
         p_src += ( 4 * i_src_stride );
@@ -233,7 +233,7 @@ static void sad_16width_x3d_msa( uint8_t *p_src, int32_t i_src_stride,
     v8u16 sad1 = { 0 };
     v8u16 sad2 = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 1 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 1 ); i_ht_cnt--; )
     {
         src = LD_UB( p_src );
         p_src += i_src_stride;
@@ -298,7 +298,7 @@ static void sad_4width_x4d_msa( uint8_t *p_src, int32_t i_src_stride,
     p_ref2 = p_aref[2];
     p_ref3 = p_aref[3];
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LW4( p_src, i_src_stride, src0, src1, src2, src3 );
         INSERT_W4_UB( src0, src1, src2, src3, src );
@@ -358,7 +358,7 @@ static void sad_8width_x4d_msa( uint8_t *p_src, int32_t i_src_stride,
     p_ref2 = p_aref[2];
     p_ref3 = p_aref[3];
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LD_UB4( p_src, i_src_stride, src0, src1, src2, src3 );
         p_src += ( 4 * i_src_stride );
@@ -408,7 +408,7 @@ static void sad_16width_x4d_msa( uint8_t *p_src, int32_t i_src_stride,
     p_ref2 = p_aref[2];
     p_ref3 = p_aref[3];
 
-    for ( i_ht_cnt = ( i_height >> 1 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 1 ); i_ht_cnt--; )
     {
         src = LD_UB( p_src );
         p_src += i_src_stride;
@@ -465,7 +465,7 @@ static uint64_t avc_pixel_var16width_msa( uint8_t *p_pix, int32_t i_stride,
     v8u16 add, pix_r, pix_l;
     v4u32 sqr = { 0 };
 
-    for ( u_cnt = i_height; u_cnt--; )
+    for( u_cnt = i_height; u_cnt--; )
     {
         pix = LD_SB( p_pix );
         p_pix += i_stride;
@@ -489,7 +489,7 @@ static uint64_t avc_pixel_var8width_msa( uint8_t *p_pix, int32_t i_stride,
     v8u16 add, pix_r;
     v4u32 sqr = { 0 };
 
-    for ( u_cnt = i_height; u_cnt--; )
+    for( u_cnt = i_height; u_cnt--; )
     {
         pix = LD_SB( p_pix );
         p_pix += i_stride;
@@ -515,7 +515,7 @@ static uint32_t sse_diff_8width_msa( uint8_t *p_src, int32_t i_src_stride,
     v8i16 avg = { 0 };
     v4i32 vec, var = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LD_UB4( p_src, i_src_stride, src0, src1, src2, src3 );
         p_src += ( 4 * i_src_stride );
@@ -547,7 +547,7 @@ static uint32_t sse_4width_msa( uint8_t *p_src, int32_t i_src_stride,
     v16u8 ref = { 0 };
     v4i32 var = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LW4( p_src, i_src_stride, u_src0, u_src1, u_src2, u_src3 );
         p_src += ( 4 * i_src_stride );
@@ -574,7 +574,7 @@ static uint32_t sse_8width_msa( uint8_t *p_src, int32_t i_src_stride,
     v16u8 ref0, ref1, ref2, ref3;
     v4i32 var = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         LD_UB4( p_src, i_src_stride, src0, src1, src2, src3 );
         p_src += ( 4 * i_src_stride );
@@ -601,7 +601,7 @@ static uint32_t sse_16width_msa( uint8_t *p_src, int32_t i_src_stride,
     v16u8 src, ref;
     v4i32 var = { 0 };
 
-    for ( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
+    for( i_ht_cnt = ( i_height >> 2 ); i_ht_cnt--; )
     {
         src = LD_UB( p_src );
         p_src += i_src_stride;
@@ -715,7 +715,7 @@ static int32_t pixel_satd_4width_msa( uint8_t *p_src, int32_t i_src_stride,
     v8i16 diff0, diff1, diff2, diff3;
     v8i16 temp0, temp1, temp2, temp3;
 
-    for ( cnt = i_height >> 2; cnt--; )
+    for( cnt = i_height >> 2; cnt--; )
     {
         LD_SB4( p_src, i_src_stride, src0, src1, src2, src3 );
         p_src += 4 * i_src_stride;
@@ -759,7 +759,7 @@ static int32_t pixel_satd_8width_msa( uint8_t *p_src, int32_t i_src_stride,
     v8i16 diff0, diff1, diff2, diff3, diff4, diff5, diff6, diff7;
     v8i16 temp0, temp1, temp2, temp3;
 
-    for ( cnt = i_height >> 2; cnt--; )
+    for( cnt = i_height >> 2; cnt--; )
     {
         LD_SB4( p_src, i_src_stride, src0, src1, src2, src3 );
         p_src += 4 * i_src_stride;

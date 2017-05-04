@@ -1,7 +1,7 @@
 /*****************************************************************************
  * x264.h: x264 public header
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -552,7 +552,7 @@ typedef struct x264_param_t
      * NAL unit. This helps distinguish between nalu_process calls from different sources,
      * e.g. if doing multiple encodes in one process.
      */
-    void (*nalu_process) ( x264_t *h, x264_nal_t *nal, void *opaque );
+    void (*nalu_process)( x264_t *h, x264_nal_t *nal, void *opaque );
 } x264_param_t;
 
 void x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal );
@@ -907,7 +907,7 @@ int     x264_encoder_headers( x264_t *, x264_nal_t **pp_nal, int *pi_nal );
 int     x264_encoder_encode( x264_t *, x264_nal_t **pp_nal, int *pi_nal, x264_picture_t *pic_in, x264_picture_t *pic_out );
 /* x264_encoder_close:
  *      close an encoder handler */
-void    x264_encoder_close  ( x264_t * );
+void    x264_encoder_close( x264_t * );
 /* x264_encoder_delayed_frames:
  *      return the number of currently delayed (buffered) frames
  *      this should be used at the end of the stream, to know when you have all the encoded frames. */

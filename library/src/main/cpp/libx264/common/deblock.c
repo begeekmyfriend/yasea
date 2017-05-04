@@ -1,7 +1,7 @@
 /*****************************************************************************
  * deblock.c: deblocking
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -442,7 +442,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                                      stride2uv, bs[dir][edge], chroma_qp, a, b, 1,\
                                      h->loopf.deblock_chroma##intra[dir] );\
             }\
-        } while(0)
+        } while( 0 )
 
         if( h->mb.i_neighbour & MB_LEFT )
         {
@@ -638,7 +638,7 @@ void x264_macroblock_deblock( x264_t *h )
                           FDEC_STRIDE, bs[dir][edge], qpc, a, b, 0,\
                           h->loopf.deblock_luma[dir] );\
         }\
-    } while(0)
+    } while( 0 )
 
     if( !transform_8x8 ) FILTER( 0, 1 );
                          FILTER( 0, 2 );

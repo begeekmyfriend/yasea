@@ -1,7 +1,7 @@
 /*****************************************************************************
  * predict.h: aarch64 intra prediction
  *****************************************************************************
- * Copyright (C) 2009-2016 x264 project
+ * Copyright (C) 2009-2017 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *          Janne Grunau <janne-x264@jannau.net>

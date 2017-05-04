@@ -1,7 +1,7 @@
 /*****************************************************************************
  * opencl.h: OpenCL structures and defines
  *****************************************************************************
- * Copyright (C) 2012-2016 x264 project
+ * Copyright (C) 2012-2017 x264 project
  *
  * Authors: Steve Borho <sborho@multicorewareinc.com>
  *          Anton Mitrofanov <BugMaster@narod.ru>

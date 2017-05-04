@@ -1,7 +1,7 @@
 /*****************************************************************************
  * win32thread.c: windows threading
  *****************************************************************************
- * Copyright (C) 2010-2016 x264 project
+ * Copyright (C) 2010-2017 x264 project
  *
  * Authors: Steven Walters <kemuri9@gmail.com>
  *          Pegasys Inc. <http://www.pegasys-inc.com>

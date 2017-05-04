@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* x86inc.asm: x264asm abstraction layer
 ;*****************************************************************************
-;* Copyright (C) 2005-2016 x264 project
+;* Copyright (C) 2005-2017 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Anton Mitrofanov <BugMaster@narod.ru>
@@ -373,10 +373,18 @@ DECLARE_REG_TMP_SIZE 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14
     %ifnum %1
         %if %1 != 0 && required_stack_alignment > STACK_ALIGNMENT
             %if %1 > 0
+                ; Reserve an additional register for storing the original stack pointer, but avoid using
+                ; eax/rax for this purpose since it can potentially get overwritten as a return value.
                 %assign regs_used (regs_used + 1)
+                %if ARCH_X86_64 && regs_used == 7
+                    %assign regs_used 8
+                %elif ARCH_X86_64 == 0 && regs_used == 1
+                    %assign regs_used 2
+                %endif
             %endif
             %if ARCH_X86_64 && regs_used < 5 + UNIX64 * 3
-                ; Ensure that we don't clobber any registers containing arguments
+                ; Ensure that we don't clobber any registers containing arguments. For UNIX64 we also preserve r6 (rax)
+                ; since it's used as a hidden argument in vararg functions to specify the number of vector registers used.
                 %assign regs_used 5 + UNIX64 * 3
             %endif
         %endif

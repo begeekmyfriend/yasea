@@ -27,7 +27,7 @@ typedef uint32_t sum2_t;
 #define INTRA_MBS   2
 
 #define COPY2_IF_LT( x, y, a, b )\
-    if((y)<(x))\
+    if( (y) < (x) )\
     {\
         (x) = (y);\
         (a) = (b);\

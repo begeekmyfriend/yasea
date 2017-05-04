@@ -1,7 +1,7 @@
 /*****************************************************************************
  * x264: top-level x264cli functions
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -469,8 +469,8 @@ static void help( x264_param_t *defaults, int longhelp )
 {
     char buf[50];
 #define H0 printf
-#define H1 if(longhelp>=1) printf
-#define H2 if(longhelp==2) printf
+#define H1 if( longhelp >= 1 ) printf
+#define H2 if( longhelp == 2 ) printf
     H0( "x264 core:%d%s\n"
         "Syntax: x264 [options] -o outfile infile\n"
         "\n"
@@ -603,8 +603,8 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  - medium:\n"
         "                                    Default settings apply.\n"
         "                                  - slow:\n"
-        "                                    --b-adapt 2 --direct auto --me umh\n"
-        "                                    --rc-lookahead 50 --ref 5 --subme 8\n"
+        "                                    --direct auto --rc-lookahead 50 --ref 5\n"
+        "                                    --subme 8 --trellis 2\n"
         "                                  - slower:\n"
         "                                    --b-adapt 2 --direct auto --me umh\n"
         "                                    --partitions all --rc-lookahead 60\n"

@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* x86util.asm: x86 utility macros
 ;*****************************************************************************
-;* Copyright (C) 2008-2016 x264 project
+;* Copyright (C) 2008-2017 x264 project
 ;*
 ;* Authors: Holger Lubitz <holger@lubitz.org>
 ;*          Loren Merritt <lorenm@u.washington.edu>
@@ -741,25 +741,25 @@
 %if %6 ; %5 aligned?
     mova       %1, %4
     psubw      %1, %5
+%elif cpuflag(avx)
+    movu       %1, %4
+    psubw      %1, %5
 %else
     movu       %1, %4
     movu       %2, %5
     psubw      %1, %2
 %endif
 %else ; !HIGH_BIT_DEPTH
-%ifidn %3, none
     movh       %1, %4
     movh       %2, %5
+%ifidn %3, none
     punpcklbw  %1, %2
     punpcklbw  %2, %2
-    psubw      %1, %2
 %else
-    movh       %1, %4
     punpcklbw  %1, %3
-    movh       %2, %5
     punpcklbw  %2, %3
-    psubw      %1, %2
 %endif
+    psubw      %1, %2
 %endif ; HIGH_BIT_DEPTH
 %endmacro
 

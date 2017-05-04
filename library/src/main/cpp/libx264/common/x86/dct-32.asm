@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* dct-32.asm: x86_32 transform and zigzag
 ;*****************************************************************************
-;* Copyright (C) 2003-2016 x264 project
+;* Copyright (C) 2003-2017 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Holger Lubitz <holger@lubitz.org>

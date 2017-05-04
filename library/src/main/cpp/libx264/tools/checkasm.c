@@ -1,7 +1,7 @@
 /*****************************************************************************
  * checkasm.c: assembly check tool
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -258,7 +258,13 @@ void x264_checkasm_stack_clobber( uint64_t clobber, ... );
     uint64_t r = (rand() & 0xffff) * 0x0001000100010001ULL; \
     x264_checkasm_stack_clobber( r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r ); /* max_args+6 */ \
     x264_checkasm_call(( intptr_t(*)())func, &ok, 0, 0, 0, 0, __VA_ARGS__ ); })
-#elif ARCH_X86 || (ARCH_AARCH64 && !defined(__APPLE__)) || ARCH_ARM
+#elif ARCH_AARCH64 && !defined(__APPLE__)
+void x264_checkasm_stack_clobber( uint64_t clobber, ... );
+#define call_a1(func,...) ({ \
+    uint64_t r = (rand() & 0xffff) * 0x0001000100010001ULL; \
+    x264_checkasm_stack_clobber( r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r,r ); /* max_args+8 */ \
+    x264_checkasm_call(( intptr_t(*)())func, &ok, 0, 0, 0, 0, 0, 0, __VA_ARGS__ ); })
+#elif ARCH_X86 || ARCH_ARM
 #define call_a1(func,...) x264_checkasm_call( (intptr_t(*)())func, &ok, __VA_ARGS__ )
 #else
 #define call_a1 call_c1
@@ -1503,7 +1509,7 @@ static int check_mc( int cpu_ref, int cpu_new )
             int h = plane_specs[i].h;
             intptr_t dst_stride = w;
             intptr_t src_stride = (2*w + 127) & ~63;
-            intptr_t offv = (dst_stride*h + 31) & ~15;
+            intptr_t offv = (dst_stride*h + 63) & ~31;
             memset( pbuf3, 0, 0x1000 );
             memset( pbuf4, 0, 0x1000 );
             call_c( mc_c.plane_copy_deinterleave, pbuf3, dst_stride, pbuf3+offv, dst_stride, pbuf1, src_stride, w, h );

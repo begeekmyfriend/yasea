@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* bitstream-a.asm: x86 bitstream functions
 ;*****************************************************************************
-;* Copyright (C) 2010-2016 x264 project
+;* Copyright (C) 2010-2017 x264 project
 ;*
 ;* Authors: Fiona Glaser <fiona@x264.com>
 ;*          Henrik Gramner <henrik@gramner.com>

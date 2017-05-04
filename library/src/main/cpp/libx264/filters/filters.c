@@ -1,7 +1,7 @@
 /*****************************************************************************
  * filters.c: common filter functions
  *****************************************************************************
- * Copyright (C) 2010-2016 x264 project
+ * Copyright (C) 2010-2017 x264 project
  *
  * Authors: Diogo Franco <diogomfranco@gmail.com>
  *          Steven Walters <kemuri9@gmail.com>

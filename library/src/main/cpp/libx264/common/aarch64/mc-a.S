@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc.S: aarch64 motion compensation
  *****************************************************************************
- * Copyright (C) 2009-2016 x264 project
+ * Copyright (C) 2009-2017 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *          Janne Grunau <janne-x264@jannau.net>
@@ -1254,8 +1254,9 @@ load_deinterleave_chroma:
 endfunc
 
 function x264_plane_copy_core_neon, export=1
-    add         x8,  x4,  #15
-    and         x4,  x8,  #~15
+    add         w8,  w4,  #15 // 32-bit write clears the upper 32-bit the register
+    and         w4,  w8,  #~15
+    // safe use of the full reg since negative width makes no sense
     sub         x1,  x1,  x4
     sub         x3,  x3,  x4
 1:
@@ -1430,7 +1431,7 @@ endfunc
     add         v0.8h,  v0.8h,  v5.8h
 .endm
 
-function integral_init4h_neon, export=1
+function x264_integral_init4h_neon, export=1
     sub         x3,  x0,  x2, lsl #1
     ld1        {v6.8b,v7.8b}, [x1], #16
 1:
@@ -1465,7 +1466,7 @@ endfunc
     add         v0.8h,  v0.8h,  \s\().8h
 .endm
 
-function integral_init8h_neon, export=1
+function x264_integral_init8h_neon, export=1
     sub         x3,  x0,  x2, lsl #1
     ld1        {v16.8b,v17.8b}, [x1], #16
 1:
@@ -1482,7 +1483,7 @@ function integral_init8h_neon, export=1
     ret
 endfunc
 
-function integral_init4v_neon, export=1
+function x264_integral_init4v_neon, export=1
     mov         x3,  x0
     add         x4,  x0,  x2,  lsl #3
     add         x8,  x0,  x2,  lsl #4
@@ -1517,7 +1518,7 @@ function integral_init4v_neon, export=1
     ret
 endfunc
 
-function integral_init8v_neon, export=1
+function x264_integral_init8v_neon, export=1
     add         x2,  x0,  x1,  lsl #4
     sub         x1,  x1,  #8
     ands        x3,  x1,  #16 - 1

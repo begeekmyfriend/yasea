@@ -1,7 +1,7 @@
 /*****************************************************************************
  * quant-c.c: msa quantization and level-run
  *****************************************************************************
- * Copyright (C) 2015-2016 x264 project
+ * Copyright (C) 2015-2017 x264 project
  *
  * Authors: Rishikesh More <rishikesh.more@imgtec.com>
  *
@@ -40,7 +40,7 @@ static void avc_dequant_4x4_msa( int16_t *p_dct, int32_t pi_dequant_mf[6][16],
     LD_SW2( pi_dequant_mf[i_mf], 4, dequant_m_f0, dequant_m_f1 );
     LD_SW2( pi_dequant_mf[i_mf] + 8, 4, dequant_m_f2, dequant_m_f3 );
 
-    if ( q_bits >= 0 )
+    if( q_bits >= 0 )
     {
         v8i16 dequant_mf_h0, dequant_mf_h1, q_bits_vec;
 
@@ -106,7 +106,7 @@ static void avc_dequant_8x8_msa( int16_t *p_dct, int32_t pi_dequant_mf[6][64],
     LD_SW2( pi_dequant_mf[i_mf] + 48, 4, dequant_m_f12, dequant_m_f13 );
     LD_SW2( pi_dequant_mf[i_mf] + 56, 4, dequant_m_f14, dequant_m_f15 );
 
-    if ( q_bits >= 0 )
+    if( q_bits >= 0 )
     {
         v8i16 q_bits_vec;
         v8i16 dequant_mf_h0, dequant_mf_h1, dequant_mf_h2, dequant_mf_h3;
@@ -220,7 +220,7 @@ static void avc_dequant_4x4_dc_msa( int16_t *p_dct,
 
     LD_SH2( p_dct, 8, dct0, dct1 );
 
-    if ( q_bits >= 0 )
+    if( q_bits >= 0 )
     {
         i_dmf <<= q_bits;
 

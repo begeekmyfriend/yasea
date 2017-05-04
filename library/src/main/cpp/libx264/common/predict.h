@@ -1,7 +1,7 @@
 /*****************************************************************************
  * predict.h: intra prediction
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -29,7 +29,7 @@
 
 typedef void (*x264_predict_t)( pixel *src );
 typedef void (*x264_predict8x8_t)( pixel *src, pixel edge[36] );
-typedef void (*x264_predict_8x8_filter_t) ( pixel *src, pixel edge[36], int i_neighbor, int i_filters );
+typedef void (*x264_predict_8x8_filter_t)( pixel *src, pixel edge[36], int i_neighbor, int i_filters );
 
 enum intra_chroma_pred_e
 {

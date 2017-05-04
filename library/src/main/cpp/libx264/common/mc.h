@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc.h: motion compensation
  *****************************************************************************
- * Copyright (C) 2004-2016 x264 project
+ * Copyright (C) 2004-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
@@ -32,7 +32,7 @@ do\
 {\
     MC_CLIP_ADD((s)[0], (x)[0]);\
     MC_CLIP_ADD((s)[1], (x)[1]);\
-} while(0)
+} while( 0 )
 
 #define PROPAGATE_LIST(cpu)\
 void x264_mbtree_propagate_list_internal_##cpu( int16_t (*mvs)[2], int16_t *propagate_amount,\

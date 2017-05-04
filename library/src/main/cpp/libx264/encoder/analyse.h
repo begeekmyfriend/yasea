@@ -1,7 +1,7 @@
 /*****************************************************************************
  * analyse.h: macroblock analysis
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -34,8 +34,6 @@ void x264_macroblock_analyse( x264_t *h );
 void x264_slicetype_decide( x264_t *h );
 
 void x264_slicetype_analyse( x264_t *h, int intra_minigop );
-
-int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t *w );
 
 int  x264_lookahead_init( x264_t *h, int i_slicetype_length );
 int  x264_lookahead_is_empty( x264_t *h );

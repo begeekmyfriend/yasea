@@ -1,7 +1,7 @@
 /*****************************************************************************
  * pixel.c: pixel metrics
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -1491,7 +1491,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 #if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
     {
-        x264_pixel_altivec_init( pixf );
+        x264_pixel_init_altivec( pixf );
     }
 #endif
 

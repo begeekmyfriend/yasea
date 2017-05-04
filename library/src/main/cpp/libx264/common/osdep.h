@@ -1,7 +1,7 @@
 /*****************************************************************************
  * osdep.h: platform-specific code
  *****************************************************************************
- * Copyright (C) 2007-2016 x264 project
+ * Copyright (C) 2007-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -91,6 +91,9 @@ int x264_stat( const char *path, x264_struct_stat *buf );
 #define x264_fstat       fstat
 #define x264_stat        stat
 #endif
+
+/* mdate: return the current date in microsecond */
+int64_t x264_mdate( void );
 
 #if defined(_WIN32) && !HAVE_WINRT
 int x264_vfprintf( FILE *stream, const char *format, va_list arg );

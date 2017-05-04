@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* trellis-64.asm: x86_64 trellis quantization
 ;*****************************************************************************
-;* Copyright (C) 2012-2016 x264 project
+;* Copyright (C) 2012-2017 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*
@@ -600,8 +600,8 @@ TRELLIS trellis_cabac_chroma_422_dc, 8, 1, 0
 INIT_XMM
 %macro clocal 1
     ALIGN 16
-    global mangle(x264_%1)
-    mangle(x264_%1):
+    global mangle(private_prefix %+ _%1)
+    mangle(private_prefix %+ _%1):
     %1:
     %assign stack_offset stack_offset_bak+gprsize
 %endmacro

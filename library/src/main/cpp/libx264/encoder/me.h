@@ -1,7 +1,7 @@
 /*****************************************************************************
  * me.h: motion estimation
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -69,38 +69,38 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel );
 extern uint16_t *x264_cost_mv_fpel[QP_MAX+1][4];
 
 #define COPY1_IF_LT(x,y)\
-if((y)<(x))\
-    (x)=(y);
+if( (y) < (x) )\
+    (x) = (y);
 
 #define COPY2_IF_LT(x,y,a,b)\
-if((y)<(x))\
+if( (y) < (x) )\
 {\
-    (x)=(y);\
-    (a)=(b);\
+    (x) = (y);\
+    (a) = (b);\
 }
 
 #define COPY3_IF_LT(x,y,a,b,c,d)\
-if((y)<(x))\
+if( (y) < (x) )\
 {\
-    (x)=(y);\
-    (a)=(b);\
-    (c)=(d);\
+    (x) = (y);\
+    (a) = (b);\
+    (c) = (d);\
 }
 
 #define COPY4_IF_LT(x,y,a,b,c,d,e,f)\
-if((y)<(x))\
+if( (y) < (x) )\
 {\
-    (x)=(y);\
-    (a)=(b);\
-    (c)=(d);\
-    (e)=(f);\
+    (x) = (y);\
+    (a) = (b);\
+    (c) = (d);\
+    (e) = (f);\
 }
 
 #define COPY2_IF_GT(x,y,a,b)\
-if((y)>(x))\
+if( (y) > (x) )\
 {\
-    (x)=(y);\
-    (a)=(b);\
+    (x) = (y);\
+    (a) = (b);\
 }
 
 #endif

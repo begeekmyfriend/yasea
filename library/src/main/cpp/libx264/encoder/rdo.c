@@ -1,7 +1,7 @@
 /*****************************************************************************
  * rdo.c: rate-distortion optimization
  *****************************************************************************
- * Copyright (C) 2005-2016 x264 project
+ * Copyright (C) 2005-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Fiona Glaser <fiona@x264.com>
@@ -863,7 +863,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
         return 0;
     }
 
-    if(0) // accessible only by goto, not fallthrough
+    if( 0 ) // accessible only by goto, not fallthrough
     {
         // node_ctx 1..7 (ctx0 ruled out because we never try both level0 and level2+ on the same coef)
         TRELLIS_LOOP(1);

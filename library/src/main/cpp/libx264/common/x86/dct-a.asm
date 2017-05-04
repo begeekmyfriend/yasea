@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* dct-a.asm: x86 transform and zigzag
 ;*****************************************************************************
-;* Copyright (C) 2003-2016 x264 project
+;* Copyright (C) 2003-2017 x264 project
 ;*
 ;* Authors: Holger Lubitz <holger@lubitz.org>
 ;*          Loren Merritt <lorenm@u.washington.edu>

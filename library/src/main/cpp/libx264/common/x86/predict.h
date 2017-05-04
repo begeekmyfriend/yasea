@@ -1,7 +1,7 @@
 /*****************************************************************************
  * predict.h: x86 intra prediction
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -27,11 +27,11 @@
 #ifndef X264_I386_PREDICT_H
 #define X264_I386_PREDICT_H
 
-void x264_predict_16x16_init_mmx ( int cpu, x264_predict_t pf[7] );
-void x264_predict_8x16c_init_mmx  ( int cpu, x264_predict_t pf[7] );
-void x264_predict_8x8c_init_mmx  ( int cpu, x264_predict_t pf[7] );
-void x264_predict_4x4_init_mmx   ( int cpu, x264_predict_t pf[12] );
-void x264_predict_8x8_init_mmx   ( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter );
+void x264_predict_16x16_init_mmx( int cpu, x264_predict_t pf[7] );
+void x264_predict_8x16c_init_mmx( int cpu, x264_predict_t pf[7] );
+void x264_predict_8x8c_init_mmx ( int cpu, x264_predict_t pf[7] );
+void x264_predict_4x4_init_mmx  ( int cpu, x264_predict_t pf[12] );
+void x264_predict_8x8_init_mmx  ( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter );
 
 void x264_predict_16x16_v_mmx2( pixel *src );
 void x264_predict_16x16_v_sse ( pixel *src );

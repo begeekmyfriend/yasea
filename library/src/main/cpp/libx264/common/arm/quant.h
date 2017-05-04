@@ -1,7 +1,7 @@
 /*****************************************************************************
  * quant.h: arm quantization and level-run
  *****************************************************************************
- * Copyright (C) 2005-2016 x264 project
+ * Copyright (C) 2005-2017 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * dct.h: transform and zigzag
  *****************************************************************************
- * Copyright (C) 2004-2016 x264 project
+ * Copyright (C) 2004-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
@@ -36,22 +36,22 @@ typedef struct
     // pix1  stride = FENC_STRIDE
     // pix2  stride = FDEC_STRIDE
     // p_dst stride = FDEC_STRIDE
-    void (*sub4x4_dct)   ( dctcoef dct[16], pixel *pix1, pixel *pix2 );
-    void (*add4x4_idct)  ( pixel *p_dst, dctcoef dct[16] );
+    void (*sub4x4_dct) ( dctcoef dct[16], pixel *pix1, pixel *pix2 );
+    void (*add4x4_idct)( pixel *p_dst, dctcoef dct[16] );
 
-    void (*sub8x8_dct)   ( dctcoef dct[4][16], pixel *pix1, pixel *pix2 );
-    void (*sub8x8_dct_dc)( dctcoef dct[4], pixel *pix1, pixel *pix2 );
-    void (*add8x8_idct)  ( pixel *p_dst, dctcoef dct[4][16] );
-    void (*add8x8_idct_dc) ( pixel *p_dst, dctcoef dct[4] );
+    void (*sub8x8_dct)    ( dctcoef dct[4][16], pixel *pix1, pixel *pix2 );
+    void (*sub8x8_dct_dc) ( dctcoef dct[4], pixel *pix1, pixel *pix2 );
+    void (*add8x8_idct)   ( pixel *p_dst, dctcoef dct[4][16] );
+    void (*add8x8_idct_dc)( pixel *p_dst, dctcoef dct[4] );
 
     void (*sub8x16_dct_dc)( dctcoef dct[8], pixel *pix1, pixel *pix2 );
 
-    void (*sub16x16_dct) ( dctcoef dct[16][16], pixel *pix1, pixel *pix2 );
-    void (*add16x16_idct)( pixel *p_dst, dctcoef dct[16][16] );
-    void (*add16x16_idct_dc) ( pixel *p_dst, dctcoef dct[16] );
+    void (*sub16x16_dct)    ( dctcoef dct[16][16], pixel *pix1, pixel *pix2 );
+    void (*add16x16_idct)   ( pixel *p_dst, dctcoef dct[16][16] );
+    void (*add16x16_idct_dc)( pixel *p_dst, dctcoef dct[16] );
 
-    void (*sub8x8_dct8)  ( dctcoef dct[64], pixel *pix1, pixel *pix2 );
-    void (*add8x8_idct8) ( pixel *p_dst, dctcoef dct[64] );
+    void (*sub8x8_dct8) ( dctcoef dct[64], pixel *pix1, pixel *pix2 );
+    void (*add8x8_idct8)( pixel *p_dst, dctcoef dct[64] );
 
     void (*sub16x16_dct8) ( dctcoef dct[4][64], pixel *pix1, pixel *pix2 );
     void (*add16x16_idct8)( pixel *p_dst, dctcoef dct[4][64] );

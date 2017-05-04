@@ -1,7 +1,7 @@
 /*****************************************************************************
  * predict.h: msa intra prediction
  *****************************************************************************
- * Copyright (C) 2015-2016 x264 project
+ * Copyright (C) 2015-2017 x264 project
  *
  * Authors: Rishikesh More <rishikesh.more@imgtec.com>
  *

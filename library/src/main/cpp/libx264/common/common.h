@@ -1,7 +1,7 @@
 /*****************************************************************************
  * common.h: misc common functions
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -36,7 +36,7 @@
 #define X264_MAX3(a,b,c) X264_MAX((a),X264_MAX((b),(c)))
 #define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))
 #define X264_MAX4(a,b,c,d) X264_MAX((a),X264_MAX3((b),(c),(d)))
-#define XCHG(type,a,b) do{ type t = a; a = b; b = t; } while(0)
+#define XCHG(type,a,b) do { type t = a; a = b; b = t; } while( 0 )
 #define IS_DISPOSABLE(type) ( type == X264_TYPE_B )
 #define FIX8(f) ((int)(f*(1<<8)+.5))
 #define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
@@ -70,14 +70,14 @@ do {\
     var = (void*)prealloc_size;\
     preallocs[prealloc_idx++] = (uint8_t**)&var;\
     prealloc_size += ALIGN(size, NATIVE_ALIGN);\
-} while(0)
+} while( 0 )
 
 #define PREALLOC_END( ptr )\
 do {\
     CHECKED_MALLOC( ptr, prealloc_size );\
     while( prealloc_idx-- )\
         *preallocs[prealloc_idx] += (intptr_t)ptr;\
-} while(0)
+} while( 0 )
 
 #define ARRAY_SIZE(array)  (sizeof(array)/sizeof(array[0]))
 
@@ -256,9 +256,6 @@ void  x264_free( void * );
 
 /* x264_slurp_file: malloc space for the whole file and read it */
 char *x264_slurp_file( const char *filename );
-
-/* mdate: return the current date in microsecond */
-int64_t x264_mdate( void );
 
 /* x264_param2string: return a (malloced) string containing most of
  * the encoding options */
@@ -781,7 +778,7 @@ struct x264_t
             /* space for p_fenc and p_fdec */
 #define FENC_STRIDE 16
 #define FDEC_STRIDE 32
-            ALIGNED_16( pixel fenc_buf[48*FENC_STRIDE] );
+            ALIGNED_N( pixel fenc_buf[48*FENC_STRIDE] );
             ALIGNED_N( pixel fdec_buf[52*FDEC_STRIDE] );
 
             /* i4x4 and i8x8 backup data, for skipping the encode stage when possible */

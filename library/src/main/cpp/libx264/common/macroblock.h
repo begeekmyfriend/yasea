@@ -1,7 +1,7 @@
 /*****************************************************************************
  * macroblock.h: macroblock common functions
  *****************************************************************************
- * Copyright (C) 2005-2016 x264 project
+ * Copyright (C) 2005-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -108,10 +108,10 @@ static const uint8_t x264_mb_type_list_table[X264_MBTYPE_MAX][2][2] =
     {{0,0},{0,0}}                                               /* B_SKIP */
 };
 
-#define IS_SUB4x4(type) ( (type ==D_L0_4x4)||(type ==D_L1_4x4)||(type ==D_BI_4x4))
-#define IS_SUB4x8(type) ( (type ==D_L0_4x8)||(type ==D_L1_4x8)||(type ==D_BI_4x8))
-#define IS_SUB8x4(type) ( (type ==D_L0_8x4)||(type ==D_L1_8x4)||(type ==D_BI_8x4))
-#define IS_SUB8x8(type) ( (type ==D_L0_8x8)||(type ==D_L1_8x8)||(type ==D_BI_8x8)||(type ==D_DIRECT_8x8))
+#define IS_SUB4x4(type) ( (type == D_L0_4x4)||(type == D_L1_4x4)||(type == D_BI_4x4) )
+#define IS_SUB4x8(type) ( (type == D_L0_4x8)||(type == D_L1_4x8)||(type == D_BI_4x8) )
+#define IS_SUB8x4(type) ( (type == D_L0_8x4)||(type == D_L1_8x4)||(type == D_BI_8x4) )
+#define IS_SUB8x8(type) ( (type == D_L0_8x8)||(type == D_L1_8x8)||(type == D_BI_8x8)||(type == D_DIRECT_8x8) )
 enum mb_partition_e
 {
     /* sub partition type for P_8x8 and B_8x8 */

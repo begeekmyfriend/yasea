@@ -1,7 +1,7 @@
 /*****************************************************************************
  * dct.c: transform and zigzag
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -720,10 +720,13 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->sub8x8_dct    = x264_sub8x8_dct_altivec;
         dctf->sub16x16_dct  = x264_sub16x16_dct_altivec;
 
+        dctf->add8x8_idct_dc = x264_add8x8_idct_dc_altivec;
+
         dctf->add4x4_idct   = x264_add4x4_idct_altivec;
         dctf->add8x8_idct   = x264_add8x8_idct_altivec;
         dctf->add16x16_idct = x264_add16x16_idct_altivec;
 
+        dctf->sub8x8_dct_dc = x264_sub8x8_dct_dc_altivec;
         dctf->sub8x8_dct8   = x264_sub8x8_dct8_altivec;
         dctf->sub16x16_dct8 = x264_sub16x16_dct8_altivec;
 
@@ -1029,6 +1032,7 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf_progressive, x264_zig
     {
         pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_altivec;
         pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_altivec;
+        pf_progressive->scan_8x8  = x264_zigzag_scan_8x8_frame_altivec;
     }
 #endif
 #if HAVE_ARMV6 || ARCH_AARCH64
@@ -1097,13 +1101,20 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf_progressive, x264_zig
         pf_progressive->interleave_8x8_cavlc =  x264_zigzag_interleave_8x8_cavlc_neon;
     }
 #endif // ARCH_AARCH64
-#endif // !HIGH_BIT_DEPTH
-#if !HIGH_BIT_DEPTH
+
+#if HAVE_ALTIVEC
+    if( cpu&X264_CPU_ALTIVEC )
+    {
+        pf_interlaced->interleave_8x8_cavlc =
+        pf_progressive->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_altivec;
+    }
+#endif // HAVE_ALTIVEC
+
 #if HAVE_MSA
     if( cpu&X264_CPU_MSA )
     {
         pf_progressive->scan_4x4  = x264_zigzag_scan_4x4_frame_msa;
     }
 #endif
-#endif
+#endif // !HIGH_BIT_DEPTH
 }

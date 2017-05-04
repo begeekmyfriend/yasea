@@ -1,7 +1,7 @@
 /*****************************************************************************
  * analyse.c: macroblock analysis
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -147,7 +147,7 @@ const uint16_t x264_lambda_tab[QP_MAX_MAX+1] =
  161, 181, 203, 228, 256, 287, 323, 362, /* 56-63 */
  406, 456, 512, 575, 645, 724, 813, 912, /* 64-71 */
 1024,1149,1290,1448,1625,1825,2048,2299, /* 72-79 */
-2048,2299,                               /* 80-81 */
+2580,2896,                               /* 80-81 */
 };
 
 /* lambda2 = pow(lambda,2) * .9 * 256 */
@@ -2147,7 +2147,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
             }
             else
             {
-                ALIGNED_ARRAY_16( pixel, pixuv, [2],[16*FENC_STRIDE] );
+                ALIGNED_ARRAY_N( pixel, pixuv, [2],[16*FENC_STRIDE] );
                 int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
                 int v_shift = CHROMA_V_SHIFT;
 

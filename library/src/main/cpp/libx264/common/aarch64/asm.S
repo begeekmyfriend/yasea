@@ -1,7 +1,7 @@
 /*****************************************************************************
  * asm.S: AArch64 utility macros
  *****************************************************************************
- * Copyright (C) 2008-2016 x264 project
+ * Copyright (C) 2008-2017 x264 project
  *
  * Authors: Mans Rullgard <mans@mansr.com>
  *          David Conrad <lessen42@gmail.com>

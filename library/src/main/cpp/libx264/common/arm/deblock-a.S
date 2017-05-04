@@ -1,7 +1,7 @@
 /*****************************************************************************
  * deblock.S: arm deblocking
  *****************************************************************************
- * Copyright (C) 2009-2016 x264 project
+ * Copyright (C) 2009-2017 x264 project
  *
  * Authors: Mans Rullgard <mans@mansr.com>
  *          Martin Storsjo <martin@martin.st>
@@ -211,8 +211,8 @@ endfunc
     vclt.u8         q13, q4,  q14   @ < (alpha >> 2) + 2 if_2
     vand            q12, q7,  q6    @ if_1
     vshrn.u16       d28, q12,  #4
-    vcmp.f64        d28, #0
-    vmrs            APSR_nzcv, FPSCR
+    vmov            r2,  lr,  d28
+    orrs            r2,  r2,  lr
     beq             9f
 
     sub             sp,  sp,  #32
@@ -325,6 +325,7 @@ endfunc
 .endm
 
 function x264_deblock_v_luma_intra_neon
+    push            {lr}
     vld1.64         {d0, d1},  [r0,:128], r1
     vld1.64         {d2, d3},  [r0,:128], r1
     vld1.64         {d4, d5},  [r0,:128], r1
@@ -348,10 +349,11 @@ function x264_deblock_v_luma_intra_neon
     vst1.64         {d4, d5},  [r0,:128]
 9:
     align_pop_regs
-    bx              lr
+    pop             {pc}
 endfunc
 
 function x264_deblock_h_luma_intra_neon
+    push            {lr}
     sub             r0,  r0,  #4
     vld1.64         {d22}, [r0], r1
     vld1.64         {d20}, [r0], r1
@@ -397,7 +399,7 @@ function x264_deblock_h_luma_intra_neon
     vst1.64         {d7},  [r0], r1
 9:
     align_pop_regs
-    bx              lr
+    pop             {pc}
 endfunc
 
 .macro h264_loop_filter_chroma

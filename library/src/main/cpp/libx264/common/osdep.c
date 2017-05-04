@@ -1,7 +1,7 @@
 /*****************************************************************************
  * osdep.c: platform-specific code
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Steven Walters <kemuri9@gmail.com>
  *          Laurent Aimar <fenrir@via.ecp.fr>

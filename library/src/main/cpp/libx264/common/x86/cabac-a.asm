@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* cabac-a.asm: x86 cabac
 ;*****************************************************************************
-;* Copyright (C) 2008-2016 x264 project
+;* Copyright (C) 2008-2017 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Fiona Glaser <fiona@x264.com>
@@ -42,11 +42,11 @@ coeff_abs_level_transition: db 1, 2, 3, 3, 4, 5, 6, 7
     %define funccpu3 %3
     %rep 14
         %ifidn %4, 4
-            dq mangle(x264_coeff_last%4_ %+ funccpu1)
+            dq mangle(private_prefix %+ _coeff_last%4_ %+ funccpu1)
         %elifidn %4, 64
-            dq mangle(x264_coeff_last%4_ %+ funccpu2)
+            dq mangle(private_prefix %+ _coeff_last%4_ %+ funccpu2)
         %else
-            dq mangle(x264_coeff_last%4_ %+ funccpu3)
+            dq mangle(private_prefix %+ _coeff_last%4_ %+ funccpu3)
         %endif
         %rotate 1
     %endrep
@@ -257,7 +257,7 @@ cabac_putbyte_%1:
 .postpone:
     inc   t5d
     mov   [t0+cb.bytes_outstanding], t5d
-    jmp mangle(x264_cabac_encode_decision_%1.update_queue_low)
+    jmp mangle(private_prefix %+ _cabac_encode_decision_%1.update_queue_low)
 %endmacro
 
 CABAC asm

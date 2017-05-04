@@ -1,7 +1,7 @@
 /*****************************************************************************
  * set: header writing
  *****************************************************************************
- * Copyright (C) 2003-2016 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -137,7 +137,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->i_level_idc      = 11;
     }
     /* Intra profiles */
-    if( param->i_keyint_max == 1 && sps->i_profile_idc > PROFILE_HIGH )
+    if( param->i_keyint_max == 1 && sps->i_profile_idc >= PROFILE_HIGH )
         sps->b_constraint_set3 = 1;
 
     sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
@@ -238,7 +238,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
     // NOTE: HRD related parts of the SPS are initialised in x264_ratecontrol_init_reconfigurable
 
-    sps->vui.b_bitstream_restriction = param->i_keyint_max > 1;
+    sps->vui.b_bitstream_restriction = !(sps->b_constraint_set3 && sps->i_profile_idc >= PROFILE_HIGH);
     if( sps->vui.b_bitstream_restriction )
     {
         sps->vui.b_motion_vectors_over_pic_boundaries = 1;
@@ -578,7 +578,7 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
 
     memcpy( payload, uuid, 16 );
     sprintf( payload+16, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
-             "Copy%s 2003-2016 - http://www.videolan.org/x264.html - options: %s",
+             "Copy%s 2003-2017 - http://www.videolan.org/x264.html - options: %s",
              X264_BUILD, X264_VERSION, HAVE_GPL?"left":"right", opts );
     length = strlen(payload)+1;
 
@@ -671,7 +671,7 @@ void x264_sei_frame_packing_write( x264_t *h, bs_t *s )
     bs_write1( &q, h->param.i_frame_packing == 5 && !(h->fenc->i_frame&1) ); // current_frame_is_frame0_flag
     bs_write1( &q, 0 );                           // frame0_self_contained_flag
     bs_write1( &q, 0 );                           // frame1_self_contained_flag
-    if ( quincunx_sampling_flag == 0 && h->param.i_frame_packing != 5 )
+    if( quincunx_sampling_flag == 0 && h->param.i_frame_packing != 5 )
     {
         bs_write( &q, 4, 0 );                     // frame0_grid_position_x
         bs_write( &q, 4, 0 );                     // frame0_grid_position_y

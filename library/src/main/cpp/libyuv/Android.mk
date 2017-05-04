@@ -29,6 +29,7 @@ LOCAL_SRC_FILES := \
     source/video_common.cc
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+    LOCAL_ARM_NEON := true
     LOCAL_CFLAGS += -DLIBYUV_NEON
     LOCAL_SRC_FILES += \
         source/compare_neon.cc.neon    \
@@ -38,6 +39,7 @@ ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 endif
 
 ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+    LOCAL_ARM_NEON := true
     LOCAL_CFLAGS += -DLIBYUV_NEON
     LOCAL_SRC_FILES += \
         source/compare_neon64.cc    \
@@ -63,9 +65,8 @@ endif
 
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/include
-LOCAL_LDLIBS := -llog
+LOCAL_EXPORT_LDLIBS := -llog
 LOCAL_MODULE := libyuv
-LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)
 #include $(BUILD_STATIC_LIBRARY)

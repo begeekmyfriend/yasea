@@ -1,14 +1,14 @@
 #!/bin/sh
 
-ANDROID_NDK=/home/leoma/MyOSP/android-ndk-r13b
-SYSROOT=$ANDROID_NDK/platforms/android-19/arch-arm
-CROSS_PREFIX=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-
-EXTRA_CFLAGS="-march=armv7-a -mfloat-abi=softfp -mfpu=neon -D__ANDROID__ -D__ARM_ARCH_7__ -D__ARM_ARCH_7A__"
+ANDROID_NDK=D:/Android/android-sdk/ndk-bundle
+SYSROOT=$ANDROID_NDK/platforms/android-21/arch-arm64
+CROSS_PREFIX=$ANDROID_NDK/toolchains/aarch64-linux-android-4.9/prebuilt/windows-x86_64/bin/aarch64-linux-android-
+EXTRA_CFLAGS="-march=armv8-a -D__ANDROID__"
 EXTRA_LDFLAGS="-nostdlib"
-PREFIX=`pwd`/libs/armeabi-v7a
+PREFIX=`pwd`/libs/arm64-v8a
 
-./configure --prefix=$PREFIX \
-        --host=arm-linux \
+configure --prefix=$PREFIX \
+        --host=aarch64-linux \
         --sysroot=$SYSROOT \
         --cross-prefix=$CROSS_PREFIX \
         --extra-cflags="$EXTRA_CFLAGS" \

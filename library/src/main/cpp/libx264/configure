@@ -1,5 +1,4 @@
 #!/bin/bash
-
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
 cat <<EOF
 Usage: ./configure [options]
@@ -942,7 +941,7 @@ fi
 if [ "$cli_libx264" = "system" -a "$shared" != "yes" ] ; then
     [ "$static" = "yes" ] && die "Option --system-libx264 can not be used together with --enable-static"
     if $PKGCONFIG --exists x264 2>/dev/null; then
-        X264_LIBS="$($PKGCONFIG --libs x264)"
+        X264_LIBS="$($PKGCONFIG --libx264.libs x264)"
         X264_INCLUDE_DIR="${X264_INCLUDE_DIR-$($PKGCONFIG --variable=includedir x264)}"
         configure_system_override "$X264_INCLUDE_DIR" || die "Detection of system libx264 configuration failed"
     else
@@ -1028,7 +1027,7 @@ fi
 if [ "$swscale" = "auto" ] ; then
     swscale="no"
     if $PKGCONFIG --exists libswscale 2>/dev/null; then
-        SWSCALE_LIBS="$SWSCALE_LIBS $($PKGCONFIG --libs libswscale libavutil)"
+        SWSCALE_LIBS="$SWSCALE_LIBS $($PKGCONFIG --libx264.libs libswscale libavutil)"
         SWSCALE_CFLAGS="$SWSCALE_CFLAGS $($PKGCONFIG --cflags libswscale libavutil)"
     fi
     [ -z "$SWSCALE_LIBS" ] && SWSCALE_LIBS="-lswscale -lavutil"
@@ -1045,7 +1044,7 @@ fi
 if [ "$lavf" = "auto" ] ; then
     lavf="no"
     if $PKGCONFIG --exists libavformat libavcodec libswscale 2>/dev/null; then
-        LAVF_LIBS="$LAVF_LIBS $($PKGCONFIG --libs libavformat libavcodec libavutil libswscale)"
+        LAVF_LIBS="$LAVF_LIBS $($PKGCONFIG --libx264.libs libavformat libavcodec libavutil libswscale)"
         LAVF_CFLAGS="$LAVF_CFLAGS $($PKGCONFIG --cflags libavformat libavcodec libavutil libswscale)"
     fi
     if [ -z "$LAVF_LIBS" -a -z "$LAVF_CFLAGS" ]; then
@@ -1069,7 +1068,7 @@ if [ "$ffms" = "auto" ] ; then
     ffms="no"
 
     if $PKGCONFIG --exists ffms2 2>/dev/null; then
-        FFMS2_LIBS="$FFMS2_LIBS $($PKGCONFIG --libs ffms2)"
+        FFMS2_LIBS="$FFMS2_LIBS $($PKGCONFIG --libx264.libs ffms2)"
         FFMS2_CFLAGS="$FFMS2_CFLAGS $($PKGCONFIG --cflags ffms2)"
     fi
     [ -z "$FFMS2_LIBS" ] && FFMS2_LIBS="-lffms2"
@@ -1111,7 +1110,7 @@ fi
 if [ "$lsmash" = "auto" ] ; then
     lsmash="no"
     if $PKGCONFIG --exists liblsmash 2>/dev/null; then
-        LSMASH_LIBS="$LSMASH_LIBS $($PKGCONFIG --libs liblsmash)"
+        LSMASH_LIBS="$LSMASH_LIBS $($PKGCONFIG --libx264.libs liblsmash)"
         LSMASH_CFLAGS="$LSMASH_CFLAGS $($PKGCONFIG --cflags liblsmash)"
     fi
     [ -z "$LSMASH_LIBS" ] && LSMASH_LIBS="-llsmash"

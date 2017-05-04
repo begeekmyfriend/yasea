@@ -1,6 +1,7 @@
 package net.ossrs.yasea;
 
 import android.content.res.Configuration;
+import android.graphics.Rect;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
@@ -390,12 +391,129 @@ public class SrsEncoder {
         }
     }
 
+    public void onGetYuvNV21Frame(byte[] data, int width, int height, Rect boundingBox) {
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            if (useSoftEncoder) {
+                throw new UnsupportedOperationException("Not implemented");
+                //swRgbaFrame(data, width, height, pts);
+            } else {
+                byte[] processedData = hwYUVNV21FrameScale(data, width, height, boundingBox);
+                if (processedData != null) {
+                    onProcessedYuvFrame(processedData, pts);
+                } else {
+                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
+                }
+            }
+
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
+                mHandler.notifyNetworkResume();
+            }
+        } else {
+            mHandler.notifyNetworkWeak();
+            networkWeakTriggered = true;
+        }
+    }
+
+    public void onGetArgbFrame(int[] data, int width, int height, Rect boundingBox) {
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            if (useSoftEncoder) {
+                throw new UnsupportedOperationException("Not implemented");
+                //swRgbaFrame(data, width, height, pts);
+            } else {
+                byte[] processedData = hwArgbaFrameScale(data, width, height, boundingBox);
+                if (processedData != null) {
+                    onProcessedYuvFrame(processedData, pts);
+                } else {
+                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
+                }
+            }
+
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
+                mHandler.notifyNetworkResume();
+            }
+        } else {
+            mHandler.notifyNetworkWeak();
+            networkWeakTriggered = true;
+        }
+    }
+
+    public void onGetArgbFrame(int[] data, int width, int height) {
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            if (useSoftEncoder) {
+                throw new UnsupportedOperationException("Not implemented");
+                //swRgbaFrame(data, width, height, pts);
+            } else {
+                byte[] processedData = hwArgbaFrame(data, width, height);
+                if (processedData != null) {
+                    onProcessedYuvFrame(processedData, pts);
+                } else {
+                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
+                }
+            }
+
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
+                mHandler.notifyNetworkResume();
+            }
+        } else {
+            mHandler.notifyNetworkWeak();
+            networkWeakTriggered = true;
+        }
+    }
+
     private byte[] hwRgbaFrame(byte[] data, int width, int height) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return RGBAToI420(data, width, height, true, 180);
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
                 return RGBAToNV12(data, width, height, true, 180);
+            default:
+                throw new IllegalStateException("Unsupported color format!");
+        }
+    }
+
+    private byte[] hwYUVNV21FrameScale(byte[] data, int width, int height, Rect boundingBox) {
+        switch (mVideoColorFormat) {
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                return NV21ToI420Scaled(data, width, height, true, 180, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                return NV21ToNV12Scaled(data, width, height, true, 180, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
+            default:
+                throw new IllegalStateException("Unsupported color format!");
+        }
+    }
+
+    private byte[] hwArgbaFrameScale(int[] data, int width, int height, Rect boundingBox) {
+        switch (mVideoColorFormat) {
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                return ARGBToI420Scaled(data, width, height, false, 0, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                return ARGBToNV12Scaled(data, width, height, false, 0, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
+            default:
+                throw new IllegalStateException("Unsupported color format!");
+        }
+    }
+
+    private byte[] hwArgbaFrame(int[] data, int inputWidth, int inputHeight) {
+        switch (mVideoColorFormat) {
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+                return ARGBToI420(data, inputWidth, inputHeight, false, 0);
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+                return ARGBToNV12(data, inputWidth, inputHeight, false, 0);
             default:
                 throw new IllegalStateException("Unsupported color format!");
         }
@@ -497,6 +615,12 @@ public class SrsEncoder {
     private native void setEncoderPreset(String preset);
     private native byte[] RGBAToI420(byte[] rgbaFrame, int width, int height, boolean flip, int rotate);
     private native byte[] RGBAToNV12(byte[] rgbaFrame, int width, int height, boolean flip, int rotate);
+    private native byte[] ARGBToI420Scaled(int[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
+    private native byte[] ARGBToNV12Scaled(int[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
+    private native byte[] ARGBToI420(int[] rgbaFrame, int width, int height, boolean flip, int rotate);
+    private native byte[] ARGBToNV12(int[] rgbaFrame, int width, int height, boolean flip, int rotate);
+    private native byte[] NV21ToNV12Scaled(byte[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
+    private native byte[] NV21ToI420Scaled(byte[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
     private native int RGBASoftEncode(byte[] rgbaFrame, int width, int height, boolean flip, int rotate, long pts);
     private native boolean openSoftEncoder();
     private native void closeSoftEncoder();

@@ -427,7 +427,7 @@ public class SrsEncoder {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 throw new UnsupportedOperationException("Not implemented");
-                //swRgbaFrame(data, width, height, pts);
+                //swArgbFrame(data, width, height, pts);
             } else {
                 byte[] processedData = hwArgbaFrameScale(data, width, height, boundingBox);
                 if (processedData != null) {
@@ -455,7 +455,7 @@ public class SrsEncoder {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 throw new UnsupportedOperationException("Not implemented");
-                //swRgbaFrame(data, width, height, pts);
+                //swArgbFrame(data, width, height, pts);
             } else {
                 byte[] processedData = hwArgbaFrame(data, width, height);
                 if (processedData != null) {
@@ -613,15 +613,15 @@ public class SrsEncoder {
     private native void setEncoderGop(int gop);
     private native void setEncoderBitrate(int bitrate);
     private native void setEncoderPreset(String preset);
-    private native byte[] RGBAToI420(byte[] rgbaFrame, int width, int height, boolean flip, int rotate);
-    private native byte[] RGBAToNV12(byte[] rgbaFrame, int width, int height, boolean flip, int rotate);
-    private native byte[] ARGBToI420Scaled(int[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
-    private native byte[] ARGBToNV12Scaled(int[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
-    private native byte[] ARGBToI420(int[] rgbaFrame, int width, int height, boolean flip, int rotate);
-    private native byte[] ARGBToNV12(int[] rgbaFrame, int width, int height, boolean flip, int rotate);
-    private native byte[] NV21ToNV12Scaled(byte[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
-    private native byte[] NV21ToI420Scaled(byte[] rgbaFrame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
-    private native int RGBASoftEncode(byte[] rgbaFrame, int width, int height, boolean flip, int rotate, long pts);
+    private native byte[] RGBAToI420(byte[] frame, int width, int height, boolean flip, int rotate);
+    private native byte[] RGBAToNV12(byte[] frame, int width, int height, boolean flip, int rotate);
+    private native byte[] ARGBToI420Scaled(int[] frame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
+    private native byte[] ARGBToNV12Scaled(int[] frame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
+    private native byte[] ARGBToI420(int[] frame, int width, int height, boolean flip, int rotate);
+    private native byte[] ARGBToNV12(int[] frame, int width, int height, boolean flip, int rotate);
+    private native byte[] NV21ToNV12Scaled(byte[] frame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
+    private native byte[] NV21ToI420Scaled(byte[] frame, int width, int height, boolean flip, int rotate, int crop_x, int crop_y,int crop_width, int crop_height);
+    private native int RGBASoftEncode(byte[] frame, int width, int height, boolean flip, int rotate, long pts);
     private native boolean openSoftEncoder();
     private native void closeSoftEncoder();
 

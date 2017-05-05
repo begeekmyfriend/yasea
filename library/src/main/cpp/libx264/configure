@@ -999,7 +999,7 @@ elif [ "$thread" != "no" ] ; then
             cc_check pthread.h -lc "pthread_create(0,0,0,0);" && thread="posix" && libpthread="-lc"
             ;;
         *)
-            if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
+            if cc_check pthread.h -lc "pthread_create(0,0,0,0);" ; then
                thread="posix"
                libpthread="-lpthread"
             else

@@ -401,7 +401,7 @@ public class SrsEncoder {
                 throw new UnsupportedOperationException("Not implemented");
                 //swRgbaFrame(data, width, height, pts);
             } else {
-                byte[] processedData = hwYUVNV21FrameScale(data, width, height, boundingBox);
+                byte[] processedData = hwYUVNV21FrameScaled(data, width, height, boundingBox);
                 if (processedData != null) {
                     onProcessedYuvFrame(processedData, pts);
                 } else {
@@ -429,7 +429,7 @@ public class SrsEncoder {
                 throw new UnsupportedOperationException("Not implemented");
                 //swArgbFrame(data, width, height, pts);
             } else {
-                byte[] processedData = hwArgbaFrameScale(data, width, height, boundingBox);
+                byte[] processedData = hwArgbFrameScaled(data, width, height, boundingBox);
                 if (processedData != null) {
                     onProcessedYuvFrame(processedData, pts);
                 } else {
@@ -457,7 +457,7 @@ public class SrsEncoder {
                 throw new UnsupportedOperationException("Not implemented");
                 //swArgbFrame(data, width, height, pts);
             } else {
-                byte[] processedData = hwArgbaFrame(data, width, height);
+                byte[] processedData = hwArgbFrame(data, width, height);
                 if (processedData != null) {
                     onProcessedYuvFrame(processedData, pts);
                 } else {
@@ -486,7 +486,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] hwYUVNV21FrameScale(byte[] data, int width, int height, Rect boundingBox) {
+    private byte[] hwYUVNV21FrameScaled(byte[] data, int width, int height, Rect boundingBox) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return NV21ToI420Scaled(data, width, height, true, 180, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
@@ -497,7 +497,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] hwArgbaFrameScale(int[] data, int width, int height, Rect boundingBox) {
+    private byte[] hwArgbFrameScaled(int[] data, int width, int height, Rect boundingBox) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return ARGBToI420Scaled(data, width, height, false, 0, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
@@ -508,7 +508,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] hwArgbaFrame(int[] data, int inputWidth, int inputHeight) {
+    private byte[] hwArgbFrame(int[] data, int inputWidth, int inputHeight) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return ARGBToI420(data, inputWidth, inputHeight, false, 0);

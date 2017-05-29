@@ -166,8 +166,11 @@ public class SrsFlvMuxer {
                         }
                     }
                 }
+                worker = null;
             }
         });
+        worker.setPriority(Thread.MAX_PRIORITY);
+        worker.setDaemon(true);
         worker.start();
     }
 
@@ -179,12 +182,10 @@ public class SrsFlvMuxer {
         if (worker != null) {
             worker.interrupt();
             try {
-                worker.join();
+                worker.join(5000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                worker.interrupt();
             }
-            worker = null;
         }
         flv.reset();
         needToFindKeyFrame = true;

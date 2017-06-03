@@ -77,7 +77,6 @@ public class SrsEncoder {
 
     public SrsEncoder(SrsEncodeHandler handler) {
         mHandler = handler;
-        mVideoColorFormat = chooseVideoEncoder();
     }
 
     public void setFlvMuxer(SrsFlvMuxer flvMuxer) {
@@ -95,14 +94,6 @@ public class SrsEncoder {
 
         // the referent PTS for video and audio encoder.
         mPresentTimeUs = System.nanoTime() / 1000;
-
-        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
-        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-        if (!useSoftEncoder && (vOutWidth % 32 != 0 || vOutHeight % 32 != 0)) {
-            if (vmci.getName().contains("MTK")) {
-                //throw new AssertionError("MTK encoding revolution stride must be 32x");
-            }
-        }
 
         setEncoderResolution(vOutWidth, vOutHeight);
         setEncoderFps(VFPS);
@@ -126,45 +117,51 @@ public class SrsEncoder {
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
         try {
             aencoder = MediaCodec.createEncoderByType(ACODEC);
+
+            // setup the aencoder.
+            // @see https://developer.android.com/reference/android/media/MediaCodec.html
+            int ach = aChannelConfig == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
+            MediaFormat audioFormat = MediaFormat.createAudioFormat(ACODEC, ASAMPLERATE, ach);
+            audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, ABITRATE);
+            audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+            aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+            // add the audio tracker to muxer.
+            audioFlvTrack = flvMuxer.addTrack(audioFormat);
+            audioMp4Track = mp4Muxer.addTrack(audioFormat);
+
         } catch (IOException e) {
             Log.e(TAG, "create aencoder failed.");
             e.printStackTrace();
             return false;
         }
 
-        // setup the aencoder.
-        // @see https://developer.android.com/reference/android/media/MediaCodec.html
-        int ach = aChannelConfig == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
-        MediaFormat audioFormat = MediaFormat.createAudioFormat(ACODEC, ASAMPLERATE, ach);
-        audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, ABITRATE);
-        audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-        aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        // add the audio tracker to muxer.
-        audioFlvTrack = flvMuxer.addTrack(audioFormat);
-        audioMp4Track = mp4Muxer.addTrack(audioFormat);
-
         // vencoder yuv to 264 es stream.
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
         try {
-            vencoder = MediaCodec.createByCodecName(vmci.getName());
+            vencoder = MediaCodec.createEncoderByType(VCODEC);
+            vmci = vencoder.getCodecInfo();
+            mVideoColorFormat = MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
+
+            // setup the vencoder.
+            // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
+            MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vOutWidth, vOutHeight);
+            videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
+            videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+            videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
+            videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
+            videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
+            vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+            // add the video tracker to muxer.
+            videoFlvTrack = flvMuxer.addTrack(videoFormat);
+            videoMp4Track = mp4Muxer.addTrack(videoFormat);
+
         } catch (IOException e) {
             Log.e(TAG, "create vencoder failed.");
             e.printStackTrace();
             return false;
         }
-
-        // setup the vencoder.
-        // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
-        MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vOutWidth, vOutHeight);
-        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
-        videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
-        videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
-        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
-        vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        // add the video tracker to muxer.
-        videoFlvTrack = flvMuxer.addTrack(videoFormat);
-        videoMp4Track = mp4Muxer.addTrack(videoFormat);
 
         // start device and encoder.
         vencoder.start();
@@ -282,26 +279,13 @@ public class SrsEncoder {
             vOutWidth = vLandscapeWidth;
             vOutHeight = vLandscapeHeight;
         }
-        
-        // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
-        // Since Y component is quadruple size as U and V component, the stride must be set as 32x
-        if (!useSoftEncoder && (vOutWidth % 32 != 0 || vOutHeight % 32 != 0)) {
-            if (vmci.getName().contains("MTK")) {
-                //throw new AssertionError("MTK encoding revolution stride must be 32x");
-            }
-        }
-
         setEncoderResolution(vOutWidth, vOutHeight);
     }
 
     private void onProcessedYuvFrame(byte[] yuvFrame, long pts) {
-        ByteBuffer[] inBuffers = vencoder.getInputBuffers();
-        ByteBuffer[] outBuffers = vencoder.getOutputBuffers();
-
         int inBufferIndex = vencoder.dequeueInputBuffer(-1);
         if (inBufferIndex >= 0) {
-            ByteBuffer bb = inBuffers[inBufferIndex];
-            bb.clear();
+            ByteBuffer bb = vencoder.getInputBuffer(inBufferIndex);
             bb.put(yuvFrame, 0, yuvFrame.length);
             vencoder.queueInputBuffer(inBufferIndex, 0, yuvFrame.length, pts, 0);
         }
@@ -309,7 +293,7 @@ public class SrsEncoder {
         for (; ; ) {
             int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
             if (outBufferIndex >= 0) {
-                ByteBuffer bb = outBuffers[outBufferIndex];
+                ByteBuffer bb = vencoder.getOutputBuffer(outBufferIndex);
                 onEncodedAnnexbFrame(bb, vebi);
                 vencoder.releaseOutputBuffer(outBufferIndex, false);
             } else {
@@ -340,13 +324,9 @@ public class SrsEncoder {
     }
 
     public void onGetPcmFrame(byte[] data, int size) {
-        ByteBuffer[] inBuffers = aencoder.getInputBuffers();
-        ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
-
         int inBufferIndex = aencoder.dequeueInputBuffer(-1);
         if (inBufferIndex >= 0) {
-            ByteBuffer bb = inBuffers[inBufferIndex];
-            bb.clear();
+            ByteBuffer bb = aencoder.getInputBuffer(inBufferIndex);
             bb.put(data, 0, size);
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
@@ -355,7 +335,7 @@ public class SrsEncoder {
         for (; ; ) {
             int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
             if (outBufferIndex >= 0) {
-                ByteBuffer bb = outBuffers[outBufferIndex];
+                ByteBuffer bb = aencoder.getOutputBuffer(outBufferIndex);
                 onEncodedAacFrame(bb, aebi);
                 aencoder.releaseOutputBuffer(outBufferIndex, false);
             } else {
@@ -545,67 +525,6 @@ public class SrsEncoder {
         int pcmBufSize = AudioRecord.getMinBufferSize(ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO,
             AudioFormat.ENCODING_PCM_16BIT) + 8191;
         return pcmBufSize - (pcmBufSize % 8192);
-    }
-
-    // choose the video encoder by name.
-    private MediaCodecInfo chooseVideoEncoder(String name) {
-        int nbCodecs = MediaCodecList.getCodecCount();
-        for (int i = 0; i < nbCodecs; i++) {
-            MediaCodecInfo mci = MediaCodecList.getCodecInfoAt(i);
-            if (!mci.isEncoder()) {
-                continue;
-            }
-
-            String[] types = mci.getSupportedTypes();
-            for (int j = 0; j < types.length; j++) {
-                if (types[j].equalsIgnoreCase(VCODEC)) {
-                    Log.i(TAG, String.format("vencoder %s types: %s", mci.getName(), types[j]));
-                    if (name == null) {
-                        return mci;
-                    }
-
-                    if (mci.getName().contains(name)) {
-                        return mci;
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    // choose the right supported color format. @see below:
-    private int chooseVideoEncoder() {
-        // choose the encoder "video/avc":
-        //      1. select default one when type matched.
-        //      2. google avc is unusable.
-        //      3. choose qcom avc.
-        vmci = chooseVideoEncoder(null);
-        //vmci = chooseVideoEncoder("google");
-        //vmci = chooseVideoEncoder("qcom");
-
-        int matchedColorFormat = 0;
-        MediaCodecInfo.CodecCapabilities cc = vmci.getCapabilitiesForType(VCODEC);
-        for (int i = 0; i < cc.colorFormats.length; i++) {
-            int cf = cc.colorFormats[i];
-            Log.i(TAG, String.format("vencoder %s supports color fomart 0x%x(%d)", vmci.getName(), cf, cf));
-
-            // choose YUV for h.264, prefer the bigger one.
-            // corresponding to the color space transform in onPreviewFrame
-            if (cf >= cc.COLOR_FormatYUV420Planar && cf <= cc.COLOR_FormatYUV420SemiPlanar) {
-                if (cf > matchedColorFormat) {
-                    matchedColorFormat = cf;
-                }
-            }
-        }
-
-        for (int i = 0; i < cc.profileLevels.length; i++) {
-            MediaCodecInfo.CodecProfileLevel pl = cc.profileLevels[i];
-            Log.i(TAG, String.format("vencoder %s support profile %d, level %d", vmci.getName(), pl.profile, pl.level));
-        }
-
-        Log.i(TAG, String.format("vencoder %s choose color format 0x%x(%d)", vmci.getName(), matchedColorFormat, matchedColorFormat));
-        return matchedColorFormat;
     }
 
     private native void setEncoderResolution(int outWidth, int outHeight);

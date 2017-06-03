@@ -23,7 +23,8 @@ configure --prefix=$PREFIX \
         --disable-lavf \
         --disable-ffms \
         --disable-gpac \
-        --disable-lsmash
+        --disable-lsmash \
+        --disable-opencl
 
 make clean
 make STRIP= -j8 install || exit 1

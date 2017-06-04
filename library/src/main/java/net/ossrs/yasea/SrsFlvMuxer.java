@@ -142,7 +142,7 @@ public class SrsFlvMuxer {
                 }
 
                 try {
-                    while (!Thread.interrupted()) {
+                    while (!worker.interrupted()) {
                         while (!mFlvTagCache.isEmpty()) {
                             SrsFlvFrame frame = mFlvTagCache.poll();
                             if (frame.isSequenceHeader()) {
@@ -161,6 +161,7 @@ public class SrsFlvMuxer {
                                 }
                             }
                         }
+
                         // Waiting for next frame
                         synchronized (txFrameLock) {
                             txFrameLock.wait(500);
@@ -168,7 +169,7 @@ public class SrsFlvMuxer {
                     }
 
                 } catch (InterruptedException ie) {
-                    Log.e(TAG, ie.getMessage(), ie);
+                    Log.i(TAG, "Stopped");
                 }
             }
         });
@@ -192,14 +193,8 @@ public class SrsFlvMuxer {
         }
         flv.reset();
         needToFindKeyFrame = true;
+        disconnect();
         Log.i(TAG, "SrsFlvMuxer closed");
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                disconnect();
-            }
-        }).start();
     }
 
     /**
@@ -323,8 +318,6 @@ public class SrsFlvMuxer {
 
     /**
      * the aac profile, for ADTS(HLS/TS)
-     *
-     * @see https://github.com/simple-rtmp-server/srs/issues/310
      */
     private class SrsAacProfile {
         public final static int Reserved = 3;

@@ -113,29 +113,6 @@ public class SrsEncoder {
             }
         }
 
-        // aencoder pcm to aac raw stream.
-        // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
-        try {
-            aencoder = MediaCodec.createEncoderByType(ACODEC);
-
-            // setup the aencoder.
-            // @see https://developer.android.com/reference/android/media/MediaCodec.html
-            int ach = aChannelConfig == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
-            MediaFormat audioFormat = MediaFormat.createAudioFormat(ACODEC, ASAMPLERATE, ach);
-            audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, ABITRATE);
-            audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-            aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-
-            // add the audio tracker to muxer.
-            audioFlvTrack = flvMuxer.addTrack(audioFormat);
-            audioMp4Track = mp4Muxer.addTrack(audioFormat);
-
-        } catch (IOException e) {
-            Log.e(TAG, "create aencoder failed.");
-            e.printStackTrace();
-            return false;
-        }
-
         // vencoder yuv to 264 es stream.
         // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
         try {
@@ -159,6 +136,29 @@ public class SrsEncoder {
 
         } catch (IOException e) {
             Log.e(TAG, "create vencoder failed.");
+            e.printStackTrace();
+            return false;
+        }
+
+        // aencoder pcm to aac raw stream.
+        // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
+        try {
+            aencoder = MediaCodec.createEncoderByType(ACODEC);
+
+            // setup the aencoder.
+            // @see https://developer.android.com/reference/android/media/MediaCodec.html
+            int ach = aChannelConfig == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
+            MediaFormat audioFormat = MediaFormat.createAudioFormat(ACODEC, ASAMPLERATE, ach);
+            audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, ABITRATE);
+            audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+            aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+            // add the audio tracker to muxer.
+            audioFlvTrack = flvMuxer.addTrack(audioFormat);
+            audioMp4Track = mp4Muxer.addTrack(audioFormat);
+
+        } catch (IOException e) {
+            Log.e(TAG, "create aencoder failed.");
             e.printStackTrace();
             return false;
         }
@@ -313,13 +313,13 @@ public class SrsEncoder {
 
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        mp4Muxer.writeSampleData(videoMp4Track, es.duplicate(), bi);
+//        mp4Muxer.writeSampleData(videoMp4Track, es.duplicate(), bi);
         flvMuxer.writeSampleData(videoFlvTrack, es, bi);
     }
 
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        mp4Muxer.writeSampleData(audioMp4Track, es.duplicate(), bi);
+//        mp4Muxer.writeSampleData(audioMp4Track, es.duplicate(), bi);
         flvMuxer.writeSampleData(audioFlvTrack, es, bi);
     }
 
@@ -345,89 +345,22 @@ public class SrsEncoder {
     }
 
     public void onGetRgbaFrame(byte[] data, int width, int height) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                swRgbaFrame(data, width, height, pts);
-            } else {
-                byte[] processedData = hwRgbaFrame(data, width, height);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
-                } else {
-                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
-                }
-            }
-
-            if (networkWeakTriggered) {
-                networkWeakTriggered = false;
-                mHandler.notifyNetworkResume();
-            }
-        } else {
-            mHandler.notifyNetworkWeak();
-            networkWeakTriggered = true;
-        }
+        onGetYuvFrame(RGBAtoYUV(data, width, height));
     }
 
     public void onGetYuvNV21Frame(byte[] data, int width, int height, Rect boundingBox) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                throw new UnsupportedOperationException("Not implemented");
-                //swRgbaFrame(data, width, height, pts);
-            } else {
-                byte[] processedData = hwYUVNV21FrameScale(data, width, height, boundingBox);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
-                } else {
-                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
-                }
-            }
-
-            if (networkWeakTriggered) {
-                networkWeakTriggered = false;
-                mHandler.notifyNetworkResume();
-            }
-        } else {
-            mHandler.notifyNetworkWeak();
-            networkWeakTriggered = true;
-        }
-    }
-
-    public void onGetArgbFrame(int[] data, int width, int height, Rect boundingBox) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                throw new UnsupportedOperationException("Not implemented");
-                //swRgbaFrame(data, width, height, pts);
-            } else {
-                byte[] processedData = hwArgbaFrameScale(data, width, height, boundingBox);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
-                } else {
-                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
-                }
-            }
-
-            if (networkWeakTriggered) {
-                networkWeakTriggered = false;
-                mHandler.notifyNetworkResume();
-            }
-        } else {
-            mHandler.notifyNetworkWeak();
-            networkWeakTriggered = true;
-        }
+        onGetYuvFrame(NV21toYUVscaled(data, width, height, boundingBox));
     }
 
     public void onGetArgbFrame(int[] data, int width, int height) {
+        onGetYuvFrame(ARGBtoYUV(data, width, height));
+    }
+
+    public void onGetArgbFrame(int[] data, int width, int height, Rect boundingBox) {
+        onGetYuvFrame(ARGBtoYUVscaled(data, width, height, boundingBox));
+    }
+
+    public void onGetYuvFrame(byte[] frame) {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
@@ -435,11 +368,10 @@ public class SrsEncoder {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 throw new UnsupportedOperationException("Not implemented");
-                //swRgbaFrame(data, width, height, pts);
+                //onGetRgbaSoftFrame(data, width, height, pts);
             } else {
-                byte[] processedData = hwArgbaFrame(data, width, height);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
+                if (frame != null) {
+                    onProcessedYuvFrame(frame, pts);
                 } else {
                     mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
                 }
@@ -455,7 +387,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] hwRgbaFrame(byte[] data, int width, int height) {
+    public byte[] RGBAtoYUV(byte[] data, int width, int height) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return RGBAToI420(data, width, height, true, 180);
@@ -466,7 +398,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] hwYUVNV21FrameScale(byte[] data, int width, int height, Rect boundingBox) {
+    public byte[] NV21toYUVscaled(byte[] data, int width, int height, Rect boundingBox) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return NV21ToI420Scaled(data, width, height, true, 180, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
@@ -477,7 +409,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] hwArgbaFrameScale(int[] data, int width, int height, Rect boundingBox) {
+    public byte[] ARGBtoYUVscaled(int[] data, int width, int height, Rect boundingBox) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return ARGBToI420Scaled(data, width, height, false, 0, boundingBox.left, boundingBox.top, boundingBox.width(), boundingBox.height());
@@ -488,7 +420,7 @@ public class SrsEncoder {
         }
     }
 
-    private byte[] hwArgbaFrame(int[] data, int inputWidth, int inputHeight) {
+    public byte[] ARGBtoYUV(int[] data, int inputWidth, int inputHeight) {
         switch (mVideoColorFormat) {
             case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
                 return ARGBToI420(data, inputWidth, inputHeight, false, 0);
@@ -499,7 +431,7 @@ public class SrsEncoder {
         }
     }
 
-    private void swRgbaFrame(byte[] data, int width, int height, long pts) {
+    public void onGetRgbaSoftFrame(byte[] data, int width, int height, long pts) {
         RGBASoftEncode(data, width, height, true, 180, pts);
     }
 
@@ -521,7 +453,7 @@ public class SrsEncoder {
         return mic;
     }
 
-    private int getPcmBufferSize() {
+    public int getPcmBufferSize() {
         int pcmBufSize = AudioRecord.getMinBufferSize(ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO,
             AudioFormat.ENCODING_PCM_16BIT) + 8191;
         return pcmBufSize - (pcmBufSize % 8192);

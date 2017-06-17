@@ -1,8 +1,10 @@
 #include <jni.h>
+#include <string.h>
 #include <libyuv.h>
 #include <x264.h>
 
 #include <android/log.h>
+
 #define LIBENC_LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, "libenc", __VA_ARGS__))
 #define LIBENC_LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO , "libenc", __VA_ARGS__))
 #define LIBENC_LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN , "libenc", __VA_ARGS__))

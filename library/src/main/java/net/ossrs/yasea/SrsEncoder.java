@@ -23,20 +23,20 @@ public class SrsEncoder {
     public static final String VCODEC = "video/avc";
     public static final String ACODEC = "audio/mp4a-latm";
     public static String x264Preset = "veryfast";
-    public static int vPrevWidth = 1280;
-    public static int vPrevHeight = 720;
-    public static int vPortraitWidth = 384;
+    public static int vPrevWidth = 640;
+    public static int vPrevHeight = 360;
+    public static int vPortraitWidth = 360;
     public static int vPortraitHeight = 640;
     public static int vLandscapeWidth = 640;
-    public static int vLandscapeHeight = 384;
-    public static int vOutWidth = 384;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
+    public static int vLandscapeHeight = 360;
+    public static int vOutWidth = 360;   // Note: the stride of resolution must be set as 16x for hard encoding with some chip like MTK
     public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static int vBitrate = 1200 * 1024;  // 1200 kbps
     public static final int VFPS = 24;
     public static final int VGOP = 48;
     public static final int ASAMPLERATE = 44100;
     public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
-    public static final int ABITRATE = 128 * 1024;  // 128 kbps
+    public static final int ABITRATE = 64 * 1024;  // 64 kbps
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
@@ -341,26 +341,31 @@ public class SrsEncoder {
     }
 
     public void onGetPcmFrame(byte[] data, int size) {
-        ByteBuffer[] inBuffers = aencoder.getInputBuffers();
-        ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+            ByteBuffer[] inBuffers = aencoder.getInputBuffers();
+            ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
 
-        int inBufferIndex = aencoder.dequeueInputBuffer(-1);
-        if (inBufferIndex >= 0) {
-            ByteBuffer bb = inBuffers[inBufferIndex];
-            bb.clear();
-            bb.put(data, 0, size);
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
-        }
+            int inBufferIndex = aencoder.dequeueInputBuffer(-1);
+            if (inBufferIndex >= 0) {
+                ByteBuffer bb = inBuffers[inBufferIndex];
+                bb.clear();
+                bb.put(data, 0, size);
+                long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+                aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
+            }
 
-        for (; ; ) {
-            int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
-            if (outBufferIndex >= 0) {
-                ByteBuffer bb = outBuffers[outBufferIndex];
-                onEncodedAacFrame(bb, aebi);
-                aencoder.releaseOutputBuffer(outBufferIndex, false);
-            } else {
-                break;
+            for (; ; ) {
+                int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
+                if (outBufferIndex >= 0) {
+                    ByteBuffer bb = outBuffers[outBufferIndex];
+                    onEncodedAacFrame(bb, aebi);
+                    aencoder.releaseOutputBuffer(outBufferIndex, false);
+                } else {
+                    break;
+                }
             }
         }
     }

@@ -70,8 +70,8 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
-        mPublisher.setPreviewResolution(1280, 720);
-        mPublisher.setOutputResolution(384, 640);
+        mPublisher.setPreviewResolution(640, 360);
+        mPublisher.setOutputResolution(360, 640);
         mPublisher.setVideoSmoothMode();
         mPublisher.startCamera();
 

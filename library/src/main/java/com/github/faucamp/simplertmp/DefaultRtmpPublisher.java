@@ -66,5 +66,4 @@ public class DefaultRtmpPublisher implements RtmpPublisher {
     public void setVideoResolution(int width, int height) {
         rtmpConnection.setVideoResolution(width, height);
     }
-
 }

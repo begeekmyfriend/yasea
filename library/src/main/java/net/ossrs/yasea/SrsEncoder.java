@@ -6,7 +6,6 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
-import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.media.MediaRecorder;
 import android.util.Log;
@@ -48,6 +47,7 @@ public class SrsEncoder {
     private MediaCodec vencoder;
     private MediaCodec aencoder;
     private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
+    private MediaCodec.BufferInfo rebi = new MediaCodec.BufferInfo();
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
     private boolean networkWeakTriggered = false;
@@ -282,14 +282,16 @@ public class SrsEncoder {
         setEncoderResolution(vOutWidth, vOutHeight);
     }
 
-    private void onProcessedYuvFrame(byte[] yuvFrame, long pts) {
+    private void encodeYuvFrame(byte[] yuvFrame, long pts) {
         int inBufferIndex = vencoder.dequeueInputBuffer(-1);
         if (inBufferIndex >= 0) {
             ByteBuffer bb = vencoder.getInputBuffer(inBufferIndex);
             bb.put(yuvFrame, 0, yuvFrame.length);
             vencoder.queueInputBuffer(inBufferIndex, 0, yuvFrame.length, pts, 0);
         }
+    }
 
+    public void muxAnnexbFrames() {
         for (; ; ) {
             int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
             if (outBufferIndex >= 0) {
@@ -300,6 +302,18 @@ public class SrsEncoder {
                 break;
             }
         }
+    }
+
+    public byte[] getEncodedAnnexbFrame() {
+        int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
+        if (outBufferIndex >= 0) {
+            ByteBuffer bb = vencoder.getOutputBuffer(outBufferIndex);
+            byte[] frame = new byte[vebi.size];
+            bb.get(frame, 0, vebi.size);
+            vencoder.releaseOutputBuffer(outBufferIndex, false);
+            return frame;
+        }
+        return null;
     }
 
     private void onSoftEncodedData(byte[] es, long pts, boolean isKeyFrame) {
@@ -314,7 +328,21 @@ public class SrsEncoder {
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
 //        mp4Muxer.writeSampleData(videoMp4Track, es.duplicate(), bi);
-        flvMuxer.writeSampleData(videoFlvTrack, es, bi);
+
+        // Check video frame cache number to judge the networking situation.
+        // Just cache GOP / FPS seconds data according to latency.
+        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+            flvMuxer.writeSampleData(videoFlvTrack, es, bi);
+
+            if (networkWeakTriggered) {
+                networkWeakTriggered = false;
+                mHandler.notifyNetworkResume();
+            }
+        } else {
+            mHandler.notifyNetworkWeak();
+            networkWeakTriggered = true;
+        }
     }
 
     // when got encoded aac raw stream.
@@ -345,45 +373,29 @@ public class SrsEncoder {
     }
 
     public void onGetRgbaFrame(byte[] data, int width, int height) {
-        onGetYuvFrame(RGBAtoYUV(data, width, height));
+        encodeYuvFrame(RGBAtoYUV(data, width, height));
     }
 
     public void onGetYuvNV21Frame(byte[] data, int width, int height, Rect boundingBox) {
-        onGetYuvFrame(NV21toYUVscaled(data, width, height, boundingBox));
+        encodeYuvFrame(NV21toYUVscaled(data, width, height, boundingBox));
     }
 
     public void onGetArgbFrame(int[] data, int width, int height) {
-        onGetYuvFrame(ARGBtoYUV(data, width, height));
+        encodeYuvFrame(ARGBtoYUV(data, width, height));
     }
 
     public void onGetArgbFrame(int[] data, int width, int height, Rect boundingBox) {
-        onGetYuvFrame(ARGBtoYUVscaled(data, width, height, boundingBox));
+        encodeYuvFrame(ARGBtoYUVscaled(data, width, height, boundingBox));
     }
 
-    public void onGetYuvFrame(byte[] frame) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                throw new UnsupportedOperationException("Not implemented");
-                //onGetRgbaSoftFrame(data, width, height, pts);
-            } else {
-                if (frame != null) {
-                    onProcessedYuvFrame(frame, pts);
-                } else {
-                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
-                }
-            }
+    private void encodeYuvFrame(byte[] frame) {
+        long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+        encodeYuvFrame(frame, pts);
+    }
 
-            if (networkWeakTriggered) {
-                networkWeakTriggered = false;
-                mHandler.notifyNetworkResume();
-            }
-        } else {
-            mHandler.notifyNetworkWeak();
-            networkWeakTriggered = true;
+    public void onGetH264Frame(byte[] frame) {
+        if (frame!=null) {
+            onSoftEncodedData(frame, System.nanoTime() / 1000 - mPresentTimeUs, false);
         }
     }
 

@@ -42,6 +42,7 @@ public class SrsFlvMuxer {
     private static final int VIDEO_TRACK = 100;
     private static final int AUDIO_TRACK = 101;
     private static final String TAG = "SrsFlvMuxer";
+    private volatile boolean syncKeyFrame = false;
 
     /**
      * constructor.
@@ -70,6 +71,10 @@ public class SrsFlvMuxer {
         if (publisher != null) {
             publisher.setVideoResolution(width, height);
         }
+    }
+
+    public void setSyncKeyFrame() {
+        syncKeyFrame = true;
     }
 
     /**
@@ -121,8 +126,12 @@ public class SrsFlvMuxer {
             if (frame.isKeyFrame()) {
                 Log.i(TAG, String.format("worker: send frame type=%d, dts=%d, size=%dB",
                         frame.type, frame.dts, frame.flvTag.array().length));
+
+                if (syncKeyFrame) syncKeyFrame = false;
+                publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
+            } else if (!syncKeyFrame) {
+                publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
             }
-            publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
             mVideoAllocator.release(frame.flvTag);
         } else if (frame.isAudio()) {
             publisher.publishAudioData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
@@ -837,7 +846,7 @@ public class SrsFlvMuxer {
             frame[offset + 6] |= 0x0;
         }
 
-        public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
+        private void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
             int pts = (int) (bi.presentationTimeUs / 1000);
             int dts = pts;
 

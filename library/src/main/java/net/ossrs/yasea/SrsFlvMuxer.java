@@ -343,13 +343,12 @@ public class SrsFlvMuxer {
      */
     private class SrsCodecAudioSampleRate
     {
-        // set to the max value to reserved, for array map.
-        public final static int Reserved                 = 4;
-
-        public final static int R5512                     = 0;
-        public final static int R11025                    = 1;
-        public final static int R22050                    = 2;
-        public final static int R44100                    = 3;
+        public final static int R5512                     = 5512;
+        public final static int R11025                    = 11025;
+        public final static int R22050                    = 22050;
+        public final static int R44100                    = 44100;
+        public final static int R32000                    = 32000;
+        public final static int R16000                    = 16000;
     }
 
     /**
@@ -749,6 +748,10 @@ public class SrsFlvMuxer {
                     samplingFrequencyIndex = 0x07;
                 } else if (asample_rate == SrsCodecAudioSampleRate.R11025) {
                     samplingFrequencyIndex = 0x0a;
+                } else if (asample_rate == SrsCodecAudioSampleRate.R32000) {
+                    samplingFrequencyIndex = 0x05;
+                } else if (asample_rate == SrsCodecAudioSampleRate.R16000) {
+                    samplingFrequencyIndex = 0x08;
                 }
                 ch |= (samplingFrequencyIndex >> 1) & 0x07;
                 audio_tag.put(ch, 2);
@@ -787,11 +790,13 @@ public class SrsFlvMuxer {
                 sound_type = 1; // 1 = Stereo sound
             }
             byte sound_size = 1; // 1 = 16-bit samples
-            byte sound_rate = 3; // 44100, 22050, 11025
+            byte sound_rate = 3; // 44100, 22050, 11025, 5512
             if (asample_rate == 22050) {
                 sound_rate = 2;
             } else if (asample_rate == 11025) {
                 sound_rate = 1;
+            } else if (asample_rate == 5512) {
+                sound_rate = 0;
             }
 
             // for audio frame, there is 1 or 2 bytes header:

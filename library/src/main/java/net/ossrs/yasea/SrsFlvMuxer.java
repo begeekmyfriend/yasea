@@ -73,10 +73,6 @@ public class SrsFlvMuxer {
         }
     }
 
-    public void setSyncKeyFrame() {
-        syncKeyFrame = true;
-    }
-
     /**
      * Adds a track with the specified format.
      *
@@ -126,12 +122,8 @@ public class SrsFlvMuxer {
             if (frame.isKeyFrame()) {
                 Log.i(TAG, String.format("worker: send frame type=%d, dts=%d, size=%dB",
                         frame.type, frame.dts, frame.flvTag.array().length));
-
-                if (syncKeyFrame) syncKeyFrame = false;
-                publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
-            } else if (!syncKeyFrame) {
-                publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
             }
+            publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
             mVideoAllocator.release(frame.flvTag);
         } else if (frame.isAudio()) {
             publisher.publishAudioData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);

@@ -127,7 +127,7 @@ public class SrsEncoder {
             videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
             videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
             videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
-            videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
+            videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 0);
             vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 
             // add the video tracker to muxer.
@@ -292,15 +292,11 @@ public class SrsEncoder {
     }
 
     public void muxAnnexbFrames() {
-        for (; ; ) {
-            int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
-            if (outBufferIndex >= 0) {
-                ByteBuffer bb = vencoder.getOutputBuffer(outBufferIndex);
-                onEncodedAnnexbFrame(bb, vebi);
-                vencoder.releaseOutputBuffer(outBufferIndex, false);
-            } else {
-                break;
-            }
+        int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
+        if (outBufferIndex >= 0) {
+            ByteBuffer bb = vencoder.getOutputBuffer(outBufferIndex);
+            onEncodedAnnexbFrame(bb, vebi);
+            vencoder.releaseOutputBuffer(outBufferIndex, false);
         }
     }
 
@@ -388,7 +384,7 @@ public class SrsEncoder {
         encodeYuvFrame(ARGBtoYUVscaled(data, width, height, boundingBox));
     }
 
-    private void encodeYuvFrame(byte[] frame) {
+    public void encodeYuvFrame(byte[] frame) {
         long pts = System.nanoTime() / 1000 - mPresentTimeUs;
         encodeYuvFrame(frame, pts);
     }

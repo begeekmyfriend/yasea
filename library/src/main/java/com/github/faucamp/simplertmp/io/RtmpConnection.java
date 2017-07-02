@@ -562,7 +562,7 @@ public class RtmpConnection implements RtmpPublisher {
                             handleRxInvoke((Command) rtmpPacket);
                             break;
                         default:
-                            Log.w(TAG, "handleRxPacketLoop(): Not handling unimplemented/unknown packet of type: " + rtmpPacket.getHeader().getMessageType());
+                            Log.d(TAG, "handleRxPacketLoop(): Not handling unimplemented/unknown packet of type: " + rtmpPacket.getHeader().getMessageType());
                             break;
                     }
                 }

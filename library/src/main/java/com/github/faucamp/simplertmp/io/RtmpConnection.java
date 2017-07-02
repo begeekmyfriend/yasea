@@ -135,7 +135,6 @@ public class RtmpConnection implements RtmpPublisher {
             handshake(inputStream, outputStream);
             Log.d(TAG, "connect(): handshake done");
         } catch (IOException e) {
-            e.printStackTrace();
             mHandler.notifyRtmpIOException(e);
             return false;
         }
@@ -347,7 +346,7 @@ public class RtmpConnection implements RtmpPublisher {
                 // It will raise SocketException in sendRtmpPacket
                 socket.shutdownOutput();
             } catch (IOException ioe) {
-                ioe.printStackTrace();
+                // Ignore illegal state
             }
 
             // shutdown rxPacketHandler

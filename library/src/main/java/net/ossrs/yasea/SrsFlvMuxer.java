@@ -119,10 +119,10 @@ public class SrsFlvMuxer {
         }
 
         if (frame.isVideo()) {
-            if (frame.isKeyFrame()) {
-                Log.i(TAG, String.format("worker: send frame type=%d, dts=%d, size=%dB",
-                        frame.type, frame.dts, frame.flvTag.array().length));
-            }
+//            if (frame.isKeyFrame()) {
+//                Log.i(TAG, String.format("worker: send frame type=%d, dts=%d, size=%dB",
+//                        frame.type, frame.dts, frame.flvTag.array().length));
+//            }
             publisher.publishVideoData(frame.flvTag.array(), frame.flvTag.size(), frame.dts);
             mVideoAllocator.release(frame.flvTag);
         } else if (frame.isAudio()) {

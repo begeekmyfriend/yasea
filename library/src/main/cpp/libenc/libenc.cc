@@ -292,6 +292,8 @@ static jboolean libenc_openSoftEncoder(JNIEnv* env, jobject thiz) {
     x264_param_default_preset(&x264_ctx.params, x264_ctx.preset, "zerolatency");
 
     x264_ctx.params.b_repeat_headers = 0;
+    // for iOS HW decoding
+    x264_ctx.params.b_sliced_threads = 0;
     x264_ctx.global_nal_header = true;
 
     // resolution

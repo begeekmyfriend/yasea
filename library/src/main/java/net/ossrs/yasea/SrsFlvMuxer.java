@@ -456,6 +456,11 @@ public class SrsFlvMuxer {
         private SrsFlvFrameBytes sps_bb = new SrsFlvFrameBytes();
         private SrsFlvFrameBytes pps_hdr = new SrsFlvFrameBytes();
         private SrsFlvFrameBytes pps_bb = new SrsFlvFrameBytes();
+        private boolean sps_pps_found = false;
+
+        public void reset() {
+            sps_pps_found = false;
+        }
 
         public boolean isSps(SrsFlvFrameBytes frame) {
             return frame.size >= 1 && (frame.data.get(0) & 0x1f) == SrsAvcNaluType.SPS;
@@ -569,6 +574,8 @@ public class SrsFlvMuxer {
             pps_bb.size = pps.array().length;
             pps_bb.data = pps.duplicate();
             frames.add(pps_bb);
+
+            sps_pps_found = true;
         }
 
         public SrsAllocator.Allocation muxFlvTag(ArrayList<SrsFlvFrameBytes> frames, int frame_type,
@@ -645,16 +652,23 @@ public class SrsFlvMuxer {
             // find out the frame size.
             SrsFlvFrameBytes tbb = new SrsFlvFrameBytes();
             tbb.data = bb.slice();
-            int pos = bb.position();
-            while (bb.position() < bi.size) {
-                SrsAnnexbSearch bsc = searchAnnexb(bb, bi);
-                if (bsc.match) {
-                    break;
-                }
-                bb.get();
-            }
 
-            tbb.size = bb.position() - pos;
+            // Assume there always be single slice for each video frame when sps and pps are found.
+            // That would promote efficiency on some low-end devices.
+            if (sps_pps_found) {
+                tbb.size = bi.size - bb.position();
+                bb.position(bb.limit());
+            } else {
+                int pos = bb.position();
+                while (bb.position() < bi.size) {
+                    SrsAnnexbSearch bsc = searchAnnexb(bb, bi);
+                    if (bsc.match) {
+                        break;
+                    }
+                    bb.get();
+                }
+                tbb.size = bi.size - pos;
+            }
             return tbb;
         }
     }
@@ -705,6 +719,7 @@ public class SrsFlvMuxer {
             h264_pps_changed = false;
             h264_sps_pps_sent = false;
             aac_specific_config_got = false;
+            avc.reset();
         }
 
         public void setVideoTrack(MediaFormat format) {
@@ -851,7 +866,7 @@ public class SrsFlvMuxer {
                 // 5bits, 7.3.1 NAL unit syntax,
                 // H.264-AVC-ISO_IEC_14496-10.pdf, page 44.
                 // 7: SPS, 8: PPS, 5: I Frame, 1: P Frame
-                int nal_unit_type = (int)(frame.data.get(0) & 0x1f);
+                int nal_unit_type = frame.data.get(0) & 0x1f;
                 if (nal_unit_type == SrsAvcNaluType.SPS || nal_unit_type == SrsAvcNaluType.PPS) {
                     Log.i(TAG, String.format("annexb demux %dB, pts=%d, frame=%dB, nalu=%d",
                         bi.size, pts, frame.size, nal_unit_type));

@@ -634,38 +634,27 @@ public class SrsFlvMuxer {
         }
 
         public SrsFlvFrameBytes demuxAnnexb(ByteBuffer bb, MediaCodec.BufferInfo bi) {
-            SrsFlvFrameBytes tbb = new SrsFlvFrameBytes();
-
-            while (bb.position() < bi.size) {
-                // each frame must prefixed by annexb format.
-                // about annexb, @see H.264-AVC-ISO_IEC_14496-10.pdf, page 211.
-                SrsAnnexbSearch tbbsc = searchAnnexb(bb, bi);
-                if (!tbbsc.match || tbbsc.nb_start_code < 3) {
-                    Log.e(TAG, "annexb not match.");
-                    mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException(
-                        String.format("annexb not match for %dB, pos=%d", bi.size, bb.position())));
-                }
-
-                // the start codes.
-                for (int i = 0; i < tbbsc.nb_start_code; i++) {
-                    bb.get();
-                }
-
-                // find out the frame size.
-                tbb.data = bb.slice();
-                int pos = bb.position();
-                while (bb.position() < bi.size) {
-                    SrsAnnexbSearch bsc = searchAnnexb(bb, bi);
-                    if (bsc.match) {
-                        break;
-                    }
-                    bb.get();
-                }
-
-                tbb.size = bb.position() - pos;
-                break;
+            // each frame must prefixed by annexb format.
+            // about annexb, @see H.264-AVC-ISO_IEC_14496-10.pdf, page 211.
+            SrsAnnexbSearch tbbsc = searchAnnexb(bb, bi);
+            // the start codes.
+            for (int i = 0; i < tbbsc.nb_start_code; i++) {
+                bb.get();
             }
 
+            // find out the frame size.
+            SrsFlvFrameBytes tbb = new SrsFlvFrameBytes();
+            tbb.data = bb.slice();
+            int pos = bb.position();
+            while (bb.position() < bi.size) {
+                SrsAnnexbSearch bsc = searchAnnexb(bb, bi);
+                if (bsc.match) {
+                    break;
+                }
+                bb.get();
+            }
+
+            tbb.size = bb.position() - pos;
             return tbb;
         }
     }

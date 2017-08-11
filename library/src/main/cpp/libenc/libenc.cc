@@ -1,8 +1,9 @@
 #include <jni.h>
-
-#include <android/log.h>
+#include <string.h>
 #include <libyuv.h>
 #include <x264.h>
+
+#include <android/log.h>
 
 #define LIBENC_LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, "libenc", __VA_ARGS__))
 #define LIBENC_LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO , "libenc", __VA_ARGS__))
@@ -515,6 +516,8 @@ static jboolean libenc_openSoftEncoder(JNIEnv *env, jobject thiz) {
     x264_param_default_preset(&x264_ctx.params, x264_ctx.preset, "zerolatency");
 
     x264_ctx.params.b_repeat_headers = 0;
+    // for iOS HW decoding
+    x264_ctx.params.b_sliced_threads = 0;
     x264_ctx.global_nal_header = true;
 
     // resolution

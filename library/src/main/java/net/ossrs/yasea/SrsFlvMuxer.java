@@ -456,11 +456,6 @@ public class SrsFlvMuxer {
         private SrsFlvFrameBytes sps_bb = new SrsFlvFrameBytes();
         private SrsFlvFrameBytes pps_hdr = new SrsFlvFrameBytes();
         private SrsFlvFrameBytes pps_bb = new SrsFlvFrameBytes();
-        private boolean sps_pps_found = false;
-
-        public void reset() {
-            sps_pps_found = false;
-        }
 
         public boolean isSps(SrsFlvFrameBytes frame) {
             return frame.size >= 1 && (frame.data.get(0) & 0x1f) == SrsAvcNaluType.SPS;
@@ -574,8 +569,6 @@ public class SrsFlvMuxer {
             pps_bb.size = pps.array().length;
             pps_bb.data = pps.duplicate();
             frames.add(pps_bb);
-
-            sps_pps_found = true;
         }
 
         public SrsAllocator.Allocation muxFlvTag(ArrayList<SrsFlvFrameBytes> frames, int frame_type,
@@ -661,6 +654,11 @@ public class SrsFlvMuxer {
                     Log.e(TAG, "annexb not match.");
                 }
 
+                // the start codes.
+                for (int i = 0; i < tbbsc.nb_start_code; i++) {
+                    bb.get();
+                }
+
                 // find out the frame size.
                 tbb.data = bb.slice();
                 tbb.size = bi.size - bb.position();
@@ -716,7 +714,6 @@ public class SrsFlvMuxer {
             h264_pps_changed = false;
             h264_sps_pps_sent = false;
             aac_specific_config_got = false;
-            avc.reset();
         }
 
         public void setVideoTrack(MediaFormat format) {
@@ -851,19 +848,21 @@ public class SrsFlvMuxer {
         }
 
         public void writeVideoSample(final ByteBuffer bb, MediaCodec.BufferInfo bi) {
-            if (bi.size < 4) {
-                return;
-            }
+            if (bi.size < 4) return;
 
             int pts = (int) (bi.presentationTimeUs / 1000);
             int dts = pts;
             int type = SrsCodecVideoAVCFrame.InterFrame;
             SrsFlvFrameBytes frame = avc.demuxAnnexb(bb, bi, true);
-            int nal_unit_type = frame.data.get(0) & 0x1f;
+            int nal_unit_type = (int)(frame.data.get(0) & 0x1f);
+            if (nal_unit_type == SrsAvcNaluType.NonIDR)
+            {
 
-            if (nal_unit_type == SrsAvcNaluType.IDR) {
+            } else if (nal_unit_type == SrsAvcNaluType.IDR)
+            {
                 type = SrsCodecVideoAVCFrame.KeyFrame;
-            } else if (nal_unit_type == SrsAvcNaluType.SPS || nal_unit_type == SrsAvcNaluType.PPS) {
+            } else if (nal_unit_type == SrsAvcNaluType.SPS || nal_unit_type == SrsAvcNaluType.PPS)
+            {
                 if (!frame.data.equals(h264_sps)) {
                     byte[] sps = new byte[frame.size];
                     frame.data.get(sps);
@@ -880,9 +879,8 @@ public class SrsFlvMuxer {
                     writeH264SpsPps(dts, pts);
                 }
                 return;
-            } else if (nal_unit_type != SrsAvcNaluType.NonIDR) {
+            } else
                 return;
-            }
 
             ipbs.add(avc.muxNaluHeader(frame));
             ipbs.add(frame);

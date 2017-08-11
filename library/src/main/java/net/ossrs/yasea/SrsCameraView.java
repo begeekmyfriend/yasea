@@ -191,6 +191,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     public void setCameraId(int id) {
+        stopTorch();
         mCamId = id;
         setPreviewOrientation(mPreviewOrientation);
     }
@@ -320,6 +321,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public void stopCamera() {
         disableEncoding();
 
+        stopTorch();
         if (mCamera != null) {
             mCamera.stopPreview();
             mCamera.release();
@@ -386,6 +388,29 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         }
         return closestRange;
+    }
+
+    public boolean startTorch() {
+        if (mCamera != null) {
+            Camera.Parameters params = mCamera.getParameters();
+            List<String> supportedFlashModes = params.getSupportedFlashModes();
+            if (supportedFlashModes != null && !supportedFlashModes.isEmpty()) {
+                if (supportedFlashModes.contains(Camera.Parameters.FLASH_MODE_TORCH)) {
+                    params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+                    mCamera.setParameters(params);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void stopTorch() {
+        if (mCamera != null) {
+            Camera.Parameters params = mCamera.getParameters();
+            params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+            mCamera.setParameters(params);
+        }
     }
 
     public interface PreviewCallback {

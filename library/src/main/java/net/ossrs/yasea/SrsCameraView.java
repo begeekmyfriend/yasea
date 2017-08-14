@@ -10,7 +10,9 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.io.IOException;
+import java.nio.IntBuffer;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by leo.ma on 2016/9/13.
@@ -27,6 +29,10 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     private int mPreviewHeight;
     private boolean mIsEncoding;
     private boolean mIsTorchOn = false;
+
+    private Thread worker;
+    private final Object writeLock = new Object();
+    private ConcurrentLinkedQueue<byte []> mByteBufferCache = new ConcurrentLinkedQueue<>();
 
     public interface PreviewCallback {
         void onGetYuvFrame(byte[] data);
@@ -92,11 +98,43 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void enableEncoding() {
+        worker = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (!Thread.interrupted()) {
+                    while (!mByteBufferCache.isEmpty()) {
+                        mPrevCb.onGetYuvFrame(mByteBufferCache.poll());
+                    }
+                    // Waiting for next frame
+                    synchronized (writeLock) {
+                        try {
+                            // isEmpty() may take some time, so we set timeout to detect next frame
+                            writeLock.wait(500);
+                        } catch (InterruptedException ie) {
+                            worker.interrupt();
+                        }
+                    }
+                }
+            }
+        });
+        worker.start();
         mIsEncoding = true;
     }
 
     public void disableEncoding() {
         mIsEncoding = false;
+        mByteBufferCache.clear();
+
+        if (worker != null) {
+            worker.interrupt();
+            try {
+                worker.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                worker.interrupt();
+            }
+            worker = null;
+        }
     }
 
     public boolean startCamera() {
@@ -230,7 +268,10 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
         if (mIsEncoding) {
-            mPrevCb.onGetYuvFrame(data);
+            mByteBufferCache.add(data);
+            synchronized (writeLock) {
+                writeLock.notifyAll();
+            }
             camera.addCallbackBuffer(mYuvPreviewFrame);
         }
     }

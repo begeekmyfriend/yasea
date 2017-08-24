@@ -620,6 +620,10 @@ public class SrsFlvMuxer {
                     // match N[00] 00 00 00 01, where N>=0
                     annexb.match = true;
                     annexb.nb_start_code = 4;
+                }else if (bb.get(0) == 0x00 && bb.get(1) == 0x00 && bb.get(2) == 0x01){
+                    // match N[00] 00 00 01, where N>=0
+                    annexb.match = true;
+                    annexb.nb_start_code = 3;
                 }
             }
             return annexb;
@@ -628,13 +632,19 @@ public class SrsFlvMuxer {
         private SrsAnnexbSearch searchAnnexb(ByteBuffer bb, MediaCodec.BufferInfo bi) {
             annexb.match = false;
             annexb.nb_start_code = 0;
-            for (int i = bb.position(); i < bi.size - 3; i++) {
+            for (int i = bb.position(); i < bi.size - 4; i++) {
                 // not match.
-                if (bb.get(i) != 0x00 || bb.get(i + 1) != 0x00 || bb.get(i + 2) != 0x00) {
-                    break;
+                if (bb.get(i) != 0x00 || bb.get(i + 1) != 0x00) {
+                    continue;
                 }
                 // match N[00] 00 00 01, where N>=0
-                if (bb.get(i + 3) == 0x01) {
+                if (bb.get(i + 2) == 0x01) {
+                    annexb.match = true;
+                    annexb.nb_start_code = i + 3 - bb.position();
+                    break;
+                }
+                // match N[00] 00 00 00 01, where N>=0
+                if (bb.get(i + 2) == 0x00 && bb.get(i + 3) == 0x01) {
                     annexb.match = true;
                     annexb.nb_start_code = i + 4 - bb.position();
                     break;
@@ -645,23 +655,23 @@ public class SrsFlvMuxer {
 
         public SrsFlvFrameBytes demuxAnnexb(ByteBuffer bb, MediaCodec.BufferInfo bi, boolean isOnlyChkHeader) {
             SrsFlvFrameBytes tbb = new SrsFlvFrameBytes();
-            if (bb.position() < bi.size) {
+            if (bb.position() < bi.size - 4) {
                 // each frame must prefixed by annexb format.
                 // about annexb, @see H.264-AVC-ISO_IEC_14496-10.pdf, page 211.
                 SrsAnnexbSearch tbbsc = isOnlyChkHeader ? searchStartcode(bb, bi) : searchAnnexb(bb, bi);
                 // tbbsc.nb_start_code always 4 , after 00 00 00 01
                 if (!tbbsc.match || tbbsc.nb_start_code < 3) {
                     Log.e(TAG, "annexb not match.");
-                }
+                } else {
+                    // the start codes.
+                    for (int i = 0; i < tbbsc.nb_start_code; i++) {
+                        bb.get();
+                    }
 
-                // the start codes.
-                for (int i = 0; i < tbbsc.nb_start_code; i++) {
-                    bb.get();
+                    // find out the frame size.
+                    tbb.data = bb.slice();
+                    tbb.size = bi.size - bb.position();
                 }
-
-                // find out the frame size.
-                tbb.data = bb.slice();
-                tbb.size = bi.size - bb.position();
             }
             return tbb;
         }
@@ -857,17 +867,25 @@ public class SrsFlvMuxer {
             if (nal_unit_type == SrsAvcNaluType.IDR) {
                 type = SrsCodecVideoAVCFrame.KeyFrame;
             } else if (nal_unit_type == SrsAvcNaluType.SPS || nal_unit_type == SrsAvcNaluType.PPS) {
+                SrsFlvFrameBytes frame_pps = avc.demuxAnnexb(bb, bi, false);
+                frame.size = frame.size - frame_pps.size - 4;  // 4 ---> 00 00 00 01 pps
                 if (!frame.data.equals(h264_sps)) {
                     byte[] sps = new byte[frame.size];
                     frame.data.get(sps);
                     h264_sps_changed = true;
                     h264_sps = ByteBuffer.wrap(sps);
-                    writeH264SpsPps(dts, pts);
+//                    writeH264SpsPps(dts, pts);
                 }
-                frame = avc.demuxAnnexb(bb, bi, false);
-                if (!frame.data.equals(h264_pps)) {
-                    byte[] pps = new byte[frame.size];
-                    frame.data.get(pps);
+
+                SrsFlvFrameBytes frame_sei = avc.demuxAnnexb(bb, bi, false);
+                if (frame_sei.size > 0){
+                    if(SrsAvcNaluType.SEI == (int)(frame_sei.data.get(0) & 0x1f))
+                        frame_pps.size = frame_pps.size - frame_sei.size - 3;// 3 ---> 00 00 01 SEI
+                }
+
+                if (!frame_pps.data.equals(h264_pps)) {
+                    byte[] pps = new byte[frame_pps.size];
+                    frame_pps.data.get(pps);
                     h264_pps_changed = true;
                     h264_pps = ByteBuffer.wrap(pps);
                     writeH264SpsPps(dts, pts);
@@ -879,6 +897,8 @@ public class SrsFlvMuxer {
 
             ipbs.add(avc.muxNaluHeader(frame));
             ipbs.add(frame);
+
+            //writeH264SpsPps(dts, pts);
             writeH264IpbFrame(ipbs, type, dts, pts);
             ipbs.clear();
         }

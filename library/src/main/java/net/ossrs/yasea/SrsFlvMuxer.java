@@ -631,7 +631,7 @@ public class SrsFlvMuxer {
             for (int i = bb.position(); i < bi.size - 3; i++) {
                 // not match.
                 if (bb.get(i) != 0x00 || bb.get(i + 1) != 0x00 || bb.get(i + 2) != 0x00) {
-                    break;
+                    continue;
                 }
                 // match N[00] 00 00 01, where N>=0
                 if (bb.get(i + 3) == 0x01) {
@@ -663,7 +663,6 @@ public class SrsFlvMuxer {
                 tbb.data = bb.slice();
                 tbb.size = bi.size - bb.position();
             }
-          
             return tbb;
         }
     }

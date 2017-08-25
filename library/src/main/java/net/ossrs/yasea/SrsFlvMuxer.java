@@ -9,6 +9,7 @@ import com.github.faucamp.simplertmp.RtmpHandler;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -723,6 +724,15 @@ public class SrsFlvMuxer {
             h264_pps_changed = false;
             h264_sps_pps_sent = false;
             aac_specific_config_got = false;
+            if (null != h264_sps){
+                Arrays.fill(h264_sps.array(),(byte) 0x00);
+                h264_sps.clear();
+            }
+            if (null!=h264_pps) {
+                Arrays.fill(h264_pps.array(),(byte) 0x00);
+                h264_pps.clear();
+            }
+
         }
 
         public void setVideoTrack(MediaFormat format) {

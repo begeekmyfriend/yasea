@@ -24,7 +24,7 @@ public class SrsFlvMuxer {
     private static final int VIDEO_ALLOC_SIZE = 128 * 1024;
     private static final int AUDIO_ALLOC_SIZE = 4 * 1024;
 
-    private volatile boolean connected = false;
+    private volatile boolean started = false;
     private DefaultRtmpPublisher publisher;
 
     private Thread worker;
@@ -95,14 +95,13 @@ public class SrsFlvMuxer {
     }
 
     private boolean connect(String url) {
-        if (!connected) {
-            Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
-            if (publisher.connect(url)) {
-                connected = publisher.publish("live");
-            }
-            mVideoSequenceHeader = null;
-            mAudioSequenceHeader = null;
+        boolean connected = false;
+        Log.i(TAG, String.format("worker: connecting to RTMP server by url=%s\n", url));
+        if (publisher.connect(url)) {
+            connected = publisher.publish("live");
         }
+        mVideoSequenceHeader = null;
+        mAudioSequenceHeader = null;
         return connected;
     }
 
@@ -128,6 +127,7 @@ public class SrsFlvMuxer {
      * start to the remote server for remux.
      */
     public void start(final String rtmpUrl) {
+        started = true;
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -173,7 +173,7 @@ public class SrsFlvMuxer {
      * stop the muxer, disconnect RTMP connection.
      */
     public void stop() {
-        connected = false;
+        started = false;
         mFlvTagCache.clear();
         if (worker != null) {
             worker.interrupt();
@@ -980,7 +980,7 @@ public class SrsFlvMuxer {
         }
 
         private void flvTagCacheAdd(SrsFlvFrame frame) {
-            if (connected) {
+            if (started) {
                 mFlvTagCache.add(frame);
                 if (frame.isVideo()) {
                     getVideoFrameCacheNumber().incrementAndGet();

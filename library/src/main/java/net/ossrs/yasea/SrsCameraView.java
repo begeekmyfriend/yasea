@@ -36,7 +36,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private int mSurfaceHeight;
     private int mPreviewWidth;
     private int mPreviewHeight;
-    private boolean mIsEncoding;
+    private volatile boolean mIsEncoding;
     private boolean mIsTorchOn = false;
     private float mInputAspectRatio;
     private float mOutputAspectRatio;

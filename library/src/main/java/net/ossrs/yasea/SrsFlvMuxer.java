@@ -187,7 +187,6 @@ public class SrsFlvMuxer {
         }
         flv.reset();
         needToFindKeyFrame = true;
-        disconnect();
         Log.i(TAG, "SrsFlvMuxer closed");
         // We should not block the main thread
         new Thread(new Runnable() {

@@ -156,7 +156,7 @@ static bool convert_to_i420_with_crop_scale(uint8_t *src_frame, jint src_width, 
         LIBENC_LOGE("ConvertToI420 failure");
         return false;
     }
-//need_flip ? -i420_rotated_frame.width : i420_rotated_frame.width
+
     ret = I420Scale(i420_rotated_frame.y, i420_rotated_frame.width,
                     i420_rotated_frame.u, i420_rotated_frame.width / 2,
                     i420_rotated_frame.v, i420_rotated_frame.width / 2,
@@ -176,7 +176,7 @@ static bool convert_to_i420_with_crop_scale(uint8_t *src_frame, jint src_width, 
 }
 
 static void libenc_setEncoderBitrate(JNIEnv *env, jobject thiz, jint bitrate) {
-    x264_ctx.bitrate = bitrate / 1000;  // kbps
+    x264_ctx.bitrate = bitrate / 1024;  // kbps
 }
 
 static void libenc_setEncoderFps(JNIEnv *env, jobject thiz, jint fps) {

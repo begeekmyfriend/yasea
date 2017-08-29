@@ -26,7 +26,6 @@ public class SrsFlvMuxer {
 
     private volatile boolean connected = false;
     private DefaultRtmpPublisher publisher;
-    private RtmpHandler mHandler;
 
     private Thread worker;
     private final Object txFrameLock = new Object();
@@ -48,7 +47,6 @@ public class SrsFlvMuxer {
      * @param handler the rtmp event handler.
      */
     public SrsFlvMuxer(RtmpHandler handler) {
-        mHandler = handler;
         publisher = new DefaultRtmpPublisher(handler);
     }
 
@@ -91,7 +89,6 @@ public class SrsFlvMuxer {
         } catch (IllegalStateException e) {
             // Ignore illegal state.
         }
-        connected = false;
         mVideoSequenceHeader = null;
         mAudioSequenceHeader = null;
         Log.i(TAG, "worker: disconnect ok.");
@@ -110,7 +107,7 @@ public class SrsFlvMuxer {
     }
 
     private void sendFlvTag(SrsFlvFrame frame) {
-        if (!connected || frame == null) {
+        if (frame == null) {
             return;
         }
 
@@ -176,6 +173,7 @@ public class SrsFlvMuxer {
      * stop the muxer, disconnect RTMP connection.
      */
     public void stop() {
+        connected = false;
         mFlvTagCache.clear();
         if (worker != null) {
             worker.interrupt();
@@ -190,7 +188,7 @@ public class SrsFlvMuxer {
         flv.reset();
         needToFindKeyFrame = true;
         Log.i(TAG, "SrsFlvMuxer closed");
-
+        // We should not block the main thread
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -982,9 +980,11 @@ public class SrsFlvMuxer {
         }
 
         private void flvTagCacheAdd(SrsFlvFrame frame) {
-            mFlvTagCache.add(frame);
-            if (frame.isVideo()) {
-                getVideoFrameCacheNumber().incrementAndGet();
+            if (connected) {
+                mFlvTagCache.add(frame);
+                if (frame.isVideo()) {
+                    getVideoFrameCacheNumber().incrementAndGet();
+                }
             }
             synchronized (txFrameLock) {
                 txFrameLock.notifyAll();

@@ -53,21 +53,32 @@ coeff_abs_level_transition: db 1, 2, 3, 3, 4, 5, 6, 7
 %endmacro
 
 cextern coeff_last4_mmx2
-cextern coeff_last4_mmx2_lzcnt
+cextern coeff_last4_lzcnt
+%if HIGH_BIT_DEPTH
+cextern coeff_last4_avx512
+%endif
 cextern coeff_last15_sse2
-cextern coeff_last15_sse2_lzcnt
+cextern coeff_last15_lzcnt
+cextern coeff_last15_avx512
 cextern coeff_last16_sse2
-cextern coeff_last16_sse2_lzcnt
+cextern coeff_last16_lzcnt
+cextern coeff_last16_avx512
 cextern coeff_last64_sse2
-cextern coeff_last64_sse2_lzcnt
-cextern coeff_last64_avx2_lzcnt
+cextern coeff_last64_lzcnt
+cextern coeff_last64_avx2
+cextern coeff_last64_avx512
 
 %ifdef PIC
 SECTION .data
 %endif
-coeff_last_sse2:       COEFF_LAST_TABLE       mmx2,       sse2,       sse2, 16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
-coeff_last_sse2_lzcnt: COEFF_LAST_TABLE mmx2_lzcnt, sse2_lzcnt, sse2_lzcnt, 16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
-coeff_last_avx2_lzcnt: COEFF_LAST_TABLE mmx2_lzcnt, avx2_lzcnt, sse2_lzcnt, 16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
+coeff_last_sse2:   COEFF_LAST_TABLE mmx2,   sse2,   sse2,   16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
+coeff_last_lzcnt:  COEFF_LAST_TABLE lzcnt,  lzcnt,  lzcnt,  16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
+coeff_last_avx2:   COEFF_LAST_TABLE lzcnt,  avx2,   lzcnt,  16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
+%if HIGH_BIT_DEPTH
+coeff_last_avx512: COEFF_LAST_TABLE avx512, avx512, avx512, 16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
+%else
+coeff_last_avx512: COEFF_LAST_TABLE lzcnt,  avx512, avx512, 16, 15, 16, 4, 15, 64, 16, 15, 16, 64, 16, 15, 16, 64
+%endif
 %endif
 
 SECTION .text
@@ -100,7 +111,7 @@ struc cb
     .start: pointer 1
     .p: pointer 1
     .end: pointer 1
-    align 16, resb 1
+    align 64, resb 1
     .bits_encoded: resd 1
     .state: resb 1024
 endstruc
@@ -352,25 +363,33 @@ CABAC bmi2
 %endmacro
 
 %macro ABS_DCTCOEFS 2
-%assign i 0
-%rep %2/16
 %if HIGH_BIT_DEPTH
-    ABSD   m0, [%1+ 0+i*64], m4
-    ABSD   m1, [%1+16+i*64], m5
-    ABSD   m2, [%1+32+i*64], m4
-    ABSD   m3, [%1+48+i*64], m5
-    mova [rsp+ 0+i*64], m0
-    mova [rsp+16+i*64], m1
-    mova [rsp+32+i*64], m2
-    mova [rsp+48+i*64], m3
+    %define %%abs ABSD
 %else
-    ABSW   m0, [%1+ 0+i*32], m2
-    ABSW   m1, [%1+16+i*32], m3
-    mova [rsp+ 0+i*32], m0
-    mova [rsp+16+i*32], m1
+    %define %%abs ABSW
 %endif
+%if mmsize == %2*SIZEOF_DCTCOEF
+    %%abs   m0, [%1], m1
+    mova [rsp], m0
+%elif mmsize == %2*SIZEOF_DCTCOEF/2
+    %%abs   m0, [%1+0*mmsize], m2
+    %%abs   m1, [%1+1*mmsize], m3
+    mova [rsp+0*mmsize], m0
+    mova [rsp+1*mmsize], m1
+%else
+%assign i 0
+%rep %2*SIZEOF_DCTCOEF/(4*mmsize)
+    %%abs  m0, [%1+(4*i+0)*mmsize], m4
+    %%abs  m1, [%1+(4*i+1)*mmsize], m5
+    %%abs  m2, [%1+(4*i+2)*mmsize], m4
+    %%abs  m3, [%1+(4*i+3)*mmsize], m5
+    mova [rsp+(4*i+0)*mmsize], m0
+    mova [rsp+(4*i+1)*mmsize], m1
+    mova [rsp+(4*i+2)*mmsize], m2
+    mova [rsp+(4*i+3)*mmsize], m3
 %assign i i+1
 %endrep
+%endif
 %endmacro
 
 %macro SIG_OFFSET 1
@@ -403,16 +422,14 @@ CABAC bmi2
 %endif
 
 %ifdef PIC
-    cglobal func, 4,13
+    cglobal func, 4,13,6,-maxcoeffs*SIZEOF_DCTCOEF
     lea     r12, [$$]
     %define GLOBAL +r12-$$
 %else
-    cglobal func, 4,12
+    cglobal func, 4,12,6,-maxcoeffs*SIZEOF_DCTCOEF
     %define GLOBAL
 %endif
 
-%assign pad gprsize+SIZEOF_DCTCOEF*maxcoeffs-(stack_offset&15)
-    SUB     rsp, pad
     shl     r1d, 4                                            ; MB_INTERLACED*16
 %if %1
     lea      r4, [significant_coeff_flag_offset_8x8+r1*4 GLOBAL]     ; r12 = sig offset 8x8
@@ -429,15 +446,13 @@ CABAC bmi2
     ABS_DCTCOEFS r0, 64
 %else
     mov      r4, r0                                           ; r4 = dct
-    mov      r6, ~SIZEOF_DCTCOEF
-    and      r6, r4                                           ; handle AC coefficient case
-    ABS_DCTCOEFS r6, 16
-    sub      r4, r6                                           ; calculate our new dct pointer
+    and      r4, ~SIZEOF_DCTCOEF                              ; handle AC coefficient case
+    ABS_DCTCOEFS r4, 16
+    xor      r4, r0                                           ; calculate our new dct pointer
     add      r4, rsp                                          ; restore AC coefficient offset
 %endif
-    mov      r1, [%2+gprsize*r2 GLOBAL]
 ; for improved OOE performance, run coeff_last on the original coefficients.
-    call     r1                                               ; coeff_last[ctx_block_cat]( dct )
+    call [%2+gprsize*r2 GLOBAL]                               ; coeff_last[ctx_block_cat]( dct )
 ; we know on 64-bit that the SSE2 versions of this function only
 ; overwrite r0, r1, and rax (r6). last64 overwrites r2 too, but we
 ; don't need r2 in 8x8 mode.
@@ -521,7 +536,6 @@ CABAC bmi2
     jge .coeff_loop
 .end:
     mov [r3+cb.bits_encoded-cb.state], r0d
-    ADD     rsp, pad
     RET
 %endmacro
 
@@ -529,15 +543,23 @@ CABAC bmi2
 INIT_XMM sse2
 CABAC_RESIDUAL_RD 0, coeff_last_sse2
 CABAC_RESIDUAL_RD 1, coeff_last_sse2
-INIT_XMM sse2,lzcnt
-CABAC_RESIDUAL_RD 0, coeff_last_sse2_lzcnt
-CABAC_RESIDUAL_RD 1, coeff_last_sse2_lzcnt
+INIT_XMM lzcnt
+CABAC_RESIDUAL_RD 0, coeff_last_lzcnt
+CABAC_RESIDUAL_RD 1, coeff_last_lzcnt
 INIT_XMM ssse3
 CABAC_RESIDUAL_RD 0, coeff_last_sse2
 CABAC_RESIDUAL_RD 1, coeff_last_sse2
 INIT_XMM ssse3,lzcnt
-CABAC_RESIDUAL_RD 0, coeff_last_sse2_lzcnt
-CABAC_RESIDUAL_RD 1, coeff_last_sse2_lzcnt
+CABAC_RESIDUAL_RD 0, coeff_last_lzcnt
+CABAC_RESIDUAL_RD 1, coeff_last_lzcnt
+%if HIGH_BIT_DEPTH
+INIT_ZMM avx512
+%else
+INIT_YMM avx512
+%endif
+CABAC_RESIDUAL_RD 0, coeff_last_avx512
+INIT_ZMM avx512
+CABAC_RESIDUAL_RD 1, coeff_last_avx512
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -615,7 +637,7 @@ CABAC_RESIDUAL_RD 1, coeff_last_sse2_lzcnt
 %endmacro
 
 %macro CABAC_RESIDUAL 1
-cglobal cabac_block_residual_internal, 4,15
+cglobal cabac_block_residual_internal, 4,15,0,-4*64
 %ifdef PIC
 ; if we use the same r7 as in cabac_encode_decision, we can cheat and save a register.
     lea     r7, [$$]
@@ -625,8 +647,6 @@ cglobal cabac_block_residual_internal, 4,15
     %define lastm r7d
     %define GLOBAL
 %endif
-%assign pad gprsize+4*2+4*64-(stack_offset&15)
-    SUB     rsp, pad
     shl     r1d, 4
 
     %define sigoffq r8
@@ -653,8 +673,7 @@ cglobal cabac_block_residual_internal, 4,15
     mov     dct, r0
     mov leveloffm, leveloffd
 
-    mov      r1, [%1+gprsize*r2 GLOBAL]
-    call     r1
+    call [%1+gprsize*r2 GLOBAL]
     mov   lastm, eax
 ; put cabac in r0; needed for cabac_encode_decision
     mov      r0, r3
@@ -742,15 +761,16 @@ cglobal cabac_block_residual_internal, 4,15
 %endif
     dec coeffidxd
     jge .level_loop
-    ADD     rsp, pad
     RET
 %endmacro
 
 %if ARCH_X86_64
 INIT_XMM sse2
 CABAC_RESIDUAL coeff_last_sse2
-INIT_XMM sse2,lzcnt
-CABAC_RESIDUAL coeff_last_sse2_lzcnt
-INIT_XMM avx2,bmi2
-CABAC_RESIDUAL coeff_last_avx2_lzcnt
+INIT_XMM lzcnt
+CABAC_RESIDUAL coeff_last_lzcnt
+INIT_XMM avx2
+CABAC_RESIDUAL coeff_last_avx2
+INIT_XMM avx512
+CABAC_RESIDUAL coeff_last_avx512
 %endif

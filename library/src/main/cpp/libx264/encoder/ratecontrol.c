@@ -243,7 +243,7 @@ static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x2
     stride <<= b_field;
     if( b_chroma )
     {
-        ALIGNED_ARRAY_N( pixel, pix,[FENC_STRIDE*16] );
+        ALIGNED_ARRAY_32( pixel, pix,[FENC_STRIDE*16] );
         int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
         int shift = 7 - CHROMA_V_SHIFT;
 
@@ -420,7 +420,7 @@ static int x264_macroblock_tree_rescale_init( x264_t *h, x264_ratecontrol_t *rc 
     float dstdim[2] = {    h->param.i_width / 16.f,    h->param.i_height / 16.f};
     int srcdimi[2] = {ceil(srcdim[0]), ceil(srcdim[1])};
     int dstdimi[2] = {ceil(dstdim[0]), ceil(dstdim[1])};
-    if( PARAM_INTERLACED )
+    if( h->param.b_interlaced || h->param.b_fake_interlaced )
     {
         srcdimi[1] = (srcdimi[1]+1)&~1;
         dstdimi[1] = (dstdimi[1]+1)&~1;
@@ -1469,7 +1469,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
             if( h->i_frame == 0 )
             {
                 //384 * ( Max( PicSizeInMbs, fR * MaxMBPS ) + MaxMBPS * ( tr( 0 ) - tr,n( 0 ) ) ) / MinCR
-                double fr = 1. / 172;
+                double fr = 1. / (h->param.i_level_idc >= 60 ? 300 : 172);
                 int pic_size_in_mbs = h->mb.i_mb_width * h->mb.i_mb_height;
                 rc->frame_size_maximum = 384 * BIT_DEPTH * X264_MAX( pic_size_in_mbs, fr*l->mbps ) / mincr;
             }

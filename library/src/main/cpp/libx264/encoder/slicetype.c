@@ -267,7 +267,7 @@ static NOINLINE unsigned int x264_weight_cost_chroma444( x264_t *h, x264_frame_t
     int i_lines = fenc->i_lines[p];
     int i_width = fenc->i_width[p];
     pixel *src = fenc->plane[p];
-    ALIGNED_ARRAY_16( pixel, buf, [16*16] );
+    ALIGNED_ARRAY_64( pixel, buf, [16*16] );
     int pixoff = 0;
     if( w )
     {
@@ -544,17 +544,18 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     if( p0 == p1 )
         goto lowres_intra_mb;
 
+    int mv_range = 2 * h->param.analyse.i_mv_range;
     // no need for h->mb.mv_min[]
-    h->mb.mv_limit_fpel[0][0] = -8*h->mb.i_mb_x - 4;
-    h->mb.mv_limit_fpel[1][0] = 8*( h->mb.i_mb_width - h->mb.i_mb_x - 1 ) + 4;
-    h->mb.mv_min_spel[0] = 4*( h->mb.mv_limit_fpel[0][0] - 8 );
-    h->mb.mv_max_spel[0] = 4*( h->mb.mv_limit_fpel[1][0] + 8 );
+    h->mb.mv_min_spel[0] = X264_MAX( 4*(-8*h->mb.i_mb_x - 12), -mv_range );
+    h->mb.mv_max_spel[0] = X264_MIN( 4*(8*(h->mb.i_mb_width - h->mb.i_mb_x - 1) + 12), mv_range-1 );
+    h->mb.mv_limit_fpel[0][0] = h->mb.mv_min_spel[0] >> 2;
+    h->mb.mv_limit_fpel[1][0] = h->mb.mv_max_spel[0] >> 2;
     if( h->mb.i_mb_x >= h->mb.i_mb_width - 2 )
     {
-        h->mb.mv_limit_fpel[0][1] = -8*h->mb.i_mb_y - 4;
-        h->mb.mv_limit_fpel[1][1] = 8*( h->mb.i_mb_height - h->mb.i_mb_y - 1 ) + 4;
-        h->mb.mv_min_spel[1] = 4*( h->mb.mv_limit_fpel[0][1] - 8 );
-        h->mb.mv_max_spel[1] = 4*( h->mb.mv_limit_fpel[1][1] + 8 );
+        h->mb.mv_min_spel[1] = X264_MAX( 4*(-8*h->mb.i_mb_y - 12), -mv_range );
+        h->mb.mv_max_spel[1] = X264_MIN( 4*(8*( h->mb.i_mb_height - h->mb.i_mb_y - 1) + 12), mv_range-1 );
+        h->mb.mv_limit_fpel[0][1] = h->mb.mv_min_spel[1] >> 2;
+        h->mb.mv_limit_fpel[1][1] = h->mb.mv_max_spel[1] >> 2;
     }
 
 #define LOAD_HPELS_LUMA(dst, src) \
@@ -728,13 +729,13 @@ lowres_intra_mb:
         if( h->param.analyse.i_subpel_refine > 1 )
         {
             h->predict_8x8c[I_PRED_CHROMA_P]( pix );
-            int satd = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
+            int satd = h->pixf.mbcmp[PIXEL_8x8]( h->mb.pic.p_fenc[0], FENC_STRIDE, pix, FDEC_STRIDE );
             i_icost = X264_MIN( i_icost, satd );
             h->predict_8x8_filter( pix, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
             for( int i = 3; i < 9; i++ )
             {
                 h->predict_8x8[i]( pix, edge );
-                satd = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
+                satd = h->pixf.mbcmp[PIXEL_8x8]( h->mb.pic.p_fenc[0], FENC_STRIDE, pix, FDEC_STRIDE );
                 i_icost = X264_MIN( i_icost, satd );
             }
         }

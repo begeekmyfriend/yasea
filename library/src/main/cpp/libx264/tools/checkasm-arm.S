@@ -25,9 +25,7 @@
 
 #include "../common/arm/asm.S"
 
-.section .rodata
-.align 4
-register_init:
+const register_init, align=4
 .quad 0x21f86d66c8ca00ce
 .quad 0x75b6ba21077c48ad
 .quad 0xed56bb2dcb3c7736
@@ -36,9 +34,11 @@ register_init:
 .quad 0xdf9a54b303f1d3a3
 .quad 0x4a75479abd64e097
 .quad 0x249214109d5d1c88
+endconst
 
-error_message:
+const error_message
 .asciz "failed to preserve register"
+endconst
 
 .text
 

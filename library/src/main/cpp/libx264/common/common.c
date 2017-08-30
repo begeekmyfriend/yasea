@@ -669,7 +669,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     {
         if( !strcmp(value, "1b") )
             p->i_level_idc = 9;
-        else if( atof(value) < 6 )
+        else if( atof(value) < 7 )
             p->i_level_idc = (int)(10*atof(value)+.5);
         else
             p->i_level_idc = atoi(value);
@@ -1143,6 +1143,8 @@ int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_heigh
         [X264_CSP_I422] = { 3, { 256*1, 256/2, 256/2 }, { 256*1, 256*1, 256*1 } },
         [X264_CSP_YV16] = { 3, { 256*1, 256/2, 256/2 }, { 256*1, 256*1, 256*1 } },
         [X264_CSP_NV16] = { 2, { 256*1, 256*1 },        { 256*1, 256*1 },       },
+        [X264_CSP_YUYV] = { 1, { 256*2 },               { 256*1 },              },
+        [X264_CSP_UYVY] = { 1, { 256*2 },               { 256*1 },              },
         [X264_CSP_I444] = { 3, { 256*1, 256*1, 256*1 }, { 256*1, 256*1, 256*1 } },
         [X264_CSP_YV24] = { 3, { 256*1, 256*1, 256*1 }, { 256*1, 256*1, 256*1 } },
         [X264_CSP_BGR]  = { 1, { 256*3 },               { 256*1 },              },

@@ -30,18 +30,15 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
-SECTION_RODATA 32
-
-pw_1024: times 16 dw 1024
-filt_mul20: times 32 db 20
-filt_mul15: times 16 db 1, -5
-filt_mul51: times 16 db -5, 1
-hpel_shuf: times 2 db 0,8,1,9,2,10,3,11,4,12,5,13,6,14,7,15
+SECTION_RODATA 64
 
 %if HIGH_BIT_DEPTH
-v210_mask: times 4 dq 0xc00ffc003ff003ff
-v210_luma_shuf: times 2 db 1,2,4,5,6,7,9,10,12,13,14,15,12,13,14,15
-v210_chroma_shuf: times 2 db 0,1,2,3,5,6,8,9,10,11,13,14,10,11,13,14
+v210_shuf_avx512: db  0, 0,34, 1,35,34, 4, 4,38, 5,39,38, 8, 8,42, 9, ; luma, chroma
+                  db 43,42,12,12,46,13,47,46,16,16,50,17,51,50,20,20,
+                  db 54,21,55,54,24,24,58,25,59,58,28,28,62,29,63,62
+v210_mask:        dd 0x3ff003ff, 0xc00ffc00, 0x3ff003ff, 0xc00ffc00
+v210_luma_shuf:   db  1, 2, 4, 5, 6, 7, 9,10,12,13,14,15,12,13,14,15
+v210_chroma_shuf: db  0, 1, 2, 3, 5, 6, 8, 9,10,11,13,14,10,11,13,14
 ; vpermd indices {0,1,2,4,5,7,_,_} merged in the 3 lsb of each dword to save a register
 v210_mult: dw 0x2000,0x7fff,0x0801,0x2000,0x7ffa,0x0800,0x7ffc,0x0800
            dw 0x1ffd,0x7fff,0x07ff,0x2000,0x7fff,0x0800,0x7fff,0x0800
@@ -58,6 +55,13 @@ deinterleave_shuf32a: db 0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30
 deinterleave_shuf32b: db 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31
 %endif ; !HIGH_BIT_DEPTH
 
+pw_1024: times 16 dw 1024
+filt_mul20: times 32 db 20
+filt_mul15: times 16 db 1, -5
+filt_mul51: times 16 db -5, 1
+hpel_shuf: times 2 db 0,8,1,9,2,10,3,11,4,12,5,13,6,14,7,15
+
+mbtree_prop_list_avx512_shuf: dw 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7
 mbtree_fix8_unpack_shuf: db -1,-1, 1, 0,-1,-1, 3, 2,-1,-1, 5, 4,-1,-1, 7, 6
                          db -1,-1, 9, 8,-1,-1,11,10,-1,-1,13,12,-1,-1,15,14
 mbtree_fix8_pack_shuf:   db  1, 0, 3, 2, 5, 4, 7, 6, 9, 8,11,10,13,12,15,14
@@ -1044,8 +1048,8 @@ PLANE_COPY_CORE 1
 %endif ; HIGH_BIT_DEPTH
 %endmacro
 
-%macro DEINTERLEAVE 6 ; dstu, dstv, src, dstv==dstu+8, shuffle constant, is aligned
-    mova     m0, [%3]
+%macro DEINTERLEAVE 6 ; dsta, dstb, src, dsta==dstb+8, shuffle constant, is aligned
+    mov%6    m0, [%3]
 %if mmsize == 32
     pshufb   m0, %5
     vpermq   m0, m0, q3120
@@ -1056,7 +1060,7 @@ PLANE_COPY_CORE 1
     vextracti128 [%2], m0, 1
 %endif
 %elif HIGH_BIT_DEPTH
-    mova     m1, [%3+mmsize]
+    mov%6    m1, [%3+mmsize]
     psrld    m2, m0, 16
     psrld    m3, m1, 16
     pand     m0, %5
@@ -1181,8 +1185,8 @@ cglobal store_interleave_chroma, 5,5
 
 %macro PLANE_DEINTERLEAVE 0
 ;-----------------------------------------------------------------------------
-; void plane_copy_deinterleave( pixel *dstu, intptr_t i_dstu,
-;                               pixel *dstv, intptr_t i_dstv,
+; void plane_copy_deinterleave( pixel *dsta, intptr_t i_dsta,
+;                               pixel *dstb, intptr_t i_dstb,
 ;                               pixel *src,  intptr_t i_src, int w, int h )
 ;-----------------------------------------------------------------------------
 %if ARCH_X86_64
@@ -1400,43 +1404,64 @@ cglobal plane_copy_deinterleave_v210, 7,7,7
 %define org_w r6m
 %define h     dword r7m
 %endif
-    FIX_STRIDES r1, r3, r6d
-    shl    r5, 2
-    add    r0, r6
-    add    r2, r6
-    neg    r6
-    mov   src, r4
-    mov org_w, r6
-    mova   m2, [v210_mask]
-    mova   m3, [v210_luma_shuf]
-    mova   m4, [v210_chroma_shuf]
-    mova   m5, [v210_mult] ; also functions as vpermd index for avx2
-    pshufd m6, m5, q1102
-
+    FIX_STRIDES  r1, r3, r6d
+    shl          r5, 2
+    add          r0, r6
+    add          r2, r6
+    neg          r6
+    mov         src, r4
+    mov       org_w, r6
+%if cpuflag(avx512)
+    vpbroadcastd m2, [v210_mask]
+    vpbroadcastd m3, [v210_shuf_avx512]
+    psrlw        m3, 6                  ; dw 0, 4
+    mova         m4, [v210_shuf_avx512] ; luma
+    psrlw        m5, m4, 8              ; chroma
+%else
+%if mmsize == 32
+    vbroadcasti128 m2, [v210_mask]
+    vbroadcasti128 m3, [v210_luma_shuf]
+    vbroadcasti128 m4, [v210_chroma_shuf]
+%else
+    mova         m2, [v210_mask]
+    mova         m3, [v210_luma_shuf]
+    mova         m4, [v210_chroma_shuf]
+%endif
+    mova         m5, [v210_mult] ; also functions as vpermd index for avx2
+    pshufd       m6, m5, q1102
+%endif
 ALIGN 16
 .loop:
-    movu   m1, [r4]
-    pandn  m0, m2, m1
-    pand   m1, m2
-    pshufb m0, m3
-    pshufb m1, m4
-    pmulhrsw m0, m5 ; y0 y1 y2 y3 y4 y5 __ __
-    pmulhrsw m1, m6 ; u0 v0 u1 v1 u2 v2 __ __
+    movu         m1, [r4]
+    pandn        m0, m2, m1
+    pand         m1, m2
+%if cpuflag(avx512)
+    psrld        m0, 10
+    vpsrlvw      m1, m3
+    mova         m6, m0
+    vpermt2w     m0, m4, m1
+    vpermt2w     m1, m5, m6
+%else
+    pshufb       m0, m3
+    pshufb       m1, m4
+    pmulhrsw     m0, m5 ; y0 y1 y2 y3 y4 y5 __ __
+    pmulhrsw     m1, m6 ; u0 v0 u1 v1 u2 v2 __ __
 %if mmsize == 32
-    vpermd m0, m5, m0
-    vpermd m1, m5, m1
+    vpermd       m0, m5, m0
+    vpermd       m1, m5, m1
 %endif
-    movu [r0+r6], m0
-    movu [r2+r6], m1
-    add    r4, mmsize
-    add    r6, 3*mmsize/4
+%endif
+    movu    [r0+r6], m0
+    movu    [r2+r6], m1
+    add          r4, mmsize
+    add          r6, mmsize*3/4
     jl .loop
-    add    r0, r1
-    add    r2, r3
-    add   src, r5
-    mov    r4, src
-    mov    r6, org_w
-    dec     h
+    add          r0, r1
+    add          r2, r3
+    add         src, r5
+    mov          r4, src
+    mov          r6, org_w
+    dec           h
     jg .loop
     RET
 %endmacro ; PLANE_DEINTERLEAVE_V210
@@ -1461,6 +1486,8 @@ PLANE_DEINTERLEAVE_V210
 INIT_YMM avx2
 LOAD_DEINTERLEAVE_CHROMA
 PLANE_DEINTERLEAVE_V210
+INIT_ZMM avx512
+PLANE_DEINTERLEAVE_V210
 %else
 INIT_XMM sse2
 PLANE_DEINTERLEAVE_RGB
@@ -1473,82 +1500,85 @@ LOAD_DEINTERLEAVE_CHROMA_FENC_AVX2
 PLANE_DEINTERLEAVE_RGB
 %endif
 
-; These functions are not general-use; not only do the SSE ones require aligned input,
-; but they also will fail if given a non-mod16 size.
-; memzero SSE will fail for non-mod128.
+; These functions are not general-use; not only do they require aligned input, but memcpy
+; requires size to be a multiple of 16 and memzero requires size to be a multiple of 128.
 
 ;-----------------------------------------------------------------------------
 ; void *memcpy_aligned( void *dst, const void *src, size_t n );
 ;-----------------------------------------------------------------------------
 %macro MEMCPY 0
 cglobal memcpy_aligned, 3,3
-%if mmsize == 16
+%if mmsize == 32
     test r2d, 16
-    jz .copy2
-    mova  m0, [r1+r2-16]
-    mova [r0+r2-16], m0
+    jz .copy32
+    mova xm0, [r1+r2-16]
+    mova [r0+r2-16], xm0
     sub  r2d, 16
-.copy2:
+    jle .ret
+.copy32:
 %endif
-    test r2d, 2*mmsize
-    jz .copy4start
+    test r2d, mmsize
+    jz .loop
+    mova  m0, [r1+r2-mmsize]
+    mova [r0+r2-mmsize], m0
+    sub      r2d, mmsize
+    jle .ret
+.loop:
     mova  m0, [r1+r2-1*mmsize]
     mova  m1, [r1+r2-2*mmsize]
     mova [r0+r2-1*mmsize], m0
     mova [r0+r2-2*mmsize], m1
     sub  r2d, 2*mmsize
-.copy4start:
-    test r2d, r2d
-    jz .ret
-.copy4:
-    mova  m0, [r1+r2-1*mmsize]
-    mova  m1, [r1+r2-2*mmsize]
-    mova  m2, [r1+r2-3*mmsize]
-    mova  m3, [r1+r2-4*mmsize]
-    mova [r0+r2-1*mmsize], m0
-    mova [r0+r2-2*mmsize], m1
-    mova [r0+r2-3*mmsize], m2
-    mova [r0+r2-4*mmsize], m3
-    sub  r2d, 4*mmsize
-    jg .copy4
+    jg .loop
 .ret:
-    REP_RET
+    RET
 %endmacro
-
-INIT_MMX mmx
-MEMCPY
-INIT_XMM sse
-MEMCPY
 
 ;-----------------------------------------------------------------------------
 ; void *memzero_aligned( void *dst, size_t n );
 ;-----------------------------------------------------------------------------
-%macro MEMZERO 1
+%macro MEMZERO 0
 cglobal memzero_aligned, 2,2
-    add  r0, r1
-    neg  r1
-%if mmsize == 8
-    pxor m0, m0
-%else
     xorps m0, m0
-%endif
 .loop:
-%assign i 0
-%rep %1
-    mova [r0 + r1 + i], m0
-%assign i i+mmsize
+%assign %%i mmsize
+%rep 128 / mmsize
+    movaps [r0 + r1 - %%i], m0
+%assign %%i %%i+mmsize
 %endrep
-    add r1, mmsize*%1
-    jl .loop
+    sub r1d, 128
+    jg .loop
     RET
 %endmacro
 
-INIT_MMX mmx
-MEMZERO 8
 INIT_XMM sse
-MEMZERO 8
+MEMCPY
+MEMZERO
 INIT_YMM avx
-MEMZERO 4
+MEMCPY
+MEMZERO
+INIT_ZMM avx512
+MEMZERO
+
+cglobal memcpy_aligned, 3,4
+    dec      r2d           ; offset of the last byte
+    rorx     r3d, r2d, 2
+    and      r2d, ~63
+    and      r3d, 15       ; n = number of dwords minus one to copy in the tail
+    mova      m0, [r1+r2]
+    not      r3d           ; bits 0-4: (n^15)+16, bits 16-31: 0xffff
+    shrx     r3d, r3d, r3d ; 0xffff >> (n^15)
+    kmovw     k1, r3d      ; (1 << (n+1)) - 1
+    vmovdqa32 [r0+r2] {k1}, m0
+    sub      r2d, 64
+    jl .ret
+.loop:
+    mova      m0, [r1+r2]
+    mova [r0+r2], m0
+    sub      r2d, 64
+    jge .loop
+.ret:
+    RET
 
 %if HIGH_BIT_DEPTH == 0
 ;-----------------------------------------------------------------------------
@@ -2147,13 +2177,13 @@ MBTREE
 cglobal mbtree_propagate_cost, 6,6,8-2*cpuflag(avx2)
     vbroadcastss m5, [r5]
     mov         r5d, r6m
-    lea          r0, [r0+r5*2]
+    lea          r2, [r2+r5*2]
     add         r5d, r5d
-    add          r1, r5
-    add          r2, r5
-    add          r3, r5
     add          r4, r5
     neg          r5
+    sub          r1, r5
+    sub          r3, r5
+    sub          r0, r5
     mova        xm4, [pw_3fff]
 %if notcpuflag(avx2)
     pxor        xm7, xm7
@@ -2165,9 +2195,8 @@ cglobal mbtree_propagate_cost, 6,6,8-2*cpuflag(avx2)
     pmovzxwd     m2, [r1+r5]      ; prop
     pand        xm3, xm4, [r3+r5] ; inter
     pmovzxwd     m3, xm3
-    pminsd       m3, m0
     pmaddwd      m1, m0
-    psubd        m3, m0, m3
+    psubusw      m3, m0, m3
     cvtdq2ps     m0, m0
     cvtdq2ps     m1, m1
     cvtdq2ps     m2, m2
@@ -2184,7 +2213,7 @@ cglobal mbtree_propagate_cost, 6,6,8-2*cpuflag(avx2)
     movu        xm1, [r4+r5]
     movu        xm2, [r1+r5]
     pand        xm3, xm4, [r3+r5]
-    pminsw      xm3, xm0
+    psubusw     xm3, xm0, xm3
     INT16_UNPACK 0
     INT16_UNPACK 1
     INT16_UNPACK 2
@@ -2194,7 +2223,6 @@ cglobal mbtree_propagate_cost, 6,6,8-2*cpuflag(avx2)
     cvtdq2ps     m2, m2
     cvtdq2ps     m3, m3
     mulps        m1, m0
-    subps        m3, m0, m3
     mulps        m1, m5         ; intra*invq*fps_factor>>8
     addps        m1, m2         ; prop + (intra*invq*fps_factor>>8)
     rcpps        m2, m0         ; 1 / intra 1st approximation
@@ -2205,7 +2233,7 @@ cglobal mbtree_propagate_cost, 6,6,8-2*cpuflag(avx2)
     subps        m2, m0         ; 2nd approximation for 1/intra
     mulps        m1, m2         ; / intra
 %endif
-    vcvtps2dq    m1, m1
+    cvtps2dq     m1, m1
     vextractf128 xm2, m1, 1
     packssdw    xm1, xm2
     mova    [r0+r5], xm1
@@ -2218,6 +2246,39 @@ INIT_YMM avx
 MBTREE_AVX
 INIT_YMM avx2
 MBTREE_AVX
+
+INIT_ZMM avx512
+cglobal mbtree_propagate_cost, 6,6
+    vbroadcastss  m5, [r5]
+    mov          r5d, 0x3fff3fff
+    vpbroadcastd ym4, r5d
+    mov          r5d, r6m
+    lea           r2, [r2+r5*2]
+    add          r5d, r5d
+    add           r1, r5
+    neg           r5
+    sub           r4, r5
+    sub           r3, r5
+    sub           r0, r5
+.loop:
+    pmovzxwd      m0, [r2+r5]      ; intra
+    pmovzxwd      m1, [r1+r5]      ; prop
+    pmovzxwd      m2, [r4+r5]      ; invq
+    pand         ym3, ym4, [r3+r5] ; inter
+    pmovzxwd      m3, ym3
+    psubusw       m3, m0, m3
+    cvtdq2ps      m0, m0
+    cvtdq2ps      m1, m1
+    cvtdq2ps      m2, m2
+    cvtdq2ps      m3, m3
+    vdivps        m1, m0, {rn-sae}
+    fmaddps       m1, m2, m5, m1
+    mulps         m1, m3
+    cvtps2dq      m1, m1
+    vpmovsdw [r0+r5], m1
+    add           r5, 32
+    jl .loop
+    RET
 
 %macro MBTREE_PROPAGATE_LIST 0
 ;-----------------------------------------------------------------------------
@@ -2371,6 +2432,112 @@ cglobal mbtree_propagate_list_internal, 4+2*UNIX64,5+UNIX64,8
     add            r4, 8
     jl .loop
     RET
+
+%if ARCH_X86_64
+;-----------------------------------------------------------------------------
+; void x264_mbtree_propagate_list_internal_avx512( size_t len, uint16_t *ref_costs, int16_t (*mvs)[2], int16_t *propagate_amount,
+;                                                  uint16_t *lowres_costs, int bipred_weight, int mb_y,
+;                                                  int width, int height, int stride, int list_mask );
+;-----------------------------------------------------------------------------
+INIT_ZMM avx512
+cglobal mbtree_propagate_list_internal, 5,7,21
+    mova          xm16, [pw_0xc000]
+    vpbroadcastw  xm17, r5m            ; bipred_weight << 9
+    vpbroadcastw  ym18, r10m           ; 1 << (list+LOWRES_COST_SHIFT)
+    vbroadcasti32x8 m5, [mbtree_prop_list_avx512_shuf]
+    vbroadcasti32x8 m6, [pd_0123]
+    vpord           m6, r6m {1to16}    ; 0 y 1 y 2 y 3 y 4 y 5 y 6 y 7 y
+    vbroadcasti128  m7, [pd_8]
+    vbroadcasti128  m8, [pw_31]
+    vbroadcasti128  m9, [pw_32]
+    psllw          m10, m9, 4
+    pcmpeqw       ym19, ym19           ; pw_m1
+    vpbroadcastw  ym20, r7m            ; width
+    psrld          m11, m7, 3          ; pd_1
+    psrld          m12, m8, 16         ; pd_31
+    vpbroadcastd   m13, r8m            ; height
+    vpbroadcastd   m14, r9m            ; stride
+    pslld          m15, m14, 16
+    por            m15, m11            ; {1, stride, 1, stride} ...
+    lea             r4, [r4+2*r0]      ; lowres_costs
+    lea             r3, [r3+2*r0]      ; propagate_amount
+    lea             r2, [r2+4*r0]      ; mvs
+    neg             r0
+    mov            r6d, 0x5555ffff
+    kmovd           k4, r6d
+    kshiftrd        k5, k4, 16         ; 0x5555
+    kshiftlw        k6, k4, 8          ; 0xff00
+.loop:
+    vbroadcasti128 ym1, [r4+2*r0]
+    mova           xm4, [r3+2*r0]
+    vpcmpuw         k1, xm1, xm16, 5   ; if (lists_used == 3)
+    vpmulhrsw      xm4 {k1}, xm17      ;     propagate_amount = (propagate_amount * bipred_weight + 32) >> 6
+    vptestmw        k1, ym1, ym18
+    vpermw          m4, m5, m4
+
+    vbroadcasti32x8 m3, [r2+4*r0]      ; {mvx, mvy}
+    psraw           m0, m3, 5
+    paddw           m0, m6             ; {mbx, mby} = ({x, y} >> 5) + {h->mb.i_mb_x, h->mb.i_mb_y}
+    paddd           m6, m7             ; i_mb_x += 8
+    pand            m3, m8             ; {x, y}
+    vprold          m1, m3, 20         ; {y, x} << 4
+    psubw           m3 {k4}, m9, m3    ; {32-x, 32-y}, {32-x, y}
+    psubw           m1 {k5}, m10, m1   ; ({32-y, x}, {y, x}) << 4
+    pmullw          m3, m1
+    paddsw          m3, m3             ; prevent signed overflow in idx0 (32*32<<5 == 0x8000)
+    pmulhrsw        m2, m3, m4         ; idx01weight idx23weightp
+
+    pslld          ym1, ym0, 16
+    psubw          ym1, ym19
+    vmovdqu16      ym1 {k5}, ym0
+    vpcmpuw         k2, ym1, ym20, 1    ; {mbx, mbx+1} < width
+    kunpckwd        k2, k2, k2
+    psrad           m1, m0, 16
+    paddd           m1 {k6}, m11
+    vpcmpud         k1 {k1}, m1, m13, 1 ; mby < height | mby+1 < height
+
+    pmaddwd         m0, m15
+    paddd           m0 {k6}, m14        ; idx0 | idx2
+    vmovdqu16       m2 {k2}{z}, m2      ; idx01weight | idx23weight
+    vptestmd        k1 {k1}, m2, m2     ; mask out offsets with no changes
+
+    ; We're handling dwords, but the offsets are in words so there may be partial overlaps.
+    ; We can work around this by handling dword-aligned and -unaligned offsets separately.
+    vptestmd        k0, m0, m11
+    kandnw          k2, k0, k1          ; dword-aligned offsets
+    kmovw           k3, k2
+    vpgatherdd      m3 {k2}, [r1+2*m0]
+
+    ; If there are conflicts in the offsets we have to handle them before storing the results.
+    ; By creating a permutation index using vplzcntd we can resolve all conflicts in parallel
+    ; in ceil(log2(n)) iterations where n is the largest number of duplicate offsets.
+    vpconflictd     m4, m0
+    vpbroadcastmw2d m1, k1
+    vptestmd        k2, m1, m4
+    ktestw          k2, k2
+    jz .no_conflicts
+    pand            m1, m4              ; mask away unused offsets to avoid false positives
+    vplzcntd        m1, m1
+    pxor            m1, m12             ; lzcnt gives us the distance from the msb, we want it from the lsb
+.conflict_loop:
+    vpermd          m4 {k2}{z}, m1, m2
+    vpermd          m1 {k2}, m1, m1     ; shift the index one step forward
+    paddsw          m2, m4              ; add the weights of conflicting offsets
+    vpcmpd          k2, m1, m12, 2
+    ktestw          k2, k2
+    jnz .conflict_loop
+.no_conflicts:
+    paddsw          m3, m2
+    vpscatterdd [r1+2*m0] {k3}, m3
+    kandw           k1, k0, k1          ; dword-unaligned offsets
+    kmovw           k2, k1
+    vpgatherdd      m1 {k1}, [r1+2*m0]
+    paddsw          m1, m2              ; all conflicts have already been resolved
+    vpscatterdd [r1+2*m0] {k2}, m1
+    add             r0, 8
+    jl .loop
+    RET
+%endif
 
 %macro MBTREE_FIX8 0
 ;-----------------------------------------------------------------------------

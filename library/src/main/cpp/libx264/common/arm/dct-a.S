@@ -26,14 +26,12 @@
 
 #include "asm.S"
 
-.section .rodata
-.align 4
-
-scan4x4_frame:
+const scan4x4_frame, align=4
 .byte    0,1,   8,9,   2,3,   4,5
 .byte    2,3,   8,9,  16,17, 10,11
 .byte   12,13,  6,7,  14,15, 20,21
 .byte   10,11, 12,13,  6,7,  14,15
+endconst
 
 .text
 

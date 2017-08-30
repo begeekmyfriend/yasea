@@ -444,11 +444,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
             fail = 1;
         }
 #endif
-        if( !fail && !(cpuflags & X264_CPU_CMOV) )
-        {
-            x264_log( h, X264_LOG_ERROR, "your cpu does not support CMOV, but x264 was compiled with asm\n");
-            fail = 1;
-        }
         if( fail )
         {
             x264_log( h, X264_LOG_ERROR, "to run x264, recompile without asm (configure --disable-asm)\n");
@@ -494,7 +489,8 @@ static int x264_validate_parameters( x264_t *h, int b_open )
 #endif
     if( i_csp <= X264_CSP_NONE || i_csp >= X264_CSP_MAX )
     {
-        x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12/NV12/NV21/I422/YV16/NV16/I444/YV24/BGR/BGRA/RGB supported)\n" );
+        x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12/NV12/NV21/I422/YV16/NV16/YUYV/UYVY/"
+                                     "I444/YV24/BGR/BGRA/RGB supported)\n" );
         return -1;
     }
 
@@ -859,6 +855,11 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         h->param.analyse.inter &= ~X264_ANALYSE_I8x8;
         h->param.analyse.intra &= ~X264_ANALYSE_I8x8;
     }
+    if( i_csp >= X264_CSP_I444 && h->param.b_cabac )
+    {
+        /* Disable 8x8dct during 4:4:4+CABAC encoding for compatibility with libavcodec */
+        h->param.analyse.b_transform_8x8 = 0;
+    }
     if( h->param.rc.i_rc_method == X264_RC_CQP )
     {
         float qp_p = h->param.rc.i_qp_constant;
@@ -1170,7 +1171,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         if( h->param.analyse.i_mv_range <= 0 )
             h->param.analyse.i_mv_range = l->mv_range >> PARAM_INTERLACED;
         else
-            h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 512 >> PARAM_INTERLACED);
+            h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 8192 >> PARAM_INTERLACED);
     }
 
     h->param.analyse.i_weighted_pred = x264_clip3( h->param.analyse.i_weighted_pred, X264_WEIGHTP_NONE, X264_WEIGHTP_SMART );
@@ -1530,6 +1531,12 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_rdo_init();
 
     /* init CPU functions */
+#if (ARCH_X86 || ARCH_X86_64) && HIGH_BIT_DEPTH
+    /* FIXME: Only 8-bit has been optimized for AVX-512 so far. The few AVX-512 functions
+     * enabled in high bit-depth are insignificant and just causes potential issues with
+     * unnecessary thermal throttling and whatnot, so keep it disabled for now. */
+    h->param.cpu &= ~X264_CPU_AVX512;
+#endif
     x264_predict_16x16_init( h->param.cpu, h->predict_16x16 );
     x264_predict_8x8c_init( h->param.cpu, h->predict_8x8c );
     x264_predict_8x16c_init( h->param.cpu, h->predict_8x16c );
@@ -1566,8 +1573,14 @@ x264_t *x264_encoder_open( x264_param_t *param )
         if( !strcmp(x264_cpu_names[i].name, "SSE4.1")
             && (h->param.cpu & X264_CPU_SSE42) )
             continue;
+        if( !strcmp(x264_cpu_names[i].name, "LZCNT")
+            && (h->param.cpu & X264_CPU_BMI1) )
+            continue;
         if( !strcmp(x264_cpu_names[i].name, "BMI1")
             && (h->param.cpu & X264_CPU_BMI2) )
+            continue;
+        if( !strcmp(x264_cpu_names[i].name, "FMA4")
+            && (h->param.cpu & X264_CPU_FMA3) )
             continue;
         if( (h->param.cpu & x264_cpu_names[i].flags) == x264_cpu_names[i].flags
             && (!i || x264_cpu_names[i].flags != x264_cpu_names[i-1].flags) )
@@ -1579,14 +1592,6 @@ x264_t *x264_encoder_open( x264_param_t *param )
 
     if( x264_analyse_init_costs( h ) )
         goto fail;
-
-    static const uint16_t cost_mv_correct[7] = { 24, 47, 95, 189, 379, 757, 1515 };
-    /* Checks for known miscompilation issues. */
-    if( h->cost_mv[X264_LOOKAHEAD_QP][2013] != cost_mv_correct[BIT_DEPTH-8] )
-    {
-        x264_log( h, X264_LOG_ERROR, "MV cost test failed: x264 has been miscompiled!\n" );
-        goto fail;
-    }
 
     /* Must be volatile or else GCC will optimize it out. */
     volatile int temp = 392;

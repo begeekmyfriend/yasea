@@ -58,8 +58,6 @@ int  x264_ratecontrol_qp( x264_t * );
 int  x264_ratecontrol_mb_qp( x264_t *h );
 int  x264_ratecontrol_end( x264_t *, int bits, int *filler );
 void x264_ratecontrol_summary( x264_t * );
-void x264_ratecontrol_set_estimated_size( x264_t *, int bits );
-int  x264_ratecontrol_get_estimated_size( x264_t const *);
 int  x264_rc_analyse_slice( x264_t *h );
 void x264_threads_distribute_ratecontrol( x264_t *h );
 void x264_threads_merge_ratecontrol( x264_t *h );

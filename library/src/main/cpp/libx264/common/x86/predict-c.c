@@ -511,8 +511,8 @@ void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12], x264_predict_
     *predict_8x8_filter   = x264_predict_8x8_filter_ssse3;
     if( cpu&X264_CPU_CACHELINE_64 )
     {
-        pf[I_PRED_8x8_DDL]= x264_predict_8x8_ddl_ssse3_cache64;
-        pf[I_PRED_8x8_DDR]= x264_predict_8x8_ddr_ssse3_cache64;
+        pf[I_PRED_8x8_DDL]= x264_predict_8x8_ddl_cache64_ssse3;
+        pf[I_PRED_8x8_DDR]= x264_predict_8x8_ddr_cache64_ssse3;
     }
     if( !(cpu&X264_CPU_AVX) )
         return;
@@ -604,6 +604,6 @@ void x264_predict_4x4_init_mmx( int cpu, x264_predict_t pf[12] )
     pf[I_PRED_4x4_VR]  = x264_predict_4x4_vr_ssse3;
     pf[I_PRED_4x4_HD]  = x264_predict_4x4_hd_ssse3;
     if( cpu&X264_CPU_CACHELINE_64 )
-        pf[I_PRED_4x4_VR] = x264_predict_4x4_vr_ssse3_cache64;
+        pf[I_PRED_4x4_VR] = x264_predict_4x4_vr_cache64_ssse3;
 #endif // HIGH_BIT_DEPTH
 }

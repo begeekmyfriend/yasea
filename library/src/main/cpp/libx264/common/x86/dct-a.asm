@@ -30,7 +30,41 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
-SECTION_RODATA 32
+SECTION_RODATA 64
+; AVX-512 permutation indices are bit-packed to save cache
+%if HIGH_BIT_DEPTH
+scan_frame_avx512: dd 0x00bf0200, 0x00fd7484, 0x0033a611, 0x0069d822 ; bits 0-3:   4x4_frame
+                   dd 0x00a3ca95, 0x00dd8d08, 0x00e75b8c, 0x00a92919 ; bits 4-8:   8x8_frame1
+                   dd 0x0072f6a6, 0x003c8433, 0x007e5247, 0x00b6a0ba ; bits 9-13:  8x8_frame2
+                   dd 0x00ecf12d, 0x00f3239e, 0x00b9540b, 0x00ff868f ; bits 14-18: 8x8_frame3
+                                                                     ; bits 19-23: 8x8_frame4
+scan_field_avx512: dd 0x0006b240, 0x000735a1, 0x0007b9c2, 0x0009bde8 ; bits 0-4:   8x8_field1
+                   dd 0x000c4e69, 0x000ce723, 0x000a0004, 0x000aeb4a ; bits 5-9:   8x8_field2
+                   dd 0x000b5290, 0x000bd6ab, 0x000d5ac5, 0x000ddee6 ; bits 10-14: 8x8_field3
+                   dd 0x000e6f67, 0x000e842c, 0x000f0911, 0x000ff058 ; bits 15-19: 8x8_field4
+cavlc_shuf_avx512: dd 0x00018820, 0x000398a4, 0x0005a928, 0x0007b9ac ; bits 0-4:   interleave1
+                   dd 0x0009ca30, 0x000bdab4, 0x000deb38, 0x000ffbbc ; bits 5-9:   interleave2
+                   dd 0x00010c01, 0x00031c85, 0x00052d09, 0x00073d8d ; bits 10-14: interleave3
+                   dd 0x00094e11, 0x000b5e95, 0x000d6f19, 0x000f7f9d ; bits 15-19: interleave4
+%else
+dct_avx512:        dd 0x10000000, 0x00021104, 0x3206314c, 0x60042048 ; bits    0-4:   dct8x8_fenc    bits    5-9:   dct8x8_fdec
+                   dd 0x98008a10, 0x20029b14, 0xba06bb5c, 0x4004aa58 ; bits    10-13: dct16x16_fenc  bits    14-18: dct16x16_fdec
+                   dd 0x54004421, 0x80025525, 0x7606756d, 0xe0046469 ; bits(e) 24-27: idct8x8_idct1  bits(e) 28-31: idct8x8_idct2
+                   dd 0xdc00ce31, 0xa002df35, 0xfe06ff7d, 0xc004ee79 ; bits(o) 24-31: idct8x8_gather
+scan_frame_avx512: dw 0x7000, 0x5484, 0x3811, 0x1c22, 0x3c95, 0x5908, 0x758c, 0x9119 ; bits 0-3:   4x4_frame
+                   dw 0xaca6, 0xc833, 0xe447, 0xe8ba, 0xcd2d, 0xb19e, 0x960b, 0x7a8f ; bits 4-9:   8x8_frame1
+                   dw 0x5e10, 0x7da0, 0x9930, 0xb4c0, 0xd050, 0xec60, 0xf0d0, 0xd540 ; bits 10-15: 8x8_frame2
+                   dw 0xb9b0, 0x9e20, 0xbe90, 0xdb00, 0xf780, 0xfb10, 0xdea0, 0xfe30
+scan_field_avx512: dw 0x0700, 0x0741, 0x0782, 0x07c8, 0x08c9, 0x0a43, 0x0c04, 0x0a8a ; bits 0-5:   8x8_field1
+                   dw 0x0910, 0x094b, 0x0985, 0x09c6, 0x0ac7, 0x0c4c, 0x0c91, 0x0b18 ; bits 6-11:  8x8_field2
+                   dw 0x0b52, 0x0b8d, 0x0bce, 0x0ccf, 0x0e13, 0x0e59, 0x0d20, 0x0d5a
+                   dw 0x0d94, 0x0dd5, 0x0e96, 0x0ed7, 0x0f1b, 0x0f61, 0x0fa8, 0x0fe2
+cavlc_shuf_avx512: dw 0x0080, 0x0184, 0x0288, 0x038c, 0x0490, 0x0594, 0x0698, 0x079c ; bits 0-5:   interleave1
+                   dw 0x08a0, 0x09a4, 0x0aa8, 0x0bac, 0x0cb0, 0x0db4, 0x0eb8, 0x0fbc ; bits 6-11:  interleave2
+                   dw 0x00c1, 0x01c5, 0x02c9, 0x03cd, 0x04d1, 0x05d5, 0x06d9, 0x07dd
+                   dw 0x08e1, 0x09e5, 0x0ae9, 0x0bed, 0x0cf1, 0x0df5, 0x0ef9, 0x0ffd
+%endif
+
 pw_ppmmmmpp:    dw 1,1,-1,-1,-1,-1,1,1
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_sub4field:   db 0,4,1,8,12,5,9,13,2,6,10,14,3,7,11,15
@@ -580,6 +614,217 @@ cglobal sub16x16_dct, 3,3,6
     DCT4_1D 0, 1, 2, 3, 4
     STORE16_DCT_AVX2 0, 1, 2, 3, 4
     ret
+
+%macro DCT4x4_AVX512 0
+    psubw      m0, m2            ; 0 1
+    psubw      m1, m3            ; 3 2
+    SUMSUB_BA   w, 1, 0, 2
+    SBUTTERFLY wd, 1, 0, 2
+    paddw      m2, m1, m0
+    psubw      m3, m1, m0
+    paddw      m2 {k1}, m1       ; 0+1+2+3 0<<1+1-2-3<<1
+    psubw      m3 {k1}, m0       ; 0-1-2+3 0-1<<1+2<<1-3
+    shufps     m1, m2, m3, q2323 ; a3 b3 a2 b2 c3 d3 c2 d2
+    punpcklqdq m2, m3            ; a0 b0 a1 b1 c0 d0 c1 d1
+    SUMSUB_BA   w, 1, 2, 3
+    shufps     m3, m1, m2, q3131 ; a1+a2 b1+b2 c1+c2 d1+d2 a1-a2 b1-b2 b1-b2 d1-d2
+    shufps     m1, m2, q2020     ; a0+a3 b0+b3 c0+c3 d0+d3 a0-a3 b0-b3 c0-c3 d0-d3
+    paddw      m2, m1, m3
+    psubw      m0, m1, m3
+    paddw      m2 {k2}, m1       ; 0'+1'+2'+3' 0'<<1+1'-2'-3'<<1
+    psubw      m0 {k2}, m3       ; 0'-1'-2'+3' 0'-1'<<1+2'<<1-3'
+%endmacro
+
+INIT_XMM avx512
+cglobal sub4x4_dct
+    mov         eax, 0xf0aa
+    kmovw        k1, eax
+    PROLOGUE 3,3
+    movd         m0,      [r1+0*FENC_STRIDE]
+    movd         m2,      [r2+0*FDEC_STRIDE]
+    vpbroadcastd m0 {k1}, [r1+1*FENC_STRIDE]
+    vpbroadcastd m2 {k1}, [r2+1*FDEC_STRIDE]
+    movd         m1,      [r1+3*FENC_STRIDE]
+    movd         m3,      [r2+3*FDEC_STRIDE]
+    vpbroadcastd m1 {k1}, [r1+2*FENC_STRIDE]
+    vpbroadcastd m3 {k1}, [r2+2*FDEC_STRIDE]
+    kshiftrw     k2, k1, 8
+    pxor         m4, m4
+    punpcklbw    m0, m4
+    punpcklbw    m2, m4
+    punpcklbw    m1, m4
+    punpcklbw    m3, m4
+    DCT4x4_AVX512
+    mova       [r0], m2
+    mova    [r0+16], m0
+    RET
+
+INIT_ZMM avx512
+cglobal dct4x4x4_internal
+    punpcklbw  m0, m1, m4
+    punpcklbw  m2, m3, m4
+    punpckhbw  m1, m4
+    punpckhbw  m3, m4
+    DCT4x4_AVX512
+    mova       m1, m2
+    vshufi32x4 m2 {k2}, m0, m0, q2200 ; m0
+    vshufi32x4 m0 {k3}, m1, m1, q3311 ; m1
+    ret
+
+%macro DCT8x8_LOAD_FENC_AVX512 4 ; dst, perm, row1, row2
+    movu     %1,     [r1+%3*FENC_STRIDE]
+    vpermt2d %1, %2, [r1+%4*FENC_STRIDE]
+%endmacro
+
+%macro DCT8x8_LOAD_FDEC_AVX512 5 ; dst, perm, tmp, row1, row2
+    movu     %1,      [r2+(%4  )*FDEC_STRIDE]
+    vmovddup %1 {k1}, [r2+(%4+2)*FDEC_STRIDE]
+    movu     %3,      [r2+(%5  )*FDEC_STRIDE]
+    vmovddup %3 {k1}, [r2+(%5+2)*FDEC_STRIDE]
+    vpermt2d %1, %2, %3
+%endmacro
+
+cglobal sub8x8_dct, 3,3
+    mova       m0, [dct_avx512]
+    DCT8x8_LOAD_FENC_AVX512 m1, m0, 0, 4 ; 0 2 1 3
+    mov       r1d, 0xaaaaaaaa
+    kmovd      k1, r1d
+    psrld      m0, 5
+    DCT8x8_LOAD_FDEC_AVX512 m3, m0, m2, 0, 4
+    mov       r1d, 0xf0f0f0f0
+    kmovd      k2, r1d
+    pxor      xm4, xm4
+    knotw      k3, k2
+    call dct4x4x4_internal_avx512
+    mova     [r0], m0
+    mova  [r0+64], m1
+    RET
+
+%macro SUB4x16_DCT_AVX512 2 ; dst, src
+    vpermd   m1, m5, [r1+1*%2*64]
+    mova     m3,     [r2+2*%2*64]
+    vpermt2d m3, m6, [r2+2*%2*64+64]
+    call dct4x4x4_internal_avx512
+    mova [r0+%1*64    ], m0
+    mova [r0+%1*64+128], m1
+%endmacro
+
+cglobal sub16x16_dct
+    psrld    m5, [dct_avx512], 10
+    mov     eax, 0xaaaaaaaa
+    kmovd    k1, eax
+    mov     eax, 0xf0f0f0f0
+    kmovd    k2, eax
+    PROLOGUE 3,3
+    pxor    xm4, xm4
+    knotw    k3, k2
+    psrld    m6, m5, 4
+    SUB4x16_DCT_AVX512 0, 0
+    SUB4x16_DCT_AVX512 1, 1
+    SUB4x16_DCT_AVX512 4, 2
+    SUB4x16_DCT_AVX512 5, 3
+    RET
+
+cglobal sub8x8_dct_dc, 3,3
+    mova         m3, [dct_avx512]
+    DCT8x8_LOAD_FENC_AVX512 m0, m3, 0, 4 ; 0 2 1 3
+    mov         r1d, 0xaa
+    kmovb        k1, r1d
+    psrld        m3, 5
+    DCT8x8_LOAD_FDEC_AVX512 m1, m3, m2, 0, 4
+    pxor        xm3, xm3
+    psadbw       m0, m3
+    psadbw       m1, m3
+    psubw        m0, m1
+    vpmovqw    xmm0, m0
+    vprold     xmm1, xmm0, 16
+    paddw      xmm0, xmm1       ; 0 0 2 2 1 1 3 3
+    punpckhqdq xmm2, xmm0, xmm0
+    psubw      xmm1, xmm0, xmm2 ; 0-1 0-1 2-3 2-3
+    paddw      xmm0, xmm2       ; 0+1 0+1 2+3 2+3
+    punpckldq  xmm0, xmm1       ; 0+1 0+1 0-1 0-1 2+3 2+3 2-3 2-3
+    punpcklqdq xmm1, xmm0, xmm0
+    psubw      xmm0 {k1}, xm3, xmm0
+    paddw      xmm0, xmm1       ; 0+1+2+3 0+1-2-3 0-1+2-3 0-1-2+3
+    movhps     [r0], xmm0
+    RET
+
+cglobal sub8x16_dct_dc, 3,3
+    mova         m5, [dct_avx512]
+    DCT8x8_LOAD_FENC_AVX512 m0, m5, 0, 8  ; 0 4 1 5
+    DCT8x8_LOAD_FENC_AVX512 m1, m5, 4, 12 ; 2 6 3 7
+    mov         r1d, 0xaa
+    kmovb        k1, r1d
+    psrld        m5, 5
+    DCT8x8_LOAD_FDEC_AVX512 m2, m5, m4, 0, 8
+    DCT8x8_LOAD_FDEC_AVX512 m3, m5, m4, 4, 12
+    pxor        xm4, xm4
+    psadbw       m0, m4
+    psadbw       m1, m4
+    psadbw       m2, m4
+    psadbw       m3, m4
+    psubw        m0, m2
+    psubw        m1, m3
+    SBUTTERFLY  qdq, 0, 1, 2
+    paddw        m0, m1
+    vpmovqw    xmm0, m0         ; 0 2 4 6 1 3 5 7
+    psrlq      xmm2, xmm0, 32
+    psubw      xmm1, xmm0, xmm2 ; 0-4 2-6 1-5 3-7
+    paddw      xmm0, xmm2       ; 0+4 2+6 1+5 3+7
+    punpckhdq  xmm2, xmm0, xmm1
+    punpckldq  xmm0, xmm1
+    psubw      xmm1, xmm0, xmm2 ; 0-1+4-5 2-3+6-7 0-1-4+5 2-3-6+7
+    paddw      xmm0, xmm2       ; 0+1+4+5 2+3+6+7 0+1-4-5 2+3-6-7
+    punpcklwd  xmm0, xmm1
+    psrlq      xmm2, xmm0, 32
+    psubw      xmm1, xmm0, xmm2 ; 0+1-2-3+4+5-6-7 0-1-2+3+4-5-6+7 0+1-2-3-4-5+6+7 0-1-2+3-4+5+6-7
+    paddw      xmm0, xmm2       ; 0+1+2+3+4+5+6+7 0-1+2-3+4-5+6-7 0+1+2+3-4-5-6-7 0-1+2-3-4+5-6+7
+    shufps     xmm0, xmm1, q0220
+    mova       [r0], xmm0
+    RET
+
+%macro SARSUMSUB 3 ; a, b, tmp
+    mova    m%3, m%1
+    vpsraw  m%1 {k1}, 1
+    psubw   m%1, m%2    ; 0-2 1>>1-3
+    vpsraw  m%2 {k1}, 1
+    paddw   m%2, m%3    ; 0+2 1+3>>1
+%endmacro
+
+cglobal add8x8_idct, 2,2
+    mova            m1, [r1]
+    mova            m2, [r1+64]
+    mova            m3, [dct_avx512]
+    vbroadcasti32x4 m4, [pw_32]
+    mov            r1d, 0xf0f0f0f0
+    kxnorb          k2, k2, k2
+    kmovd           k1, r1d
+    kmovb           k3, k2
+    vshufi32x4      m0, m1, m2, q2020 ; 0 1   4 5   8 9   c d
+    vshufi32x4      m1, m2, q3131     ; 2 3   6 7   a b   e f
+    psrlq           m5, m3, 56        ; {0, 3, 1, 2, 4, 7, 5, 6} * FDEC_STRIDE
+    vpgatherqq      m6 {k2}, [r0+m5]
+    SARSUMSUB        0, 1, 2
+    SBUTTERFLY      wd, 1, 0, 2
+    psrlq           m7, m3, 28
+    SUMSUB_BA        w, 0, 1, 2       ; 0+1+2+3>>1 0+1>>1-2-3
+    vprold          m1, 16            ; 0-1>>1-2+3 0-1+2-3>>1
+    SBUTTERFLY      dq, 0, 1, 2
+    psrlq           m3, 24
+    SARSUMSUB        0, 1, 2
+    vpermi2q        m3, m1, m0
+    vpermt2q        m1, m7, m0
+    paddw           m3, m4            ; += 32
+    SUMSUB_BA        w, 1, 3, 0
+    psraw           m1, 6             ; 0'+1'+2'+3'>>1 0'+1'>>1-2'-3'
+    psraw           m3, 6             ; 0'-1'+2'-3'>>1 0'-1'>>1-2'+3'
+    pxor           xm0, xm0
+    SBUTTERFLY      bw, 6, 0, 2
+    paddsw          m1, m6
+    paddsw          m3, m0
+    packuswb        m1, m3
+    vpscatterqq [r0+m5] {k3}, m1
+    RET
 %endif ; HIGH_BIT_DEPTH
 
 INIT_MMX
@@ -1881,5 +2126,163 @@ cglobal zigzag_interleave_8x8_cavlc, 3,3,6
     mov  [r2+0], r0w
     shr     r0d, 16
     mov  [r2+8], r0w
+    RET
+%endif ; !HIGH_BIT_DEPTH
+
+%if HIGH_BIT_DEPTH
+INIT_ZMM avx512
+cglobal zigzag_scan_4x4_frame, 2,2
+    mova        m0, [scan_frame_avx512]
+    vpermd      m0, m0, [r1]
+    mova      [r0], m0
+    RET
+
+cglobal zigzag_scan_4x4_field, 2,2
+    mova        m0, [r1]
+    pshufd    xmm1, [r1+8], q3102
+    mova      [r0], m0
+    movu    [r0+8], xmm1
+    RET
+
+cglobal zigzag_scan_8x8_frame, 2,2
+    psrld       m0, [scan_frame_avx512], 4
+    mova        m1, [r1+0*64]
+    mova        m2, [r1+1*64]
+    mova        m3, [r1+2*64]
+    mova        m4, [r1+3*64]
+    mov        r1d, 0x01fe7f80
+    kmovd       k1, r1d
+    kshiftrd    k2, k1, 16
+    vpermd      m5, m0, m3  ; __ __ __ __ __ __ __ __ __ __ __ __ __ __ 32 40
+    psrld       m6, m0, 5
+    vpermi2d    m0, m1, m2  ;  0  8  1  2  9 16 24 17 10  3  4 11 18 25 __ __
+    vmovdqa64   m0 {k1}, m5
+    mova [r0+0*64], m0
+    mova        m5, m1
+    vpermt2d    m1, m6, m2  ; __ 26 19 12  5  6 13 20 27 __ __ __ __ __ __ __
+    psrld       m0, m6, 5
+    vpermi2d    m6, m3, m4  ; 33 __ __ __ __ __ __ __ __ 34 41 48 56 49 42 35
+    vmovdqa32   m6 {k2}, m1
+    mova [r0+1*64], m6
+    vpermt2d    m5, m0, m2  ; 28 21 14  7 15 22 29 __ __ __ __ __ __ __ __ 30
+    psrld       m1, m0, 5
+    vpermi2d    m0, m3, m4  ; __ __ __ __ __ __ __ 36 43 50 57 58 51 44 37 __
+    vmovdqa32   m5 {k1}, m0
+    mova [r0+2*64], m5
+    vpermt2d    m3, m1, m4  ; __ __ 38 45 52 59 60 53 46 39 47 54 61 62 55 63
+    vpermd      m2, m1, m2  ; 23 31 __ __ __ __ __ __ __ __ __ __ __ __ __ __
+    vmovdqa64   m2 {k2}, m3
+    mova [r0+3*64], m2
+    RET
+
+cglobal zigzag_scan_8x8_field, 2,2
+    mova        m0, [scan_field_avx512]
+    mova        m1, [r1+0*64]
+    mova        m2, [r1+1*64]
+    mova        m3, [r1+2*64]
+    mova        m4, [r1+3*64]
+    mov        r1d, 0x3f
+    kmovb       k1, r1d
+    psrld       m5, m0, 5
+    vpermi2d    m0, m1, m2
+    vmovdqa64   m1 {k1}, m3 ; 32 33 34 35 36 37 38 39 40 41 42 43 12 13 14 15
+    vpermt2d    m1, m5, m2
+    psrld       m5, 5
+    vmovdqa64   m2 {k1}, m4 ; 48 49 50 51 52 53 54 55 56 57 58 59 28 29 30 31
+    vpermt2d    m2, m5, m3
+    psrld       m5, 5
+    vpermt2d    m3, m5, m4
+    mova [r0+0*64], m0
+    mova [r0+1*64], m1
+    mova [r0+2*64], m2
+    mova [r0+3*64], m3
+    RET
+
+cglobal zigzag_interleave_8x8_cavlc, 3,3
+    mova        m0, [cavlc_shuf_avx512]
+    mova        m1, [r1+0*64]
+    mova        m2, [r1+1*64]
+    mova        m3, [r1+2*64]
+    mova        m4, [r1+3*64]
+    kxnorb      k1, k1, k1
+    por         m7, m1, m2
+    psrld       m5, m0, 5
+    vpermi2d    m0, m1, m2        ; a0 a1 b0 b1
+    vpternlogd  m7, m3, m4, 0xfe  ; m1|m2|m3|m4
+    psrld       m6, m5, 5
+    vpermi2d    m5, m3, m4        ; b2 b3 a2 a3
+    vptestmd    k0, m7, m7
+    vpermt2d    m1, m6, m2        ; c0 c1 d0 d1
+    psrld       m6, 5
+    vpermt2d    m3, m6, m4        ; d2 d3 c2 c3
+    vshufi32x4  m2, m0, m5, q1032 ; b0 b1 b2 b3
+    vmovdqa32   m5 {k1}, m0       ; a0 a1 a2 a3
+    vshufi32x4  m4, m1, m3, q1032 ; d0 d1 d2 d3
+    vmovdqa32   m3 {k1}, m1       ; c0 c1 c2 c3
+    mova [r0+0*64], m5
+    mova [r0+1*64], m2
+    mova [r0+2*64], m3
+    mova [r0+3*64], m4
+    kmovw      r1d, k0
+    test       r1d, 0x1111
+    setnz     [r2]
+    test       r1d, 0x2222
+    setnz   [r2+1]
+    test       r1d, 0x4444
+    setnz   [r2+8]
+    test       r1d, 0x8888
+    setnz   [r2+9]
+    RET
+
+%else ; !HIGH_BIT_DEPTH
+INIT_YMM avx512
+cglobal zigzag_scan_4x4_frame, 2,2
+    mova        m0, [scan_frame_avx512]
+    vpermw      m0, m0, [r1]
+    mova      [r0], m0
+    RET
+
+cglobal zigzag_scan_4x4_field, 2,2
+    mova        m0, [r1]
+    pshuflw   xmm1, [r1+4], q3102
+    mova      [r0], m0
+    movq    [r0+4], xmm1
+    RET
+
+INIT_ZMM avx512
+cglobal zigzag_scan_8x8_frame, 2,2
+    psrlw       m0, [scan_frame_avx512], 4
+scan8_avx512:
+    mova        m1, [r1]
+    mova        m2, [r1+64]
+    psrlw       m3, m0, 6
+    vpermi2w    m0, m1, m2
+    vpermt2w    m1, m3, m2
+    mova      [r0], m0
+    mova   [r0+64], m1
+    RET
+
+cglobal zigzag_scan_8x8_field, 2,2
+    mova        m0, [scan_field_avx512]
+    jmp scan8_avx512
+
+cglobal zigzag_interleave_8x8_cavlc, 3,3
+    mova       m0, [cavlc_shuf_avx512]
+    mova       m1, [r1]
+    mova       m2, [r1+64]
+    psrlw      m3, m0, 6
+    vpermi2w   m0, m1, m2
+    vpermt2w   m1, m3, m2
+    kxnorb     k2, k2, k2
+    vptestmd   k0, m0, m0
+    vptestmd   k1, m1, m1
+    mova     [r0], m0
+    mova  [r0+64], m1
+    ktestw     k2, k0
+    setnz    [r2]
+    setnc  [r2+1]
+    ktestw     k2, k1
+    setnz  [r2+8]
+    setnc  [r2+9]
     RET
 %endif ; !HIGH_BIT_DEPTH

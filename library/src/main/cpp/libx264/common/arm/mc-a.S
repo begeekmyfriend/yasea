@@ -28,10 +28,9 @@
 
 #include "asm.S"
 
-.section .rodata
-.align 4
-pw_0to15:
+const pw_0to15, align=4
 .short 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+endconst
 
 .text
 
@@ -140,7 +139,7 @@ MEMCPY_ALIGNED 16, 8
 MEMCPY_ALIGNED  8, 16
 MEMCPY_ALIGNED  8, 8
 
-const memcpy_table align=2, relocate=1
+const memcpy_table, align=2, relocate=1
 .word memcpy_aligned_16_16_neon
 .word memcpy_aligned_16_8_neon
 .word memcpy_aligned_8_16_neon

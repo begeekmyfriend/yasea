@@ -420,47 +420,47 @@ static char *stringify_names( char *buf, const char * const names[] )
     return buf;
 }
 
+#define INDENT "                                "
+#define INDENT_LEN 32 // strlen( INDENT )
+#define SEPARATOR ", "
+#define SEPARATOR_LEN 2 // strlen( SEPARATOR )
+
+static void print_csp_name_internal( const char *name, size_t *line_len, int last )
+{
+    if( name )
+    {
+        size_t name_len = strlen( name );
+        if( *line_len + name_len > (80 - SEPARATOR_LEN) )
+        {
+            printf( "\n" INDENT );
+            *line_len = INDENT_LEN;
+        }
+        printf( "%s", name );
+        *line_len += name_len;
+        if( !last )
+        {
+            printf( SEPARATOR );
+            *line_len += SEPARATOR_LEN;
+        }
+    }
+}
+
 static void print_csp_names( int longhelp )
 {
     if( longhelp < 2 )
         return;
-#   define INDENT "                                "
     printf( "                              - valid csps for `raw' demuxer:\n" );
     printf( INDENT );
+    size_t line_len = INDENT_LEN;
     for( int i = X264_CSP_NONE+1; i < X264_CSP_CLI_MAX; i++ )
-    {
-        if( x264_cli_csps[i].name )
-        {
-            printf( "%s", x264_cli_csps[i].name );
-            if( i+1 < X264_CSP_CLI_MAX )
-                printf( ", " );
-        }
-    }
+        print_csp_name_internal( x264_cli_csps[i].name, &line_len, i == X264_CSP_CLI_MAX-1 );
 #if HAVE_LAVF
     printf( "\n" );
     printf( "                              - valid csps for `lavf' demuxer:\n" );
     printf( INDENT );
-    size_t line_len = strlen( INDENT );
+    line_len = INDENT_LEN;
     for( enum AVPixelFormat i = AV_PIX_FMT_NONE+1; i < AV_PIX_FMT_NB; i++ )
-    {
-        const char *pfname = av_get_pix_fmt_name( i );
-        if( pfname )
-        {
-            size_t name_len = strlen( pfname );
-            if( line_len + name_len > (80 - strlen( ", " )) )
-            {
-                printf( "\n" INDENT );
-                line_len = strlen( INDENT );
-            }
-            printf( "%s", pfname );
-            line_len += name_len;
-            if( i+1 < AV_PIX_FMT_NB )
-            {
-                printf( ", " );
-                line_len += 2;
-            }
-        }
-    }
+        print_csp_name_internal( av_get_pix_fmt_name( i ), &line_len, i == AV_PIX_FMT_NB-1 );
 #endif
     printf( "\n" );
 }
@@ -636,7 +636,7 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  - grain (psy tuning):\n"
         "                                    --aq-strength 0.5 --no-dct-decimate\n"
         "                                    --deadzone-inter 6 --deadzone-intra 6\n"
-        "                                    --deblock -2:-2 --ipratio 1.1 \n"
+        "                                    --deblock -2:-2 --ipratio 1.1\n"
         "                                    --pbratio 1.1 --psy-rd <unset>:0.25\n"
         "                                    --qcomp 0.8\n"
         "                                  - stillimage (psy tuning):\n"

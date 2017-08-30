@@ -26,9 +26,7 @@
 
 #include "asm.S"
 
-.section .rodata
-.align 4
-
+const mask_array, align=4
 .rept 16
         .byte 0xff
 .endr
@@ -36,11 +34,14 @@ mask_ff:
 .rept 16
         .byte 0
 .endr
+endconst
 
-mask_ac4:
+const mask_ac4, align=4
 .short 0, -1, -1, -1,  0, -1, -1, -1
-mask_ac8:
+endconst
+const mask_ac8, align=4
 .short 0, -1, -1, -1, -1, -1, -1, -1
+endconst
 
 .text
 
@@ -718,13 +719,24 @@ function x264_var_end, export=0
     bx              lr
 endfunc
 
-.macro DIFF_SUM diff da db lastdiff
-    vld1.64         {\da}, [r0,:64], r1
-    vld1.64         {\db}, [r2,:64], r3
-.ifnb \lastdiff
-    vadd.s16        q0,  q0,  \lastdiff
+.macro DIFF_SUM diff1 diff2 da1 db1 da2 db2 lastdiff1 lastdiff2 acc1 acc2
+    vld1.64         {\da1}, [r0,:64]!
+    vld1.64         {\db1}, [r1,:64], r3
+.ifnb \lastdiff1
+    vadd.s16        \acc1, \acc1, \lastdiff1
+    vadd.s16        \acc2, \acc2, \lastdiff2
 .endif
-    vsubl.u8        \diff, \da, \db
+    vld1.64         {\da2}, [r0,:64]!
+    vld1.64         {\db2}, [r1,:64], r3
+    vsubl.u8        \diff1, \da1, \db1
+    vsubl.u8        \diff2, \da2, \db2
+.endm
+
+.macro SQR_ACC_DOUBLE acc1 acc2 d0 d1 d2 d3 vmlal=vmlal.s16
+    \vmlal          \acc1, \d0, \d0
+    vmlal.s16       \acc1, \d1, \d1
+    \vmlal          \acc2, \d2, \d2
+    vmlal.s16       \acc2, \d3, \d3
 .endm
 
 .macro SQR_ACC acc d0 d1 vmlal=vmlal.s16
@@ -733,77 +745,89 @@ endfunc
 .endm
 
 function x264_pixel_var2_8x8_neon
-    DIFF_SUM        q0,  d0,  d1
-    DIFF_SUM        q8,  d16, d17
-    SQR_ACC         q1,  d0,  d1,  vmull.s16
-    DIFF_SUM        q9,  d18, d19, q8
-    SQR_ACC         q2,  d16, d17, vmull.s16
+    mov             r3,  #16
+    DIFF_SUM        q0,  q10, d0,  d1,  d20, d21
+    DIFF_SUM        q8,  q11, d16, d17, d22, d23
+    SQR_ACC_DOUBLE  q1,  q13, d0,  d1,  d20, d21, vmull.s16
+    DIFF_SUM        q9,  q12, d18, d19, d24, d25, q8,  q11, q0,  q10
+    SQR_ACC_DOUBLE  q2,  q14, d16, d17, d22, d23, vmull.s16
 .rept 2
-    DIFF_SUM        q8,  d16, d17, q9
-    SQR_ACC         q1,  d18, d19
-    DIFF_SUM        q9,  d18, d19, q8
-    SQR_ACC         q2,  d16, d17
+    DIFF_SUM        q8,  q11, d16, d17, d22, d23, q9,  q12, q0,  q10
+    SQR_ACC_DOUBLE  q1,  q13, d18, d19, d24, d25
+    DIFF_SUM        q9,  q12, d18, d19, d24, d25, q8,  q11, q0,  q10
+    SQR_ACC_DOUBLE  q2,  q14, d16, d17, d22, d23
 .endr
-    DIFF_SUM        q8,  d16, d17, q9
-    SQR_ACC         q1,  d18, d19
+    DIFF_SUM        q8,  q11, d16, d17, d22, d23, q9,  q12, q0,  q10
+    SQR_ACC_DOUBLE  q1,  q13, d18, d19, d24, d25
     vadd.s16        q0,  q0,  q8
-    SQR_ACC         q2,  d16, d17
+    vadd.s16        q10, q10, q11
+    SQR_ACC_DOUBLE  q2,  q14, d16, d17, d22, d23
 
-    ldr             ip,  [sp]
     vadd.s16        d0,  d0,  d1
+    vadd.s16        d20, d20, d21
     vadd.s32        q1,  q1,  q2
+    vadd.s32        q13, q13, q14
     vpaddl.s16      d0,  d0
+    vpaddl.s16      d20, d20
     vadd.s32        d1,  d2,  d3
-    vpadd.s32       d0,  d0,  d1
+    vadd.s32        d26, d26, d27
+    vpadd.s32       d0,  d0,  d20 @ sum
+    vpadd.s32       d1,  d1,  d26 @ sqr
+    vmul.s32        d0,  d0,  d0  @ sum*sum
+    vshr.s32        d0,  d0,  #6
+    vsub.s32        d0,  d1,  d0
+    vpadd.s32       d0,  d0,  d0
 
     vmov            r0,  r1,  d0
-    vst1.32         {d0[1]}, [ip,:32]
-    mul             r0,  r0,  r0
-    sub             r0,  r1,  r0,  lsr #6
+    vst1.32         {d1}, [r2,:64]
     bx              lr
 endfunc
 
 function x264_pixel_var2_8x16_neon
-    vld1.64         {d16}, [r0,:64], r1
-    vld1.64         {d17}, [r2,:64], r3
-    vld1.64         {d18}, [r0,:64], r1
-    vld1.64         {d19}, [r2,:64], r3
+    mov             r3,  #16
+    vld1.64         {d16}, [r0,:64]!
+    vld1.64         {d17}, [r1,:64], r3
+    vld1.64         {d18}, [r0,:64]!
+    vld1.64         {d19}, [r1,:64], r3
+    vsubl.u8        q0,  d16, d17
+    vsubl.u8        q3,  d18, d19
+    SQR_ACC         q1,  d0,  d1,   vmull.s16
+    vld1.64         {d16}, [r0,:64]!
+    mov             ip,  #15
+    vld1.64         {d17}, [r1,:64], r3
+    SQR_ACC         q2,  d6,  d7,   vmull.s16
+1:  subs            ip,  ip,  #1
+    vld1.64         {d18}, [r0,:64]!
     vsubl.u8        q10, d16, d17
-    vsubl.u8        q11, d18, d19
-    SQR_ACC         q1,  d20, d21,  vmull.s16
-    vld1.64         {d16}, [r0,:64], r1
-    vadd.s16        q0,  q10, q11
-    vld1.64         {d17}, [r2,:64], r3
-    SQR_ACC         q2,  d22, d23,  vmull.s16
-    mov             ip,  #14
-1:  subs            ip,  ip,  #2
-    vld1.64         {d18}, [r0,:64], r1
-    vsubl.u8        q10, d16, d17
-    vld1.64         {d19}, [r2,:64], r3
+    vld1.64         {d19}, [r1,:64], r3
     vadd.s16        q0,  q0,  q10
     SQR_ACC         q1,  d20, d21
     vsubl.u8        q11, d18, d19
     beq             2f
-    vld1.64         {d16}, [r0,:64], r1
-    vadd.s16        q0,  q0,  q11
-    vld1.64         {d17}, [r2,:64], r3
+    vld1.64         {d16}, [r0,:64]!
+    vadd.s16        q3,  q3,  q11
+    vld1.64         {d17}, [r1,:64], r3
     SQR_ACC         q2,  d22, d23
     b               1b
 2:
-    vadd.s16        q0,  q0,  q11
+    vadd.s16        q3,  q3,  q11
     SQR_ACC         q2,  d22, d23
 
-    ldr             ip,  [sp]
     vadd.s16        d0,  d0,  d1
-    vadd.s32        q1,  q1,  q2
+    vadd.s16        d6,  d6,  d7
     vpaddl.s16      d0,  d0
-    vadd.s32        d1,  d2,  d3
-    vpadd.s32       d0,  d0,  d1
+    vpaddl.s16      d6,  d6
+    vadd.s32        d2,  d2,  d3
+    vadd.s32        d4,  d4,  d5
+    vpadd.s32       d0,  d0,  d6 @ sum
+    vpadd.s32       d2,  d2,  d4 @ sqr
+    vmul.s32        d0,  d0,  d0 @ sum*sum
+    vshr.s32        d0,  d0,  #7
+    vsub.s32        d0,  d2,  d0
+    vpadd.s32       d0,  d0,  d0
 
     vmov            r0,  r1,  d0
-    vst1.32         {d0[1]}, [ip,:32]
-    mul             r0,  r0,  r0
-    sub             r0,  r1,  r0,  lsr #7
+    vst1.32         {d2}, [r2,:64]
     bx              lr
 endfunc
 

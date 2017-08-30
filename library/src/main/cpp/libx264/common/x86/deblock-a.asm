@@ -28,10 +28,14 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
-SECTION_RODATA 32
+SECTION_RODATA 64
 
-load_bytes_shuf: times 2 db 3,4,5,6,11,12,13,14,4,5,6,7,12,13,14,15
-insert_top_shuf: dd 0,1,4,5,7,2,3,6
+load_bytes_zmm_shuf: dd 0x50404032, 0x70606053, 0xd0c0c0b4, 0xf0e0e0d5
+                     dd 0x50404036, 0x70606057, 0xd0c0c0b8, 0xf0e0e0d9
+                     dd 0x50104001, 0x70306023, 0xd090c083, 0xf0b0e0a5
+                     dd 0x50104005, 0x70306027, 0xd090c087, 0xf0b0e0a9
+load_bytes_ymm_shuf: dd 0x06050403, 0x0e0d0c1b, 0x07060544, 0x0f0e0d5c
+                     dd 0x06050473, 0x0e0d0c2b, 0x07060534, 0x0f0e0d6c
 transpose_shuf: db 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15
 
 SECTION .text
@@ -906,9 +910,8 @@ DEBLOCK_LUMA_INTRA
     movq       m3, %4
     punpcklwd  m0, m2
     punpcklwd  m1, m3
-    mova       m2, m0
+    punpckhdq  m2, m0, m1
     punpckldq  m0, m1
-    punpckhdq  m2, m1
 
     movq       m4, %5
     movq       m6, %6
@@ -916,9 +919,8 @@ DEBLOCK_LUMA_INTRA
     movq       m7, %8
     punpcklwd  m4, m6
     punpcklwd  m5, m7
-    mova       m6, m4
+    punpckhdq  m6, m4, m5
     punpckldq  m4, m5
-    punpckhdq  m6, m5
 
     punpckhqdq m1, m0, m4
     punpckhqdq m3, m2, m6
@@ -2278,13 +2280,10 @@ cglobal deblock_h_chroma_intra_mbaff, 4,6,8
     RET
 %endif ; !HIGH_BIT_DEPTH
 
-
-
 ;-----------------------------------------------------------------------------
 ; static void deblock_strength( uint8_t nnz[48], int8_t ref[2][40], int16_t mv[2][40][2],
 ;                               uint8_t bs[2][4][4], int mvy_limit, int bframe )
 ;-----------------------------------------------------------------------------
-
 %define scan8start (4+1*8)
 %define nnz r0+scan8start
 %define ref r1+scan8start
@@ -2292,145 +2291,54 @@ cglobal deblock_h_chroma_intra_mbaff, 4,6,8
 %define bs0 r3
 %define bs1 r3+32
 
-%macro LOAD_BYTES_MMX 1
-    movd      m2, [%1+8*0-1]
-    movd      m0, [%1+8*0]
-    movd      m3, [%1+8*2-1]
-    movd      m1, [%1+8*2]
-    punpckldq m2, [%1+8*1-1]
-    punpckldq m0, [%1+8*1]
-    punpckldq m3, [%1+8*3-1]
-    punpckldq m1, [%1+8*3]
-%endmacro
-
-%macro DEBLOCK_STRENGTH_REFS_MMX 0
-    LOAD_BYTES_MMX ref
-    pxor      m2, m0
-    pxor      m3, m1
-    por       m2, [bs0+0]
-    por       m3, [bs0+8]
-    movq [bs0+0], m2
-    movq [bs0+8], m3
-
-    movd      m2, [ref-8*1]
-    movd      m3, [ref+8*1]
-    punpckldq m2, m0  ; row -1, row 0
-    punpckldq m3, m1  ; row  1, row 2
-    pxor      m0, m2
-    pxor      m1, m3
-    por       m0, [bs1+0]
-    por       m1, [bs1+8]
-    movq [bs1+0], m0
-    movq [bs1+8], m1
-%endmacro
-
-%macro DEBLOCK_STRENGTH_MVS_MMX 2
-    mova      m0, [mv-%2]
-    mova      m1, [mv-%2+8]
-    psubw     m0, [mv]
-    psubw     m1, [mv+8]
-    packsswb  m0, m1
-    ABSB      m0, m1
-    psubusb   m0, m7
-    packsswb  m0, m0
-    por       m0, [%1]
-    movd    [%1], m0
-%endmacro
-
-%macro DEBLOCK_STRENGTH_NNZ_MMX 1
-    por       m2, m0
-    por       m3, m1
-    mova      m4, [%1]
-    mova      m5, [%1+8]
-    pminub    m2, m6
-    pminub    m3, m6
-    pminub    m4, m6 ; mv ? 1 : 0
-    pminub    m5, m6
-    paddb     m2, m2 ; nnz ? 2 : 0
-    paddb     m3, m3
-    pmaxub    m2, m4
-    pmaxub    m3, m5
-%endmacro
-
-%macro LOAD_BYTES_XMM 1
-    movu      m2, [%1-4] ; FIXME could be aligned if we changed nnz's allocation
+%macro LOAD_BYTES_XMM 2 ; src, aligned
+%if %2
+    mova      m2, [%1-4]
+    mova      m1, [%1+12]
+%else
+    movu      m2, [%1-4]
     movu      m1, [%1+12]
-    pslldq    m0, m2, 1
+%endif
+    psllq     m0, m2, 8
     shufps    m2, m1, q3131 ; cur nnz, all rows
-    pslldq    m1, 1
+    psllq     m1, 8
     shufps    m0, m1, q3131 ; left neighbors
+%if cpuflag(avx) || (%2 && cpuflag(ssse3))
+    palignr   m1, m2, [%1-20], 12
+%else
     pslldq    m1, m2, 4
-    movd      m3, [%1-8] ; could be palignr if nnz was aligned
+    movd      m3, [%1-8]
     por       m1, m3 ; top neighbors
+%endif
 %endmacro
 
-INIT_MMX mmx2
-cglobal deblock_strength, 6,6
-    ; Prepare mv comparison register
-    shl      r4d, 8
-    add      r4d, 3 - (1<<8)
-    movd      m7, r4d
-    SPLATW    m7, m7
-    mova      m6, [pb_1]
-    pxor      m0, m0
-    mova [bs0+0], m0
-    mova [bs0+8], m0
-    mova [bs1+0], m0
-    mova [bs1+8], m0
-
-.lists:
-    DEBLOCK_STRENGTH_REFS_MMX
-    mov      r4d, 4
-.mvs:
-    DEBLOCK_STRENGTH_MVS_MMX bs0, 4
-    DEBLOCK_STRENGTH_MVS_MMX bs1, 4*8
-    add       r2, 4*8
-    add       r3, 4
-    dec      r4d
-    jg .mvs
-    add       r1, 40
-    add       r2, 4*8
-    sub       r3, 16
-    dec      r5d
-    jge .lists
-
-    ; Check nnz
-    LOAD_BYTES_MMX nnz
-    DEBLOCK_STRENGTH_NNZ_MMX bs0
-    ; Transpose column output
-    SBUTTERFLY bw, 2, 3, 4
-    SBUTTERFLY bw, 2, 3, 4
-    mova [bs0+0], m2
-    mova [bs0+8], m3
-    movd      m2, [nnz-8*1]
-    movd      m3, [nnz+8*1]
-    punpckldq m2, m0  ; row -1, row 0
-    punpckldq m3, m1  ; row  1, row 2
-    DEBLOCK_STRENGTH_NNZ_MMX bs1
-    mova [bs1+0], m2
-    mova [bs1+8], m3
-    RET
+%if UNIX64
+    DECLARE_REG_TMP 5
+%else
+    DECLARE_REG_TMP 4
+%endif
 
 %macro DEBLOCK_STRENGTH_XMM 0
-cglobal deblock_strength, 6,6,7
+cglobal deblock_strength, 5,5,7
     ; Prepare mv comparison register
     shl      r4d, 8
     add      r4d, 3 - (1<<8)
     movd      m6, r4d
+    movifnidn t0d, r5m
     SPLATW    m6, m6
     pxor      m4, m4 ; bs0
     pxor      m5, m5 ; bs1
 
 .lists:
     ; Check refs
-    LOAD_BYTES_XMM ref
+    LOAD_BYTES_XMM ref, 0
     pxor      m0, m2
     pxor      m1, m2
     por       m4, m0
     por       m5, m1
 
     ; Check mvs
-%if cpuflag(ssse3)
+%if cpuflag(ssse3) && notcpuflag(avx)
     mova      m0, [mv+4*8*0]
     mova      m1, [mv+4*8*1]
     palignr   m3, m0, [mv+4*8*0-16], 12
@@ -2483,11 +2391,11 @@ cglobal deblock_strength, 6,6,7
     por       m5, m0
     add       r1, 40
     add       r2, 4*8*5
-    dec      r5d
+    dec      t0d
     jge .lists
 
     ; Check nnz
-    LOAD_BYTES_XMM nnz
+    LOAD_BYTES_XMM nnz, 1
     por       m0, m2
     por       m1, m2
     mova      m6, [pb_1]
@@ -2520,68 +2428,121 @@ INIT_XMM avx
 DEBLOCK_STRENGTH_XMM
 
 %macro LOAD_BYTES_YMM 1
-    movu         m0, [%1-4]             ; ___E FGHI ___J KLMN ___O PQRS ___T UVWX
-    pshufb       m0, [load_bytes_shuf]  ; EFGH JKLM FGHI KLMN OPQR TUVW PQRS UVWX
-    mova         m2, [insert_top_shuf]
-    vpermq       m1, m0, q3131          ; FGHI KLMN PQRS UVWX x2
-    vpermd       m0, m2, m0             ; EFGH JKLM OPQR TUVW ____ FGHI KLMN PQRS
-    vpbroadcastd m2, [%1-8]             ; ABCD ....
-    vpblendd     m0, m0, m2, 00010000b  ; EFGH JKLM OPQR TUVW ABCD FGHI KLMN PQRS
+    movu         m0, [%1-4]       ; ___E FGHI ___J KLMN ___O PQRS ___T UVWX
+    pshufb       m0, m6           ; EFGH JKLM FGHI KLMN OPQR TUVW PQRS UVWX
+    vpermq       m1, m0, q3131    ; FGHI KLMN PQRS UVWX x2
+    vpbroadcastd m2, [%1-8]       ; ABCD ....
+    vpblendd     m0, m0, m2, 0x80
+    vpermd       m0, m7, m0       ; EFGH JKLM OPQR TUVW ABCD FGHI KLMN PQRS
 %endmacro
 
 INIT_YMM avx2
-cglobal deblock_strength, 6,6,7
+cglobal deblock_strength, 5,5,8
+    mova            m6, [load_bytes_ymm_shuf]
     ; Prepare mv comparison register
-    shl      r4d, 8
-    add      r4d, 3 - (1<<8)
-    movd     xm6, r4d
-    vpbroadcastw m6, xm6
-    pxor      m5, m5 ; bs0,bs1
+    shl            r4d, 8
+    add            r4d, 3 - (1<<8)
+    movd           xm5, r4d
+    movifnidn      t0d, r5m
+    vpbroadcastw    m5, xm5
+    psrld           m7, m6, 4
+    pxor            m4, m4 ; bs0,bs1
 
 .lists:
     ; Check refs
     LOAD_BYTES_YMM ref
-    pxor      m0, m1
-    por       m5, m0
+    pxor            m0, m1
+    por             m4, m0
 
     ; Check mvs
-    movu     xm0, [mv-4+4*8*0]
-    vinserti128 m0, m0, [mv+4*8*-1], 1
-    vbroadcasti128  m2, [mv+4*8* 0]
-    vinserti128 m1, m2, [mv-4+4*8*1], 0
-    vbroadcasti128  m3, [mv+4*8* 1]
-    psubw     m0, m2
-    psubw     m1, m3
-
-    vinserti128 m2, m3, [mv-4+4*8*2], 0
-    vbroadcasti128  m4, [mv+4*8* 2]
-    vinserti128 m3, m4, [mv-4+4*8*3], 0
-    psubw     m2, m4
-    vbroadcasti128  m4, [mv+4*8* 3]
-    psubw     m3, m4
-    packsswb  m0, m1
-    packsswb  m2, m3
-    pabsb     m0, m0
-    pabsb     m2, m2
-    psubusb   m0, m6
-    psubusb   m2, m6
-    packsswb  m0, m2
-    por       m5, m0
-
-    add       r1, 40
-    add       r2, 4*8*5
-    dec      r5d
+    movu           xm0,     [mv+0*4*8-4]
+    vinserti128     m0, m0, [mv-1*4*8  ], 1
+    vbroadcasti128  m2,     [mv+0*4*8  ]
+    vinserti128     m1, m2, [mv+1*4*8-4], 0
+    psubw           m0, m2
+    vbroadcasti128  m2,     [mv+1*4*8  ]
+    psubw           m1, m2
+    packsswb        m0, m1
+    vinserti128     m1, m2, [mv+2*4*8-4], 0
+    vbroadcasti128  m3,     [mv+2*4*8  ]
+    vinserti128     m2, m3, [mv+3*4*8-4], 0
+    psubw           m1, m3
+    vbroadcasti128  m3,     [mv+3*4*8  ]
+    psubw           m2, m3
+    packsswb        m1, m2
+    pabsb           m0, m0
+    pabsb           m1, m1
+    psubusb         m0, m5
+    psubusb         m1, m5
+    packsswb        m0, m1
+    por             m4, m0
+    add             r1, 40
+    add             r2, 4*8*5
+    dec            t0d
     jge .lists
 
     ; Check nnz
     LOAD_BYTES_YMM nnz
-    por       m0, m1
-    mova      m6, [pb_1]
-    pminub    m0, m6
-    pminub    m5, m6 ; mv ? 1 : 0
-    paddb     m0, m0 ; nnz ? 2 : 0
-    pmaxub    m5, m0
-    vextracti128 [bs1], m5, 1
-    pshufb   xm5, [transpose_shuf]
-    mova   [bs0], xm5
+    mova            m2, [pb_1]
+    por             m0, m1
+    pminub          m0, m2
+    pminub          m4, m2 ; mv  ? 1 : 0
+    paddb           m0, m0 ; nnz ? 2 : 0
+    pmaxub          m0, m4
+    vextracti128 [bs1], m0, 1
+    pshufb         xm0, [transpose_shuf]
+    mova         [bs0], xm0
+    RET
+
+%macro LOAD_BYTES_ZMM 1
+    vpermd m1, m6, [%1-12]
+    pshufb m1, m7 ; EF FG GH HI JK KL LM MN OP PQ QR RS TU UV VW WX
+%endmacro         ; AF BG CH DI FK GL HM IN KP LQ MR NS PU QV RW SX
+
+INIT_ZMM avx512
+cglobal deblock_strength, 5,5
+    mova            m6, [load_bytes_zmm_shuf]
+    shl            r4d, 8
+    add            r4d, 3 - (1<<8)
+    vpbroadcastw    m5, r4d
+    mov            r4d, 0x34cc34cc ; {1,-1} * 11001100b
+    kmovb           k1, r4d
+    vpbroadcastd    m4, r4d
+    movifnidn      t0d, r5m
+    psrld           m7, m6, 4
+    pxor           xm3, xm3
+
+.lists:
+    vbroadcasti64x2 m2,      [mv+32]
+    vinserti64x2    m0, m2,  [mv-32], 2
+    vbroadcasti64x2 m1,      [mv+ 0]
+    vinserti64x2    m0, m0,  [mv- 4], 0
+    vbroadcasti64x2 m1 {k1}, [mv+64]
+    vinserti64x2    m0, m0,  [mv+60], 1
+    psubw           m0, m1
+    vinserti64x2    m1, m1,  [mv+28], 0
+    vbroadcasti64x2 m2 {k1}, [mv+96]
+    vinserti64x2    m1, m1,  [mv+92], 1
+    psubw           m1, m2
+    packsswb        m0, m1
+    pabsb           m0, m0
+    psubusb         m0, m5
+
+    LOAD_BYTES_ZMM ref
+    pmaddubsw       m1, m4           ; E-F F-G G-H H-I ...
+    vpternlogd      m3, m0, m1, 0xfe ; m3 | m0 | m1
+    add             r1, 40
+    add             r2, 4*8*5
+    dec            t0d
+    jge .lists
+
+    LOAD_BYTES_ZMM nnz
+    mova           ym2, [pb_1]
+    vptestmw        k1, m1, m1
+    vptestmw        k2, m3, m3
+    vpaddb         ym0 {k1}{z}, ym2, ym2 ; nnz ? 2 : 0
+    vpmaxub        ym0 {k2}, ym2         ; mv  ? 1 : 0
+    vextracti128 [bs1], ym0, 1
+    pshufb         xm0, [transpose_shuf]
+    mova         [bs0], xm0
     RET

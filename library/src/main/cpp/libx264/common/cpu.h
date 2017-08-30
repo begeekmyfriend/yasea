@@ -56,7 +56,7 @@ void     x264_cpu_sfence( void );
  * alignment between functions (osdep.h handles manual alignment of arrays
  * if it doesn't).
  */
-#if (ARCH_X86 || STACK_ALIGNMENT > 16) && HAVE_MMX
+#if HAVE_MMX && (STACK_ALIGNMENT > 16 || (ARCH_X86 && STACK_ALIGNMENT > 4))
 intptr_t x264_stack_align( void (*func)(), ... );
 #define x264_stack_align(func,...) x264_stack_align((void (*)())func, __VA_ARGS__)
 #else
@@ -65,7 +65,7 @@ intptr_t x264_stack_align( void (*func)(), ... );
 
 typedef struct
 {
-    const char name[16];
+    const char *name;
     uint32_t flags;
 } x264_cpu_name_t;
 extern const x264_cpu_name_t x264_cpu_names[];

@@ -28,15 +28,10 @@
 
 .syntax unified
 
-#if   HAVE_NEON
-        .arch           armv7-a
-#elif HAVE_ARMV6T2
-        .arch           armv6t2
-#elif HAVE_ARMV6
-        .arch           armv6
-#endif
-
+#ifndef __APPLE__
+.arch armv7-a
 .fpu neon
+#endif
 
 #ifdef PREFIX
 #   define EXTERN_ASM _
@@ -48,6 +43,14 @@
 #   define ELF
 #else
 #   define ELF @
+#endif
+
+#ifdef __MACH__
+#   define MACH
+#   define NONMACH @
+#else
+#   define MACH @
+#   define NONMACH
 #endif
 
 #if HAVE_AS_FUNC
@@ -76,6 +79,7 @@ ELF     .size   \name, . - \name
 FUNC    .endfunc
         .purgem endfunc
     .endm
+        .text
         .align  2
 .if \export == 1
         .global EXTERN_ASM\name
@@ -99,7 +103,8 @@ ELF     .size   \name, . - \name
 .if HAVE_SECTION_DATA_REL_RO && \relocate
         .section        .data.rel.ro
 .else
-        .section        .rodata
+NONMACH .section        .rodata
+MACH    .const_data
 .endif
         .align          \align
 \name:

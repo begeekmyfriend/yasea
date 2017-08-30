@@ -26,19 +26,20 @@
 
 #include "asm.S"
 
-.section .rodata
-.align 4
-pmovmskb_byte:
+const pmovmskb_byte, align=4
 .byte 1,2,4,8,16,32,64,128
 .byte 1,2,4,8,16,32,64,128
+endconst
 
-mask_2bit:
+const mask_2bit, align=4
 .byte 3,12,48,192,3,12,48,192
 .byte 3,12,48,192,3,12,48,192
+endconst
 
-mask_1bit:
+const mask_1bit, align=4
 .byte 128,64,32,16,8,4,2,1
 .byte 128,64,32,16,8,4,2,1
+endconst
 
 .text
 

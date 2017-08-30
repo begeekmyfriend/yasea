@@ -303,24 +303,24 @@
 %endmacro
 
 %macro HADDD 2 ; sum junk
-%if sizeof%1 == 32
-%define %2 xmm%2
-    vextracti128 %2, %1, 1
-%define %1 xmm%1
-    paddd   %1, %2
+%if sizeof%1 >= 64
+    vextracti32x8 ymm%2, zmm%1, 1
+    paddd         ymm%1, ymm%2
 %endif
-%if mmsize >= 16
-    MOVHL   %2, %1
-    paddd   %1, %2
+%if sizeof%1 >= 32
+    vextracti128  xmm%2, ymm%1, 1
+    paddd         xmm%1, xmm%2
+%endif
+%if sizeof%1 >= 16
+    MOVHL         xmm%2, xmm%1
+    paddd         xmm%1, xmm%2
 %endif
 %if cpuflag(xop) && sizeof%1 == 16
-    vphadddq %1, %1
+    vphadddq      xmm%1, xmm%1
 %else
-    PSHUFLW %2, %1, q0032
-    paddd   %1, %2
+    PSHUFLW       xmm%2, xmm%1, q1032
+    paddd         xmm%1, xmm%2
 %endif
-%undef %1
-%undef %2
 %endmacro
 
 %macro HADDW 2 ; reg, tmp

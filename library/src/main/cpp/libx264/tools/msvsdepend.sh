@@ -23,6 +23,12 @@ if command -v cygpath >/dev/null 2>&1 ; then
     IFS='
 '
     deps="$(cygpath -u -- $deps)"
+elif grep -q 'Microsoft' /proc/sys/kernel/osrelease 2>/dev/null ; then
+    # Running under WSL. We don't have access to cygpath but since the Windows
+    # file system resides under "/mnt/<drive_letter>/" we can simply replace
+    # "C:" with "/mnt/c". This command uses a GNU extension to sed but that's
+    # available on WSL so we don't need to limit ourselves by what POSIX says.
+    deps="$(printf '%s' "$deps" | sed 's/^\([a-zA-Z]\):/\/mnt\/\L\1/')"
 fi
 
 # Escape characters as required to create valid Makefile file names

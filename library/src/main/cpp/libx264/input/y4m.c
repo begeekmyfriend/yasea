@@ -223,6 +223,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         uint64_t i_size = ftell( h->fh );
         fseek( h->fh, init_pos, SEEK_SET );
         info->num_frames = (i_size - h->seq_header_len) / h->frame_size;
+        FAIL_IF_ERROR( !info->num_frames, "empty input file\n" );
 
         /* Attempt to use memory-mapped input frames if possible */
         if( !(h->bit_depth & 7) )

@@ -635,11 +635,11 @@ struct x264_t
     /* Current MB DCT coeffs */
     struct
     {
-        ALIGNED_N( dctcoef luma16x16_dc[3][16] );
+        ALIGNED_64( dctcoef luma16x16_dc[3][16] );
         ALIGNED_16( dctcoef chroma_dc[2][8] );
         // FIXME share memory?
-        ALIGNED_N( dctcoef luma8x8[12][64] );
-        ALIGNED_N( dctcoef luma4x4[16*3][16] );
+        ALIGNED_64( dctcoef luma8x8[12][64] );
+        ALIGNED_64( dctcoef luma4x4[16*3][16] );
     } dct;
 
     /* MB table and cache for current frame/mb */
@@ -729,7 +729,7 @@ struct x264_t
         int8_t  *type;                      /* mb type */
         uint8_t *partition;                 /* mb partition */
         int8_t  *qp;                        /* mb qp */
-        int16_t *cbp;                       /* mb cbp: 0x0?: luma, 0x?0: chroma, 0x100: luma dc, 0x0200 and 0x0400: chroma dc  (all set for PCM)*/
+        int16_t *cbp;                       /* mb cbp: 0x0?: luma, 0x?0: chroma, 0x100: luma dc, 0x200 and 0x400: chroma dc, 0x1000 PCM (all set for PCM) */
         int8_t  (*intra4x4_pred_mode)[8];   /* intra4x4 pred mode. for non I4x4 set to I_PRED_4x4_DC(2) */
                                             /* actually has only 7 entries; set to 8 for write-combining optimizations */
         uint8_t (*non_zero_count)[16*3];    /* nzc. for I_PCM set to 16 */
@@ -740,8 +740,7 @@ struct x264_t
         int16_t (*mvr[2][X264_REF_MAX*2])[2];/* 16x16 mv for each possible ref */
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
         int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
-        uint16_t *slice_table;              /* sh->first_mb of the slice that the indexed mb is part of
-                                             * NOTE: this will fail on resolutions above 2^16 MBs... */
+        uint32_t *slice_table;              /* sh->first_mb of the slice that the indexed mb is part of */
         uint8_t *field;
 
          /* buffer for weighted versions of the reference frames */
@@ -778,26 +777,27 @@ struct x264_t
             /* space for p_fenc and p_fdec */
 #define FENC_STRIDE 16
 #define FDEC_STRIDE 32
-            ALIGNED_N( pixel fenc_buf[48*FENC_STRIDE] );
-            ALIGNED_N( pixel fdec_buf[52*FDEC_STRIDE] );
+            ALIGNED_64( pixel fenc_buf[48*FENC_STRIDE] );
+            ALIGNED_64( pixel fdec_buf[54*FDEC_STRIDE] );
 
             /* i4x4 and i8x8 backup data, for skipping the encode stage when possible */
             ALIGNED_16( pixel i4x4_fdec_buf[16*16] );
             ALIGNED_16( pixel i8x8_fdec_buf[16*16] );
-            ALIGNED_16( dctcoef i8x8_dct_buf[3][64] );
-            ALIGNED_16( dctcoef i4x4_dct_buf[15][16] );
+            ALIGNED_64( dctcoef i8x8_dct_buf[3][64] );
+            ALIGNED_64( dctcoef i4x4_dct_buf[15][16] );
             uint32_t i4x4_nnz_buf[4];
             uint32_t i8x8_nnz_buf[4];
-            int i4x4_cbp;
-            int i8x8_cbp;
 
             /* Psy trellis DCT data */
             ALIGNED_16( dctcoef fenc_dct8[4][64] );
             ALIGNED_16( dctcoef fenc_dct4[16][16] );
 
             /* Psy RD SATD/SA8D scores cache */
-            ALIGNED_N( uint64_t fenc_hadamard_cache[9] );
-            ALIGNED_N( uint32_t fenc_satd_cache[32] );
+            ALIGNED_64( uint32_t fenc_satd_cache[32] );
+            ALIGNED_16( uint64_t fenc_hadamard_cache[9] );
+
+            int i4x4_cbp;
+            int i8x8_cbp;
 
             /* pointer over mb of the frame to be compressed */
             pixel *p_fenc[3]; /* y,u,v */
@@ -822,10 +822,10 @@ struct x264_t
         struct
         {
             /* real intra4x4_pred_mode if I_4X4 or I_8X8, I_PRED_4x4_DC if mb available, -1 if not */
-            ALIGNED_8( int8_t intra4x4_pred_mode[X264_SCAN8_LUMA_SIZE] );
+            ALIGNED_16( int8_t intra4x4_pred_mode[X264_SCAN8_LUMA_SIZE] );
 
-            /* i_non_zero_count if available else 0x80 */
-            ALIGNED_16( uint8_t non_zero_count[X264_SCAN8_SIZE] );
+            /* i_non_zero_count if available else 0x80. intentionally misaligned by 8 for asm */
+            ALIGNED_8( uint8_t non_zero_count[X264_SCAN8_SIZE] );
 
             /* -1 if unused, -2 if unavailable */
             ALIGNED_4( int8_t ref[2][X264_SCAN8_LUMA_SIZE] );
@@ -930,8 +930,8 @@ struct x264_t
     uint32_t (*nr_residual_sum)[64];
     uint32_t *nr_count;
 
-    ALIGNED_N( udctcoef nr_offset_denoise[4][64] );
-    ALIGNED_N( uint32_t nr_residual_sum_buf[2][4][64] );
+    ALIGNED_32( udctcoef nr_offset_denoise[4][64] );
+    ALIGNED_32( uint32_t nr_residual_sum_buf[2][4][64] );
     uint32_t nr_count_buf[2][4];
 
     uint8_t luma2chroma_pixel[7]; /* Subsampled pixel size */

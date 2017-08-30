@@ -108,10 +108,10 @@ int x264_is_pipe( const char *path );
 #else
 #define DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
 #endif
-#define ALIGNED_32( var ) DECLARE_ALIGNED( var, 32 )
-#define ALIGNED_16( var ) DECLARE_ALIGNED( var, 16 )
-#define ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
+
 #define ALIGNED_4( var )  DECLARE_ALIGNED( var, 4 )
+#define ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
+#define ALIGNED_16( var ) DECLARE_ALIGNED( var, 16 )
 
 // ARM compiliers don't reliably align stack variables
 // - EABI requires only 8 byte stack alignment to be maintained
@@ -125,39 +125,39 @@ int x264_is_pipe( const char *path );
     type (*name) __VA_ARGS__ = (void*)((intptr_t)(name##_u+mask) & ~mask)
 
 #if ARCH_ARM && SYS_MACOSX
-#define ALIGNED_ARRAY_8( ... ) ALIGNED_ARRAY_EMU( 7, __VA_ARGS__ )
+#define ALIGNED_ARRAY_8( ... ) EXPAND( ALIGNED_ARRAY_EMU( 7, __VA_ARGS__ ) )
 #else
-#define ALIGNED_ARRAY_8( type, name, sub1, ... )\
-    ALIGNED_8( type name sub1 __VA_ARGS__ )
+#define ALIGNED_ARRAY_8( type, name, sub1, ... ) ALIGNED_8( type name sub1 __VA_ARGS__ )
 #endif
 
 #if ARCH_ARM
-#define ALIGNED_ARRAY_16( ... ) ALIGNED_ARRAY_EMU( 15, __VA_ARGS__ )
+#define ALIGNED_ARRAY_16( ... ) EXPAND( ALIGNED_ARRAY_EMU( 15, __VA_ARGS__ ) )
 #else
-#define ALIGNED_ARRAY_16( type, name, sub1, ... )\
-    ALIGNED_16( type name sub1 __VA_ARGS__ )
+#define ALIGNED_ARRAY_16( type, name, sub1, ... ) ALIGNED_16( type name sub1 __VA_ARGS__ )
 #endif
 
 #define EXPAND(x) x
 
+#if ARCH_X86 || ARCH_X86_64
+#define NATIVE_ALIGN 64
+#define ALIGNED_32( var ) DECLARE_ALIGNED( var, 32 )
+#define ALIGNED_64( var ) DECLARE_ALIGNED( var, 64 )
 #if STACK_ALIGNMENT >= 32
-#define ALIGNED_ARRAY_32( type, name, sub1, ... )\
-    ALIGNED_32( type name sub1 __VA_ARGS__ )
+#define ALIGNED_ARRAY_32( type, name, sub1, ... ) ALIGNED_32( type name sub1 __VA_ARGS__ )
 #else
 #define ALIGNED_ARRAY_32( ... ) EXPAND( ALIGNED_ARRAY_EMU( 31, __VA_ARGS__ ) )
 #endif
-
+#if STACK_ALIGNMENT >= 64
+#define ALIGNED_ARRAY_64( type, name, sub1, ... ) ALIGNED_64( type name sub1 __VA_ARGS__ )
+#else
 #define ALIGNED_ARRAY_64( ... ) EXPAND( ALIGNED_ARRAY_EMU( 63, __VA_ARGS__ ) )
-
-/* For AVX2 */
-#if ARCH_X86 || ARCH_X86_64
-#define NATIVE_ALIGN 32
-#define ALIGNED_N ALIGNED_32
-#define ALIGNED_ARRAY_N ALIGNED_ARRAY_32
+#endif
 #else
 #define NATIVE_ALIGN 16
-#define ALIGNED_N ALIGNED_16
-#define ALIGNED_ARRAY_N ALIGNED_ARRAY_16
+#define ALIGNED_32 ALIGNED_16
+#define ALIGNED_64 ALIGNED_16
+#define ALIGNED_ARRAY_32 ALIGNED_ARRAY_16
+#define ALIGNED_ARRAY_64 ALIGNED_ARRAY_16
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)

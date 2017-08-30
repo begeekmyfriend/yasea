@@ -25,9 +25,7 @@
 
 #include "../common/aarch64/asm.S"
 
-.section .rodata
-.align 4
-register_init:
+const register_init, align=4
 .quad 0x21f86d66c8ca00ce
 .quad 0x75b6ba21077c48ad
 .quad 0xed56bb2dcb3c7736
@@ -46,10 +44,12 @@ register_init:
 .quad 0xd229e1f5b281303f
 .quad 0x71aeaff20b095fd9
 .quad 0xab63e2e11fa38ed9
+endconst
 
 
-error_message:
+const error_message
 .asciz "failed to preserve register"
+endconst
 
 .text
 
@@ -149,7 +149,7 @@ function x264_checkasm_call, export=1
     mov         w9,  #0
     str         w9,  [x2]
     movrel      x0, error_message
-    bl          puts
+    bl          X(puts)
 0:
     ldp         x0,  x1,  [sp], #16
     ldp         d14, d15, [sp], #16

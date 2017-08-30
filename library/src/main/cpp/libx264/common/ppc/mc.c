@@ -32,19 +32,6 @@
 typedef void (*pf_mc_t)( uint8_t *src, intptr_t i_src,
                          uint8_t *dst, intptr_t i_dst, int i_height );
 
-static inline int x264_tapfilter( uint8_t *pix, int i_pix_next )
-{
-    return pix[-2*i_pix_next] - 5*pix[-1*i_pix_next] + 20*(pix[0] +
-           pix[1*i_pix_next]) - 5*pix[ 2*i_pix_next] +
-           pix[ 3*i_pix_next];
-}
-
-static inline int x264_tapfilter1( uint8_t *pix )
-{
-    return pix[-2] - 5*pix[-1] + 20*(pix[0] + pix[1]) - 5*pix[ 2] +
-           pix[ 3];
-}
-
 static inline void x264_pixel_avg2_w4_altivec( uint8_t *dst,  intptr_t i_dst,
                                                uint8_t *src1, intptr_t i_src1,
                                                uint8_t *src2, int i_height )

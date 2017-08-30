@@ -53,18 +53,16 @@ cglobal cpu_cpuid, 5,7
     RET
 
 ;-----------------------------------------------------------------------------
-; void cpu_xgetbv( int op, int *eax, int *edx )
+; uint64_t cpu_xgetbv( int xcr )
 ;-----------------------------------------------------------------------------
-cglobal cpu_xgetbv, 3,7
-    push  r2
-    push  r1
-    mov  ecx, r0d
+cglobal cpu_xgetbv
+    movifnidn ecx, r0m
     xgetbv
-    pop   r4
-    mov [r4], eax
-    pop   r4
-    mov [r4], edx
-    RET
+%if ARCH_X86_64
+    shl       rdx, 32
+    or        rax, rdx
+%endif
+    ret
 
 %if ARCH_X86_64
 
@@ -77,7 +75,7 @@ cglobal stack_align
 %if WIN64
     sub  rsp, 32 ; shadow space
 %endif
-    and  rsp, ~31
+    and  rsp, ~(STACK_ALIGNMENT-1)
     mov  rax, r0
     mov   r0, r1
     mov   r1, r2
@@ -118,7 +116,7 @@ cglobal stack_align
     push ebp
     mov  ebp, esp
     sub  esp, 12
-    and  esp, ~31
+    and  esp, ~(STACK_ALIGNMENT-1)
     mov  ecx, [ebp+8]
     mov  edx, [ebp+12]
     mov  [esp], edx

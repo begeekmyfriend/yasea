@@ -106,8 +106,6 @@ SAD  4, 16
 SAD  4,  8
 SAD  4,  4
 
-
-
 ;=============================================================================
 ; SAD XMM
 ;=============================================================================
@@ -119,118 +117,64 @@ SAD  4,  4
     RET
 %endmacro
 
-%macro SAD_W16 0
 ;-----------------------------------------------------------------------------
 ; int pixel_sad_16x16( uint8_t *, intptr_t, uint8_t *, intptr_t )
 ;-----------------------------------------------------------------------------
-cglobal pixel_sad_16x16, 4,4,8
-    movu    m0, [r2]
-    movu    m1, [r2+r3]
-    lea     r2, [r2+2*r3]
-    movu    m2, [r2]
-    movu    m3, [r2+r3]
-    lea     r2, [r2+2*r3]
-    psadbw  m0, [r0]
-    psadbw  m1, [r0+r1]
-    lea     r0, [r0+2*r1]
-    movu    m4, [r2]
-    paddw   m0, m1
-    psadbw  m2, [r0]
-    psadbw  m3, [r0+r1]
-    lea     r0, [r0+2*r1]
-    movu    m5, [r2+r3]
-    lea     r2, [r2+2*r3]
-    paddw   m2, m3
-    movu    m6, [r2]
-    movu    m7, [r2+r3]
-    lea     r2, [r2+2*r3]
-    paddw   m0, m2
-    psadbw  m4, [r0]
-    psadbw  m5, [r0+r1]
-    lea     r0, [r0+2*r1]
-    movu    m1, [r2]
-    paddw   m4, m5
-    psadbw  m6, [r0]
-    psadbw  m7, [r0+r1]
-    lea     r0, [r0+2*r1]
-    movu    m2, [r2+r3]
-    lea     r2, [r2+2*r3]
-    paddw   m6, m7
-    movu    m3, [r2]
-    paddw   m0, m4
-    movu    m4, [r2+r3]
-    lea     r2, [r2+2*r3]
-    paddw   m0, m6
-    psadbw  m1, [r0]
-    psadbw  m2, [r0+r1]
-    lea     r0, [r0+2*r1]
-    movu    m5, [r2]
-    paddw   m1, m2
-    psadbw  m3, [r0]
-    psadbw  m4, [r0+r1]
-    lea     r0, [r0+2*r1]
-    movu    m6, [r2+r3]
-    lea     r2, [r2+2*r3]
-    paddw   m3, m4
-    movu    m7, [r2]
-    paddw   m0, m1
-    movu    m1, [r2+r3]
-    paddw   m0, m3
-    psadbw  m5, [r0]
-    psadbw  m6, [r0+r1]
-    lea     r0, [r0+2*r1]
-    paddw   m5, m6
-    psadbw  m7, [r0]
-    psadbw  m1, [r0+r1]
-    paddw   m7, m1
-    paddw   m0, m5
-    paddw   m0, m7
-    SAD_END_SSE2
-
-;-----------------------------------------------------------------------------
-; int pixel_sad_16x8( uint8_t *, intptr_t, uint8_t *, intptr_t )
-;-----------------------------------------------------------------------------
-cglobal pixel_sad_16x8, 4,4
-    movu    m0, [r2]
-    movu    m2, [r2+r3]
-    lea     r2, [r2+2*r3]
-    movu    m3, [r2]
-    movu    m4, [r2+r3]
-    psadbw  m0, [r0]
-    psadbw  m2, [r0+r1]
-    lea     r0, [r0+2*r1]
-    psadbw  m3, [r0]
-    psadbw  m4, [r0+r1]
-    lea     r0, [r0+2*r1]
-    lea     r2, [r2+2*r3]
-    paddw   m0, m2
-    paddw   m3, m4
-    paddw   m0, m3
-    movu    m1, [r2]
-    movu    m2, [r2+r3]
-    lea     r2, [r2+2*r3]
-    movu    m3, [r2]
-    movu    m4, [r2+r3]
-    psadbw  m1, [r0]
-    psadbw  m2, [r0+r1]
-    lea     r0, [r0+2*r1]
-    psadbw  m3, [r0]
-    psadbw  m4, [r0+r1]
-    lea     r0, [r0+2*r1]
-    lea     r2, [r2+2*r3]
-    paddw   m1, m2
-    paddw   m3, m4
-    paddw   m0, m1
-    paddw   m0, m3
+%macro SAD_W16 1 ; h
+cglobal pixel_sad_16x%1, 4,4
+%ifidn cpuname, sse2
+.skip_prologue:
+%endif
+%assign %%i 0
+%if ARCH_X86_64
+    lea  r6, [3*r1] ; r6 results in fewer REX prefixes than r4 and both are volatile
+    lea  r5, [3*r3]
+%rep %1/4
+    movu     m1, [r2]
+    psadbw   m1, [r0]
+    movu     m3, [r2+r3]
+    psadbw   m3, [r0+r1]
+    movu     m2, [r2+2*r3]
+    psadbw   m2, [r0+2*r1]
+    movu     m4, [r2+r5]
+    psadbw   m4, [r0+r6]
+%if %%i != %1/4-1
+    lea      r2, [r2+4*r3]
+    lea      r0, [r0+4*r1]
+%endif
+    paddw    m1, m3
+    paddw    m2, m4
+    ACCUM paddw, 0, 1, %%i
+    paddw    m0, m2
+    %assign %%i %%i+1
+%endrep
+%else     ; The cost of having to save and restore registers on x86-32
+%rep %1/2 ; nullifies the benefit of having 3*stride in registers.
+    movu     m1, [r2]
+    psadbw   m1, [r0]
+    movu     m2, [r2+r3]
+    psadbw   m2, [r0+r1]
+%if %%i != %1/2-1
+    lea      r2, [r2+2*r3]
+    lea      r0, [r0+2*r1]
+%endif
+    ACCUM paddw, 0, 1, %%i
+    paddw    m0, m2
+    %assign %%i %%i+1
+%endrep
+%endif
     SAD_END_SSE2
 %endmacro
 
 INIT_XMM sse2
-SAD_W16
+SAD_W16 16
+SAD_W16 8
 INIT_XMM sse3
-SAD_W16
+SAD_W16 16
+SAD_W16 8
 INIT_XMM sse2, aligned
-SAD_W16
+SAD_W16 16
+SAD_W16 8
 
 %macro SAD_INC_4x8P_SSE 1
     movq    m1, [r0]
@@ -259,7 +203,132 @@ cglobal pixel_sad_8x16_sse2, 4,4
     SAD_INC_4x8P_SSE 1
     SAD_INC_4x8P_SSE 1
     SAD_END_SSE2
+
+%macro SAD_W48_AVX512 3 ; w, h, d/q
+cglobal pixel_sad_%1x%2, 4,4
+    kxnorb        k1, k1, k1
+    kaddb         k1, k1, k1
+%assign %%i 0
+%if ARCH_X86_64 && %2 != 4
+    lea           r6, [3*r1]
+    lea           r5, [3*r3]
+%rep %2/4
+    mov%3         m1,      [r0]
+    vpbroadcast%3 m1 {k1}, [r0+r1]
+    mov%3         m3,      [r2]
+    vpbroadcast%3 m3 {k1}, [r2+r3]
+    mov%3         m2,      [r0+2*r1]
+    vpbroadcast%3 m2 {k1}, [r0+r6]
+    mov%3         m4,      [r2+2*r3]
+    vpbroadcast%3 m4 {k1}, [r2+r5]
+%if %%i != %2/4-1
+    lea           r0, [r0+4*r1]
+    lea           r2, [r2+4*r3]
+%endif
+    psadbw        m1, m3
+    psadbw        m2, m4
+    ACCUM      paddd, 0, 1, %%i
+    paddd         m0, m2
+    %assign %%i %%i+1
+%endrep
+%else
+%rep %2/2
+    mov%3         m1,      [r0]
+    vpbroadcast%3 m1 {k1}, [r0+r1]
+    mov%3         m2,      [r2]
+    vpbroadcast%3 m2 {k1}, [r2+r3]
+%if %%i != %2/2-1
+    lea           r0, [r0+2*r1]
+    lea           r2, [r2+2*r3]
+%endif
+    psadbw        m1, m2
+    ACCUM      paddd, 0, 1, %%i
+    %assign %%i %%i+1
+%endrep
+%endif
+%if %1 == 8
+    punpckhqdq    m1, m0, m0
+    paddd         m0, m1
+%endif
+    movd         eax, m0
     RET
+%endmacro
+
+INIT_XMM avx512
+SAD_W48_AVX512 4,  4, d
+SAD_W48_AVX512 4,  8, d
+SAD_W48_AVX512 4, 16, d
+SAD_W48_AVX512 8,  4, q
+SAD_W48_AVX512 8,  8, q
+SAD_W48_AVX512 8, 16, q
+
+%macro SAD_W16_AVX512_START 1 ; h
+    cmp  r1d, FENC_STRIDE                  ; optimized for the most common fenc case, which
+    jne pixel_sad_16x%1_sse2.skip_prologue ; has the rows laid out contiguously in memory
+    lea   r1, [3*r3]
+%endmacro
+
+%macro SAD_W16_AVX512_END 0
+    paddd          m0, m1
+    paddd          m0, m2
+    paddd          m0, m3
+%if mmsize == 64
+    vextracti32x8 ym1, m0, 1
+    paddd         ym0, ym1
+%endif
+    vextracti128  xm1, ym0, 1
+    paddd        xmm0, xm0, xm1
+    punpckhqdq   xmm1, xmm0, xmm0
+    paddd        xmm0, xmm1
+    movd          eax, xmm0
+    RET
+%endmacro
+
+INIT_YMM avx512
+cglobal pixel_sad_16x8, 4,4
+    SAD_W16_AVX512_START 8
+    movu         xm0, [r2]
+    vinserti128   m0, [r2+r3], 1
+    psadbw        m0, [r0+0*32]
+    movu         xm1, [r2+2*r3]
+    vinserti128   m1, [r2+r1], 1
+    lea           r2, [r2+4*r3]
+    psadbw        m1, [r0+1*32]
+    movu         xm2, [r2]
+    vinserti128   m2, [r2+r3], 1
+    psadbw        m2, [r0+2*32]
+    movu         xm3, [r2+2*r3]
+    vinserti128   m3, [r2+r1], 1
+    psadbw        m3, [r0+3*32]
+    SAD_W16_AVX512_END
+
+INIT_ZMM avx512
+cglobal pixel_sad_16x16, 4,4
+    SAD_W16_AVX512_START 16
+    movu          xm0, [r2]
+    vinserti128   ym0, [r2+r3],   1
+    movu          xm1, [r2+4*r3]
+    vinserti32x4   m0, [r2+2*r3], 2
+    vinserti32x4   m1, [r2+2*r1], 2
+    vinserti32x4   m0, [r2+r1],   3
+    lea            r2, [r2+4*r3]
+    vinserti32x4   m1, [r2+r3],   1
+    psadbw         m0, [r0+0*64]
+    vinserti32x4   m1, [r2+r1],   3
+    lea            r2, [r2+4*r3]
+    psadbw         m1, [r0+1*64]
+    movu          xm2, [r2]
+    vinserti128   ym2, [r2+r3],   1
+    movu          xm3, [r2+4*r3]
+    vinserti32x4   m2, [r2+2*r3], 2
+    vinserti32x4   m3, [r2+2*r1], 2
+    vinserti32x4   m2, [r2+r1],   3
+    lea            r2, [r2+4*r3]
+    vinserti32x4   m3, [r2+r3],   1
+    psadbw         m2, [r0+2*64]
+    vinserti32x4   m3, [r2+r1],   3
+    psadbw         m3, [r0+3*64]
+    SAD_W16_AVX512_END
 
 ;-----------------------------------------------------------------------------
 ; void pixel_vsad( pixel *src, intptr_t stride );
@@ -1547,6 +1616,225 @@ SAD_X_AVX2 3, 16, 16, 7
 SAD_X_AVX2 3, 16,  8, 7
 SAD_X_AVX2 4, 16, 16, 8
 SAD_X_AVX2 4, 16,  8, 8
+
+%macro SAD_X_W4_AVX512 2 ; x, h
+cglobal pixel_sad_x%1_4x%2, %1+2,%1+3
+    mov           t1d, 0xa
+    kmovb          k1, t1d
+    lea            t1, [3*t0]
+    kaddb          k2, k1, k1
+    kshiftlb       k3, k1, 2
+%assign %%i 0
+%rep %2/4
+    movu           m6,      [r0+%%i*64]
+    vmovddup       m6 {k1}, [r0+%%i*64+32]
+    movd         xmm2,      [r1]
+    movd         xmm4,      [r1+t0]
+    vpbroadcastd xmm2 {k1}, [r1+2*t0]
+    vpbroadcastd xmm4 {k1}, [r1+t1]
+    vpbroadcastd xmm2 {k2}, [r2+t0]
+    vpbroadcastd xmm4 {k2}, [r2]
+    vpbroadcastd xmm2 {k3}, [r2+t1]   ; a0 a2 b1 b3
+    vpbroadcastd xmm4 {k3}, [r2+2*t0] ; a1 a3 b0 b2
+    vpmovqd        s1, m6             ; s0 s2 s1 s3
+    movd         xmm3,      [r3]
+    movd         xmm5,      [r3+t0]
+    vpbroadcastd xmm3 {k1}, [r3+2*t0]
+    vpbroadcastd xmm5 {k1}, [r3+t1]
+%if %1 == 4
+    vpbroadcastd xmm3 {k2}, [r4+t0]
+    vpbroadcastd xmm5 {k2}, [r4]
+    vpbroadcastd xmm3 {k3}, [r4+t1]   ; c0 c2 d1 d3
+    vpbroadcastd xmm5 {k3}, [r4+2*t0] ; c1 c3 d0 d2
+%endif
+%if %%i != %2/4-1
+%assign %%j 1
+%rep %1
+    lea        r%+%%j, [r%+%%j+4*t0]
+    %assign %%j %%j+1
+%endrep
+%endif
+    pshufd         s2, s1, q1032
+    psadbw       xmm2, s1
+    psadbw       xmm4, s2
+    psadbw       xmm3, s1
+    psadbw       xmm5, s2
+%if %%i
+    paddd        xmm0, xmm2
+    paddd        xmm1, xmm3
+    paddd        xmm0, xmm4
+    paddd        xmm1, xmm5
+%else
+    paddd        xmm0, xmm2, xmm4
+    paddd        xmm1, xmm3, xmm5
+%endif
+    %assign %%i %%i+1
+%endrep
+%if %1 == 4
+    movifnidn      t2, r6mp
+%else
+    movifnidn      t2, r5mp
+%endif
+    packusdw     xmm0, xmm1
+    mova         [t2], xmm0
+    RET
+%endmacro
+
+%macro SAD_X_W8_AVX512 2 ; x, h
+cglobal pixel_sad_x%1_8x%2, %1+2,%1+3
+    kxnorb        k3, k3, k3
+    lea           t1, [3*t0]
+    kaddb         k1, k3, k3
+    kshiftlb      k2, k3, 2
+    kshiftlb      k3, k3, 3
+%assign %%i 0
+%rep %2/4
+    movddup       m6, [r0+%%i*64]    ; s0 s0 s1 s1
+    movq         xm2,      [r1]
+    movq         xm4,      [r1+2*t0]
+    vpbroadcastq xm2 {k1}, [r2]
+    vpbroadcastq xm4 {k1}, [r2+2*t0]
+    vpbroadcastq  m2 {k2}, [r1+t0]
+    vpbroadcastq  m4 {k2}, [r1+t1]
+    vpbroadcastq  m2 {k3}, [r2+t0]   ; a0 b0 a1 b1
+    vpbroadcastq  m4 {k3}, [r2+t1]   ; a2 b2 a3 b3
+    movddup       m7, [r0+%%i*64+32] ; s2 s2 s3 s3
+    movq         xm3,      [r3]
+    movq         xm5,      [r3+2*t0]
+%if %1 == 4
+    vpbroadcastq xm3 {k1}, [r4]
+    vpbroadcastq xm5 {k1}, [r4+2*t0]
+%endif
+    vpbroadcastq  m3 {k2}, [r3+t0]
+    vpbroadcastq  m5 {k2}, [r3+t1]
+%if %1 == 4
+    vpbroadcastq  m3 {k3}, [r4+t0]   ; c0 d0 c1 d1
+    vpbroadcastq  m5 {k3}, [r4+t1]   ; c2 d2 c3 d3
+%endif
+%if %%i != %2/4-1
+%assign %%j 1
+%rep %1
+    lea       r%+%%j, [r%+%%j+4*t0]
+    %assign %%j %%j+1
+%endrep
+%endif
+    psadbw        m2, m6
+    psadbw        m4, m7
+    psadbw        m3, m6
+    psadbw        m5, m7
+    ACCUM      paddd, 0, 2, %%i
+    ACCUM      paddd, 1, 3, %%i
+    paddd         m0, m4
+    paddd         m1, m5
+    %assign %%i %%i+1
+%endrep
+%if %1 == 4
+    movifnidn     t2, r6mp
+%else
+    movifnidn     t2, r5mp
+%endif
+    packusdw      m0, m1
+    vextracti128 xm1, m0, 1
+    paddd        xm0, xm1
+    mova        [t2], xm0
+    RET
+%endmacro
+
+%macro SAD_X_W16_AVX512 2 ; x, h
+cglobal pixel_sad_x%1_16x%2, %1+2,%1+3
+    lea           t1, [3*t0]
+%assign %%i 0
+%rep %2/4
+    mova          m6, [r0+%%i*64]  ; s0 s1 s2 s3
+    movu         xm2, [r3]
+    movu         xm4, [r3+t0]
+%if %1 == 4
+    vinserti128  ym2, [r4+t0],   1
+    vinserti128  ym4, [r4],      1
+%endif
+    vinserti32x4  m2, [r1+2*t0], 2
+    vinserti32x4  m4, [r1+t1],   2
+    vinserti32x4  m2, [r2+t1],   3 ; c0 d1 a2 b3
+    vinserti32x4  m4, [r2+2*t0], 3 ; c1 d0 a3 b2
+    vpermq        m7, m6, q1032    ; s1 s0 s3 s2
+    movu         xm3, [r1]
+    movu         xm5, [r1+t0]
+    vinserti128  ym3, [r2+t0],   1
+    vinserti128  ym5, [r2],      1
+    vinserti32x4  m3, [r3+2*t0], 2
+    vinserti32x4  m5, [r3+t1],   2
+%if %1 == 4
+    vinserti32x4  m3, [r4+t1],   3 ; a0 b1 c2 d3
+    vinserti32x4  m5, [r4+2*t0], 3 ; a1 b0 c3 d2
+%endif
+%if %%i != %2/4-1
+%assign %%j 1
+%rep %1
+    lea       r%+%%j, [r%+%%j+4*t0]
+    %assign %%j %%j+1
+%endrep
+%endif
+    psadbw        m2, m6
+    psadbw        m4, m7
+    psadbw        m3, m6
+    psadbw        m5, m7
+    ACCUM      paddd, 0, 2, %%i
+    ACCUM      paddd, 1, 3, %%i
+    paddd         m0, m4
+    paddd         m1, m5
+    %assign %%i %%i+1
+%endrep
+%if %1 == 4
+    movifnidn     t2, r6mp
+%else
+    movifnidn     t2, r5mp
+%endif
+    mov          t1d, 0x1111
+    kmovw         k1, t1d
+    vshufi32x4    m0, m0, q1032
+    paddd         m0, m1
+    punpckhqdq    m1, m0, m0
+    paddd         m0, m1
+    vpcompressd   m0 {k1}{z}, m0
+    mova        [t2], xm0
+    RET
+%endmacro
+
+; t0 = stride, t1 = tmp/stride3, t2 = scores
+%if WIN64
+    %define s1 xmm16 ; xmm6 and xmm7 reduces code size, but
+    %define s2 xmm17 ; they're callee-saved on win64
+    DECLARE_REG_TMP 4, 6, 0
+%else
+    %define s1 xmm6
+    %define s2 xmm7
+%if ARCH_X86_64
+    DECLARE_REG_TMP 4, 6, 5 ; scores is passed in a register on unix64
+%else
+    DECLARE_REG_TMP 4, 5, 0
+%endif
+%endif
+
+INIT_YMM avx512
+SAD_X_W4_AVX512  3, 4  ; x3_4x4
+SAD_X_W4_AVX512  3, 8  ; x3_4x8
+SAD_X_W8_AVX512  3, 4  ; x3_8x4
+SAD_X_W8_AVX512  3, 8  ; x3_8x8
+SAD_X_W8_AVX512  3, 16 ; x3_8x16
+INIT_ZMM avx512
+SAD_X_W16_AVX512 3, 8  ; x3_16x8
+SAD_X_W16_AVX512 3, 16 ; x3_16x16
+
+DECLARE_REG_TMP 5, 6, 0
+INIT_YMM avx512
+SAD_X_W4_AVX512  4, 4  ; x4_4x4
+SAD_X_W4_AVX512  4, 8  ; x4_4x8
+SAD_X_W8_AVX512  4, 4  ; x4_8x4
+SAD_X_W8_AVX512  4, 8  ; x4_8x8
+SAD_X_W8_AVX512  4, 16 ; x4_8x16
+INIT_ZMM avx512
+SAD_X_W16_AVX512 4, 8  ; x4_16x8
+SAD_X_W16_AVX512 4, 16 ; x4_16x16
 
 ;=============================================================================
 ; SAD cacheline split

@@ -160,6 +160,39 @@ static void x264_plane_copy_swap_##cpu( pixel *dst, intptr_t i_dst, pixel *src, 
         x264_plane_copy_swap_c( dst, i_dst, src, i_src, w, h );\
 }
 
+void x264_plane_copy_deinterleave_c( pixel *dsta, intptr_t i_dsta, pixel *dstb, intptr_t i_dstb,
+                                     pixel *src, intptr_t i_src, int w, int h );
+
+/* We can utilize existing plane_copy_deinterleave() functions for YUYV/UYUV
+ * input with the additional constraint that we cannot overread src. */
+#define PLANE_COPY_YUYV(align, cpu)\
+static void x264_plane_copy_deinterleave_yuyv_##cpu( pixel *dsta, intptr_t i_dsta, pixel *dstb, intptr_t i_dstb,\
+                                                     pixel *src, intptr_t i_src, int w, int h )\
+{\
+    int c_w = (align>>1) / sizeof(pixel) - 1;\
+    if( !(w&c_w) )\
+        x264_plane_copy_deinterleave_##cpu( dsta, i_dsta, dstb, i_dstb, src, i_src, w, h );\
+    else if( w > c_w )\
+    {\
+        if( --h > 0 )\
+        {\
+            if( i_src > 0 )\
+            {\
+                x264_plane_copy_deinterleave_##cpu( dsta, i_dsta, dstb, i_dstb, src, i_src, w, h );\
+                dsta += i_dsta * h;\
+                dstb += i_dstb * h;\
+                src  += i_src  * h;\
+            }\
+            else\
+                x264_plane_copy_deinterleave_##cpu( dsta+i_dsta, i_dsta, dstb+i_dstb, i_dstb,\
+                                                    src+i_src, i_src, w, h );\
+        }\
+        x264_plane_copy_deinterleave_c( dsta, 0, dstb, 0, src, 0, w, 1 );\
+    }\
+    else\
+        x264_plane_copy_deinterleave_c( dsta, i_dsta, dstb, i_dstb, src, i_src, w, h );\
+}
+
 void x264_plane_copy_interleave_c( pixel *dst,  intptr_t i_dst,
                                    pixel *srcu, intptr_t i_srcu,
                                    pixel *srcv, intptr_t i_srcv, int w, int h );
@@ -260,6 +293,8 @@ typedef struct
     /* may write up to 15 pixels off the end of each plane */
     void (*plane_copy_deinterleave)( pixel *dstu, intptr_t i_dstu, pixel *dstv, intptr_t i_dstv,
                                      pixel *src,  intptr_t i_src, int w, int h );
+    void (*plane_copy_deinterleave_yuyv)( pixel *dsta, intptr_t i_dsta, pixel *dstb, intptr_t i_dstb,
+                                          pixel *src,  intptr_t i_src, int w, int h );
     void (*plane_copy_deinterleave_rgb)( pixel *dsta, intptr_t i_dsta, pixel *dstb, intptr_t i_dstb,
                                          pixel *dstc, intptr_t i_dstc, pixel *src,  intptr_t i_src, int pw, int w, int h );
     void (*plane_copy_deinterleave_v210)( pixel *dsty, intptr_t i_dsty,

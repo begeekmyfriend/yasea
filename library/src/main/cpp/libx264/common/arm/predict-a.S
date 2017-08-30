@@ -27,10 +27,9 @@
 
 #include "asm.S"
 
-.section .rodata
-.align 4
-
-p16weight: .short 1,2,3,4,5,6,7,8
+const p16weight, align=4
+.short 1,2,3,4,5,6,7,8
+endconst
 
 .text
 

@@ -153,7 +153,11 @@ cglobal checkasm_call, 2,15,16,max_args*8+8
     mov  r9, rax
     mov r10, rdx
     lea  r0, [error_message]
+%if FORMAT_ELF
+    call puts wrt ..plt
+%else
     call puts
+%endif
     mov  r1, [rsp+max_args*8]
     mov  dword [r1], 0
     mov  rdx, r10
@@ -221,3 +225,14 @@ cglobal stack_pagealign, 2,2
     leave
     RET
 
+; Trigger a warmup of vector units
+%macro WARMUP 0
+cglobal checkasm_warmup, 0,0
+    xorps m0, m0
+    RET
+%endmacro
+
+INIT_YMM avx
+WARMUP
+INIT_ZMM avx512
+WARMUP

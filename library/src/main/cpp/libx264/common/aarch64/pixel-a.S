@@ -569,57 +569,65 @@ endfunc
 
 .macro pixel_var2_8 h
 function x264_pixel_var2_8x\h\()_neon, export=1
-    ld1            {v16.8b}, [x0], x1
-    ld1            {v18.8b}, [x2], x3
-    ld1            {v17.8b}, [x0], x1
-    ld1            {v19.8b}, [x2], x3
-    mov             x5,  \h - 4
-    usubl           v6.8h,  v16.8b, v18.8b
-    usubl           v7.8h,  v17.8b, v19.8b
-    ld1            {v16.8b}, [x0], x1
-    ld1            {v18.8b}, [x2], x3
-    smull           v2.4s,  v6.4h,  v6.4h
-    smull2          v3.4s,  v6.8h,  v6.8h
-    add             v0.8h,  v6.8h,  v7.8h
-    smlal           v2.4s,  v7.4h,  v7.4h
-    smlal2          v3.4s,  v7.8h,  v7.8h
+    mov             x3,  #16
+    ld1            {v16.8b}, [x0], #8
+    ld1            {v18.8b}, [x1], x3
+    ld1            {v17.8b}, [x0], #8
+    ld1            {v19.8b}, [x1], x3
+    mov             x5,  \h - 2
+    usubl           v0.8h,  v16.8b, v18.8b
+    usubl           v1.8h,  v17.8b, v19.8b
+    ld1            {v16.8b}, [x0], #8
+    ld1            {v18.8b}, [x1], x3
+    smull           v2.4s,  v0.4h,  v0.4h
+    smull2          v3.4s,  v0.8h,  v0.8h
+    smull           v4.4s,  v1.4h,  v1.4h
+    smull2          v5.4s,  v1.8h,  v1.8h
 
     usubl           v6.8h,  v16.8b, v18.8b
 
-1:  subs            x5,  x5,  #2
-    ld1            {v17.8b}, [x0], x1
-    ld1            {v19.8b}, [x2], x3
+1:  subs            x5,  x5,  #1
+    ld1            {v17.8b}, [x0], #8
+    ld1            {v19.8b}, [x1], x3
     smlal           v2.4s,  v6.4h,  v6.4h
     smlal2          v3.4s,  v6.8h,  v6.8h
     usubl           v7.8h,  v17.8b, v19.8b
     add             v0.8h,  v0.8h,  v6.8h
-    ld1            {v16.8b}, [x0], x1
-    ld1            {v18.8b}, [x2], x3
-    smlal           v2.4s,  v7.4h,  v7.4h
-    smlal2          v3.4s,  v7.8h,  v7.8h
+    ld1            {v16.8b}, [x0], #8
+    ld1            {v18.8b}, [x1], x3
+    smlal           v4.4s,  v7.4h,  v7.4h
+    smlal2          v5.4s,  v7.8h,  v7.8h
     usubl           v6.8h,  v16.8b, v18.8b
-    add             v0.8h,  v0.8h,  v7.8h
+    add             v1.8h,  v1.8h,  v7.8h
     b.gt            1b
 
-    ld1            {v17.8b}, [x0], x1
-    ld1            {v19.8b}, [x2], x3
+    ld1            {v17.8b}, [x0], #8
+    ld1            {v19.8b}, [x1], x3
     smlal           v2.4s,  v6.4h,  v6.4h
     smlal2          v3.4s,  v6.8h,  v6.8h
     usubl           v7.8h,  v17.8b, v19.8b
     add             v0.8h,  v0.8h,  v6.8h
-    smlal           v2.4s,  v7.4h,  v7.4h
-    add             v0.8h,  v0.8h,  v7.8h
-    smlal2          v3.4s,  v7.8h,  v7.8h
+    smlal           v4.4s,  v7.4h,  v7.4h
+    add             v1.8h,  v1.8h,  v7.8h
+    smlal2          v5.4s,  v7.8h,  v7.8h
 
     saddlv          s0,  v0.8h
+    saddlv          s1,  v1.8h
     add             v2.4s,  v2.4s,  v3.4s
+    add             v4.4s,  v4.4s,  v5.4s
     mov             w0,  v0.s[0]
-    addv            s1,  v2.4s
-    sxtw            x0,  w0
     mov             w1,  v1.s[0]
-    mul             x0,  x0,  x0
-    str             w1,  [x4]
-    sub             x0,  x1,  x0,  lsr # 6 + (\h >> 4)
+    addv            s2,  v2.4s
+    addv            s4,  v4.4s
+    mul             w0,  w0,  w0
+    mul             w1,  w1,  w1
+    mov             w3,  v2.s[0]
+    mov             w4,  v4.s[0]
+    sub             w0,  w3,  w0,  lsr # 6 + (\h >> 4)
+    sub             w1,  w4,  w1,  lsr # 6 + (\h >> 4)
+    str             w3,  [x2]
+    add             w0,  w0,  w1
+    str             w4,  [x2, #4]
 
     ret
 endfunc

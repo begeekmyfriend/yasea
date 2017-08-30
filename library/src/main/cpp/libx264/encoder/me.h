@@ -32,10 +32,10 @@
 
 typedef struct
 {
-    /* aligning the first member is a gcc hack to force the struct to be
-     * 16 byte aligned, as well as force sizeof(struct) to be a multiple of 16 */
+    /* aligning the first member is a gcc hack to force the struct to be aligned,
+     * as well as force sizeof(struct) to be a multiple of the alignment. */
     /* input */
-    ALIGNED_16( int i_pixel );   /* PIXEL_WxH */
+    ALIGNED_64( int i_pixel );   /* PIXEL_WxH */
     uint16_t *p_cost_mv; /* lambda * nbits for each possible mv */
     int      i_ref_cost;
     int      i_ref;
@@ -53,7 +53,7 @@ typedef struct
     int cost_mv;        /* lambda * nbits for the chosen mv */
     int cost;           /* satd + lambda * nbits */
     ALIGNED_4( int16_t mv[2] );
-} ALIGNED_16( x264_me_t );
+} ALIGNED_64( x264_me_t );
 
 void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, int *p_fullpel_thresh );
 #define x264_me_search( h, m, mvc, i_mvc )\
@@ -65,8 +65,6 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
 void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight, int i8, int i_lambda2 );
 void x264_me_refine_bidir_satd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight );
 uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel );
-
-extern uint16_t *x264_cost_mv_fpel[QP_MAX+1][4];
 
 #define COPY1_IF_LT(x,y)\
 if( (y) < (x) )\

@@ -197,6 +197,10 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     public void setPreviewOrientation(int orientation) {
+        setPreviewOrientation(orientation,false);
+    }
+
+    public void setPreviewOrientation(int orientation,boolean reverse) {
         mPreviewOrientation = orientation;
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(mCamId, info);
@@ -209,11 +213,14 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                mPreviewRotation = (info.orientation + 90) % 360;
+                mPreviewRotation = (info.orientation +(reverse?180:0) + 90) % 360;
                 mPreviewRotation = (360 - mPreviewRotation) % 360;  // compensate the mirror
             } else {
                 mPreviewRotation = (info.orientation + 270) % 360;
             }
+        }
+        if (mCamera != null) {
+            mCamera.setDisplayOrientation(mPreviewRotation);
         }
     }
 

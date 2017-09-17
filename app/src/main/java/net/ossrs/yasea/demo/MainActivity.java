@@ -4,12 +4,14 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -43,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private String recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
 
     private SrsPublisher mPublisher;
+	private OrientationEventListener listener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -221,10 +224,30 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         final Button btn = (Button) findViewById(R.id.publish);
         btn.setEnabled(true);
         mPublisher.resumeRecord();
-    }
+    		listener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
+			public int old = -1;
 
-    @Override
-    protected void onPause() {
+			@Override
+			public void onOrientationChanged(int orientation) {
+				int rotation = ((orientation + 45) / 90) % 4;
+				if (old != rotation) {
+					if (rotation == 3) {
+						mPublisher.setScreenOrientation(Configuration.ORIENTATION_LANDSCAPE,false);
+					} else if (rotation == 1) {
+						mPublisher.setScreenOrientation(Configuration.ORIENTATION_LANDSCAPE,true);
+					}
+
+					Log.d(TAG, "onOrientationChanged: rotation = " + rotation);
+				}
+				old = rotation;
+			}
+		};
+		if (listener.canDetectOrientation()) listener.enable();
+		else listener = null; // Orientation detection not supported
+	}
+
+	@Override
+	protected void onPause() {
         super.onPause();
         mPublisher.pauseRecord();
     }

@@ -216,7 +216,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 mPreviewRotation = (info.orientation +(reverse?180:0) + 90) % 360;
                 mPreviewRotation = (360 - mPreviewRotation) % 360;  // compensate the mirror
             } else {
-                mPreviewRotation = (info.orientation + 270) % 360;
+                mPreviewRotation = (info.orientation + 270 + (reverse?180:0) ) % 360;
             }
         }
         if (mCamera != null) {

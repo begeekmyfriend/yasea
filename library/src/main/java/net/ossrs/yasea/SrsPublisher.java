@@ -197,18 +197,6 @@ public class SrsPublisher {
         }
     }
 
-    public void switchToSoftEncoder() {
-        mEncoder.switchToSoftEncoder();
-    }
-
-    public void switchToHardEncoder() {
-        mEncoder.switchToHardEncoder();
-    }
-
-    public boolean isSoftEncoder() {
-        return mEncoder.isSoftEncoder();
-    }
-
     public int getPreviewWidth() {
         return mEncoder.getPreviewWidth();
     }

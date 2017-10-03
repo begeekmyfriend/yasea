@@ -11,7 +11,6 @@ Feature
 
 - [x] Android mini API 16.
 - [x] H.264/AAC hard encoding.
-- [x] H.264 soft encoding.
 - [x] RTMP streaming with state callback handler.
 - [x] Portrait and landscape dynamic orientation.
 - [x] Front and back cameras hot switch.

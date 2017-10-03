@@ -36,7 +36,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private Button btnPublish;
     private Button btnSwitchCamera;
     private Button btnRecord;
-    private Button btnSwitchEncoder;
 
     private SharedPreferences sp;
     private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
@@ -65,7 +64,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnPublish = (Button) findViewById(R.id.publish);
         btnSwitchCamera = (Button) findViewById(R.id.swCam);
         btnRecord = (Button) findViewById(R.id.record);
-        btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
 
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
@@ -87,20 +85,12 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
 
                     mPublisher.startPublish(rtmpUrl);
                     mPublisher.startCamera();
-
-                    if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
-                        Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(getApplicationContext(), "Use soft encoder", Toast.LENGTH_SHORT).show();
-                    }
                     btnPublish.setText("stop");
-                    btnSwitchEncoder.setEnabled(false);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
                     btnPublish.setText("publish");
                     btnRecord.setText("record");
-                    btnSwitchEncoder.setEnabled(true);
                 }
             }
         });
@@ -125,19 +115,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                 } else if (btnRecord.getText().toString().contentEquals("resume")) {
                     mPublisher.resumeRecord();
                     btnRecord.setText("pause");
-                }
-            }
-        });
-
-        btnSwitchEncoder.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
-                    mPublisher.switchToSoftEncoder();
-                    btnSwitchEncoder.setText("hard encoder");
-                } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoder")) {
-                    mPublisher.switchToHardEncoder();
-                    btnSwitchEncoder.setText("soft encoder");
                 }
             }
         });
@@ -278,7 +255,6 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
             mPublisher.stopRecord();
             btnPublish.setText("publish");
             btnRecord.setText("record");
-            btnSwitchEncoder.setEnabled(true);
         } catch (Exception e1) {
             //
         }

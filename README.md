@@ -10,7 +10,8 @@ Branch
 ------
 
 [non-gpuimage](https://github.com/begeekmyfriend/yasea/tree/non-gpuimage)
-[arm64](https://github.com/begeekmyfriend/yasea/tree/android-21)
+
+[arm64](https://github.com/begeekmyfriend/yasea/tree/master)
 
 Feature
 -------

@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "net.ossrs.yasea.demo"
-        minSdkVersion 16
+        minSdkVersion 21
         targetSdkVersion 22
         versionCode 1
         versionName "2.6"

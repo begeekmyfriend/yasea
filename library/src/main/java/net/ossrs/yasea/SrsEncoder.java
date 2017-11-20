@@ -40,7 +40,6 @@ public class SrsEncoder {
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
-    private SrsFlvMuxer flvMuxer;
     private SrsMp4Muxer mp4Muxer;
 
     private MediaCodecInfo vmci;
@@ -49,8 +48,6 @@ public class SrsEncoder {
     private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
     private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
-    private SrsEncodeHandler mHandler;
-    private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
     private boolean useSoftEncoder = false;
     private boolean canSoftEncode = false;
@@ -59,9 +56,7 @@ public class SrsEncoder {
 
     private int mVideoColorFormat;
 
-    private int videoFlvTrack;
     private int videoMp4Track;
-    private int audioFlvTrack;
     private int audioMp4Track;
 
     // Y, U (Cb) and V (Cr)
@@ -75,13 +70,8 @@ public class SrsEncoder {
     // NV16 -> YUV422SP  yyyy uv uv
     // YUY2 -> YUV422SP  yuyv yuyv
 
-    public SrsEncoder(SrsEncodeHandler handler) {
-        mHandler = handler;
+    public SrsEncoder() {
         mVideoColorFormat = chooseVideoEncoder();
-    }
-
-    public void setFlvMuxer(SrsFlvMuxer flvMuxer) {
-        this.flvMuxer = flvMuxer;
     }
 
     public void setMp4Muxer(SrsMp4Muxer mp4Muxer) {
@@ -89,7 +79,7 @@ public class SrsEncoder {
     }
 
     public boolean start() {
-        if (flvMuxer == null || mp4Muxer == null) {
+        if (mp4Muxer == null) {
             return false;
         }
 
@@ -140,7 +130,6 @@ public class SrsEncoder {
         audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
         aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the audio tracker to muxer.
-        audioFlvTrack = flvMuxer.addTrack(audioFormat);
         audioMp4Track = mp4Muxer.addTrack(audioFormat);
 
         // vencoder yuv to 264 es stream.
@@ -163,7 +152,6 @@ public class SrsEncoder {
         videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
         vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the video tracker to muxer.
-        videoFlvTrack = flvMuxer.addTrack(videoFormat);
         videoMp4Track = mp4Muxer.addTrack(videoFormat);
 
         // start device and encoder.
@@ -330,75 +318,53 @@ public class SrsEncoder {
 
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        mp4Muxer.writeSampleData(videoMp4Track, es.duplicate(), bi);
-        flvMuxer.writeSampleData(videoFlvTrack, es, bi);
+        mp4Muxer.writeSampleData(videoMp4Track, es, bi);
     }
 
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
-        mp4Muxer.writeSampleData(audioMp4Track, es.duplicate(), bi);
-        flvMuxer.writeSampleData(audioFlvTrack, es, bi);
+        mp4Muxer.writeSampleData(audioMp4Track, es, bi);
     }
 
     public void onGetPcmFrame(byte[] data, int size) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            ByteBuffer[] inBuffers = aencoder.getInputBuffers();
-            ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
+        ByteBuffer[] inBuffers = aencoder.getInputBuffers();
+        ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
 
-            int inBufferIndex = aencoder.dequeueInputBuffer(-1);
-            if (inBufferIndex >= 0) {
-                ByteBuffer bb = inBuffers[inBufferIndex];
-                bb.clear();
-                bb.put(data, 0, size);
-                long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-                aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
-            }
+        int inBufferIndex = aencoder.dequeueInputBuffer(-1);
+        if (inBufferIndex >= 0) {
+            ByteBuffer bb = inBuffers[inBufferIndex];
+            bb.clear();
+            bb.put(data, 0, size);
+            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+            aencoder.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
+        }
 
-            for (; ; ) {
-                int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
-                if (outBufferIndex >= 0) {
-                    ByteBuffer bb = outBuffers[outBufferIndex];
-                    onEncodedAacFrame(bb, aebi);
-                    aencoder.releaseOutputBuffer(outBufferIndex, false);
-                } else {
-                    break;
-                }
+        for (; ; ) {
+            int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
+            if (outBufferIndex >= 0) {
+                ByteBuffer bb = outBuffers[outBufferIndex];
+                onEncodedAacFrame(bb, aebi);
+                aencoder.releaseOutputBuffer(outBufferIndex, false);
+            } else {
+                break;
             }
         }
     }
 
     public void onGetYuvFrame(byte[] data) {
-        // Check video frame cache number to judge the networking situation.
-        // Just cache GOP / FPS seconds data according to latency.
-        AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
-            long pts = System.nanoTime() / 1000 - mPresentTimeUs;
-            if (useSoftEncoder) {
-                if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                    swPortraitYuvFrame(data, pts);
-                } else {
-                    swLandscapeYuvFrame(data, pts);
-                }
+        long pts = System.nanoTime() / 1000 - mPresentTimeUs;
+        if (useSoftEncoder) {
+            if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                swPortraitYuvFrame(data, pts);
             } else {
-                byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
-                        hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
-                if (processedData != null) {
-                    onProcessedYuvFrame(processedData, pts);
-                } else {
-                    mHandler.notifyEncodeIllegalArgumentException(new IllegalArgumentException("libyuv failure"));
-                }
-            }
-
-            if (networkWeakTriggered) {
-                networkWeakTriggered = false;
-                mHandler.notifyNetworkResume();
+                swLandscapeYuvFrame(data, pts);
             }
         } else {
-            mHandler.notifyNetworkWeak();
-            networkWeakTriggered = true;
+            byte[] processedData = mOrientation == Configuration.ORIENTATION_PORTRAIT ?
+                    hwPortraitYuvFrame(data) : hwLandscapeYuvFrame(data);
+            if (processedData != null) {
+                onProcessedYuvFrame(processedData, pts);
+            }
         }
     }
 

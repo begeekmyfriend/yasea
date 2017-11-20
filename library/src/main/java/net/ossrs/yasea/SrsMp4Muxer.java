@@ -121,9 +121,6 @@ public class SrsMp4Muxer {
         createMovie(mRecFile);
         mHandler.notifyRecordStarted(mRecFile.getPath());
 
-        if (!spsList.isEmpty() && !ppsList.isEmpty()) {
-            mp4Movie.addTrack(videoFormat, false);
-        }
         mp4Movie.addTrack(audioFormat, true);
 
         worker = new Thread(new Runnable() {
@@ -304,6 +301,9 @@ public class SrsMp4Muxer {
                     }
                     continue;
                 }
+            }
+            if (!spsList.isEmpty() && !ppsList.isEmpty()) {
+                mp4Movie.addTrack(videoFormat, false);
             }
         }
     }

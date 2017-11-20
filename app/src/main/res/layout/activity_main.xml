@@ -6,21 +6,17 @@
     tools:context="net.ossrs.yasea.demo.MainActivity">
 
     <net.ossrs.yasea.SrsCameraView
+        android:id="@+id/preview"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:id="@+id/preview"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentTop="true" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="publish"
-        android:id="@+id/publish"
+        android:text="record"
+        android:id="@+id/record"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
@@ -30,32 +26,17 @@
         android:layout_height="wrap_content"
         android:text="switch"
         android:id="@+id/swCam"
-        android:layout_alignBottom="@+id/publish"
-        android:layout_toRightOf="@+id/publish" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="record"
-        android:id="@+id/record"
-        android:layout_alignBottom="@+id/publish"
-        android:layout_toRightOf="@id/swCam" />
+        android:layout_alignBottom="@+id/record"
+        android:layout_toRightOf="@+id/record" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="soft encoder"
         android:id="@+id/swEnc"
-        android:layout_alignBottom="@+id/publish"
-        android:layout_toRightOf="@id/record"
+        android:layout_alignBottom="@+id/record"
+        android:layout_toRightOf="@id/swCam"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"/>
-
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:id="@+id/url"
-        android:textColor="@color/accent_material_light" />
 
 </RelativeLayout>

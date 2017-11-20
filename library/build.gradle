@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.2"
+    buildToolsVersion '26.0.2'
 
     defaultConfig {
         minSdkVersion 21
@@ -29,7 +29,7 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libx264.libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libx264.libs')
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })

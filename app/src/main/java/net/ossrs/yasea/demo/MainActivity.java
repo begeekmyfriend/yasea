@@ -47,7 +47,7 @@ public class MainActivity extends Activity implements SrsRecordHandler.SrsRecord
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
         mPublisher.setPreviewResolution(640, 360);
         mPublisher.setOutputResolution(360, 640);
-        mPublisher.setVideoSmoothMode();
+        mPublisher.setVideoHDMode();
         mPublisher.startCamera();
 
         btnSwitchCamera.setOnClickListener(new View.OnClickListener() {

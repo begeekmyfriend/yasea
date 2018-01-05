@@ -94,6 +94,7 @@ public class RtmpConnection implements RtmpPublisher {
         handshake.readS0(in);
         handshake.readS1(in);
         handshake.writeC2(out);
+        out.flush();
         handshake.readS2(in);
     }
 

@@ -162,7 +162,7 @@ public final class Handshake {
 
     /** Generates and writes the third handshake packet (C2) */
     public final void writeC2(OutputStream out) throws IOException {
-        Log.d(TAG, "readC2");
+        Log.d(TAG, "writeC2");
         // C2 is an echo of S1
         if (s1 == null) {
             throw new IllegalStateException("C2 cannot be written without S1 being read first");

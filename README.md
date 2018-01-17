@@ -9,9 +9,11 @@ camera and microphone to H.264/AAC, encapsulates in FLV and transmits over RTMP.
 Branch
 ------
 
-[non-gpuimage](https://github.com/begeekmyfriend/yasea/tree/non-gpuimage)
+[non-gpuimage](https://github.com/begeekmyfriend/yasea/tree/non-gpuimage) for demo without GPUImage module.
 
-[android-16](https://github.com/begeekmyfriend/yasea/tree/android-16)
+[android-16](https://github.com/begeekmyfriend/yasea/tree/android-16) for Android API 16+.
+
+[aac-hev2](https://github.com/begeekmyfriend/yasea/tree/aac-hev2) for Youtube live broadcast that is not compatible with conventional flash media players.
 
 Feature
 -------

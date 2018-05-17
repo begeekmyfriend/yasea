@@ -134,6 +134,13 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public void setPreviewCallback(PreviewCallback cb) {
         mPrevCb = cb;
     }
+    
+    public Camera getCamera(){
+        return this.mCamera;
+    }
+    public void setPreviewCallback(Camera.PreviewCallback previewCallback){
+        this.mCamera.setPreviewCallback(previewCallback);
+    }
 
     public int[] setPreviewResolution(int width, int height) {
         getHolder().setFixedSize(width, height);
@@ -209,10 +216,10 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         } else if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                mPreviewRotation = (info.orientation + 90) % 360;
+                mPreviewRotation = (info.orientation - 90) % 360;
                 mPreviewRotation = (360 - mPreviewRotation) % 360;  // compensate the mirror
             } else {
-                mPreviewRotation = (info.orientation + 270) % 360;
+                mPreviewRotation = (info.orientation + 90) % 360;
             }
         }
     }
@@ -323,6 +330,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
         stopTorch();
         if (mCamera != null) {
+            mCamera.setPreviewCallback(null);
             mCamera.stopPreview();
             mCamera.release();
             mCamera = null;

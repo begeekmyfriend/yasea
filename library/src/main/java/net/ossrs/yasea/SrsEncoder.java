@@ -320,6 +320,7 @@ public class SrsEncoder {
 
     private void onSoftEncodedData(byte[] es, long pts, boolean isKeyFrame) {
         ByteBuffer bb = ByteBuffer.wrap(es);
+        MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
         vebi.offset = 0;
         vebi.size = es.length;
         vebi.presentationTimeUs = pts;

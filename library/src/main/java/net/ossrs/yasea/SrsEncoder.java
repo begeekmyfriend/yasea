@@ -47,8 +47,6 @@ public class SrsEncoder {
     private MediaCodecInfo vmci;
     private MediaCodec vencoder;
     private MediaCodec aencoder;
-    private MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
-    private MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
 
     private boolean networkWeakTriggered = false;
     private boolean mCameraFaceFront = true;
@@ -307,6 +305,7 @@ public class SrsEncoder {
         }
 
         for (; ; ) {
+            MediaCodec.BufferInfo vebi = new MediaCodec.BufferInfo();
             int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
             if (outBufferIndex >= 0) {
                 ByteBuffer bb = outBuffers[outBufferIndex];
@@ -358,6 +357,7 @@ public class SrsEncoder {
             }
 
             for (; ; ) {
+                MediaCodec.BufferInfo aebi = new MediaCodec.BufferInfo();
                 int outBufferIndex = aencoder.dequeueOutputBuffer(aebi, 0);
                 if (outBufferIndex >= 0) {
                     ByteBuffer bb = outBuffers[outBufferIndex];

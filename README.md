@@ -9,7 +9,7 @@ camera and microphone to H.264/AAC, encapsulates in FLV and transmits over RTMP.
 Branch
 ------
 
-[non-gpuimage](https://github.com/begeekmyfriend/yasea/tree/non-gpuimage) for demo without GPUImage module.
+[non-gpuimage](https://github.com/begeekmyfriend/yasea/tree/non-gpuimage) for Android without GL ES library like development board.
 
 [android-16](https://github.com/begeekmyfriend/yasea/tree/android-16) for Android API 16+.
 

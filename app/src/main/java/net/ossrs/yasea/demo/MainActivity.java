@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private Button btnSwitchCamera;
     private Button btnRecord;
     private Button btnSwitchEncoder;
+    private Button btnPause;
 
     private SharedPreferences sp;
     private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
@@ -66,6 +67,8 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnSwitchCamera = (Button) findViewById(R.id.swCam);
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
+        btnPause = (Button) findViewById(R.id.pause);
+        btnPause.setEnabled(false);
 
         mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
@@ -95,12 +98,26 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     }
                     btnPublish.setText("stop");
                     btnSwitchEncoder.setEnabled(false);
+                    btnPause.setEnabled(true);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
                     btnPublish.setText("publish");
                     btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
+                    btnPause.setEnabled(false);
+                }
+            }
+        });
+        btnPause.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(btnPause.getText().toString().equals("Pause")){
+                    mPublisher.pausePublish();
+                    btnPause.setText("resume");
+                }else{
+                    mPublisher.resumePublish();
+                    btnPause.setText("Pause");
                 }
             }
         });

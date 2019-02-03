@@ -54,6 +54,7 @@ public class SrsEncoder {
     private boolean canSoftEncode = false;
 
     private long mPresentTimeUs;
+    private long mPausetime;
 
     private int mVideoColorFormat;
 
@@ -170,6 +171,14 @@ public class SrsEncoder {
         return true;
     }
 
+    public void pause(){
+        mPausetime = System.nanoTime() / 1000;
+    }
+    public void resume(){
+        long resumeTime = (System.nanoTime() / 1000) - mPausetime;
+        mPresentTimeUs = mPresentTimeUs + resumeTime;
+        mPausetime = 0;
+    }
     public void stop() {
         if (useSoftEncoder) {
             closeSoftEncoder();

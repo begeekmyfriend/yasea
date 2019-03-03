@@ -101,6 +101,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         mSurfaceWidth = width;
         mSurfaceHeight = height;
         magicFilter.onDisplaySizeChanged(width, height);
+        magicFilter.onInputSizeChanged(mPreviewWidth, mPreviewHeight);
 
         mOutputAspectRatio = width > height ? (float) width / height : (float) height / width;
         float aspectRatio = mOutputAspectRatio / mInputAspectRatio;
@@ -257,6 +258,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     public void disableEncoding() {
         mIsEncoding = false;
         mGLIntBufferCache.clear();
+        mGLPreviewBuffer.clear();
 
         if (worker != null) {
             worker.interrupt();

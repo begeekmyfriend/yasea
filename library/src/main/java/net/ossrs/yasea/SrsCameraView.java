@@ -144,7 +144,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     public int[] setPreviewResolution(int width, int height) {
-        getHolder().setFixedSize(width, height);
+        //getHolder().setFixedSize(width, height);
 
         mCamera = openCamera();
         mPreviewWidth = width;
@@ -154,6 +154,9 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             mPreviewWidth = rs.width;
             mPreviewHeight = rs.height;
         }
+        
+        getHolder().setFixedSize(mPreviewWidth, mPreviewHeight);
+        
         mCamera.getParameters().setPreviewSize(mPreviewWidth, mPreviewHeight);
 
         mGLPreviewBuffer = ByteBuffer.allocate(mPreviewWidth * mPreviewHeight * 4);

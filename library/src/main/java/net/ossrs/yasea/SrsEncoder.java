@@ -187,14 +187,22 @@ public class SrsEncoder {
 
         if (aencoder != null) {
             Log.i(TAG, "stop aencoder");
-            aencoder.stop();
+            try {
+                aencoder.stop();
+            }catch (IllegalStateException e){
+                e.printStackTrace();
+            }
             aencoder.release();
             aencoder = null;
         }
 
         if (vencoder != null) {
             Log.i(TAG, "stop vencoder");
-            vencoder.stop();
+            try {
+                vencoder.stop();
+            }catch (IllegalStateException e){
+                e.printStackTrace();
+            }
             vencoder.release();
             vencoder = null;
         }

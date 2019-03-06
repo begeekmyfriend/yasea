@@ -143,10 +143,15 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         this.mCamera.setPreviewCallback(previewCallback);
     }
 
-    public int[] setPreviewResolution(int width, int height) {
-        //getHolder().setFixedSize(width, height);
-
-        mCamera = openCamera();
+    public int[] setPreviewResolution(int width, int height) {                
+        
+        if (mCamera == null) {
+            mCamera = openCamera();
+            if (mCamera == null) {
+                return new int[] { 0, 0};
+            }
+        }        
+        
         mPreviewWidth = width;
         mPreviewHeight = height;
         Camera.Size rs = adaptPreviewResolution(mCamera.new Size(width, height));
@@ -367,7 +372,13 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 mCamId = 0;
             }
         }
-        camera = Camera.open(mCamId);
+        
+        try {
+            camera = Camera.open(mCamId);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        
         return camera;
     }
 

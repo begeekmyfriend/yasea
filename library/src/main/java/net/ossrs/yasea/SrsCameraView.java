@@ -347,7 +347,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         }
     }
 
-    private Camera openCamera() {
+    protected Camera openCamera() {
         Camera camera;
         if (mCamId < 0) {
             Camera.CameraInfo info = new Camera.CameraInfo();
@@ -374,6 +374,15 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         
         try {
             camera = Camera.open(mCamId);
+            
+            camera.setErrorCallback(new Camera.ErrorCallback(){
+                @Override
+                public void onError(int error, Camera camera) {
+                    //may be Camera.CAMERA_ERROR_EVICTED - Camera was disconnected due to use by higher priority user
+                    stopCamera();
+                }
+            });            
+            
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -431,9 +440,13 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     public void stopTorch() {
         if (mCamera != null) {
-            Camera.Parameters params = mCamera.getParameters();
-            params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
-            mCamera.setParameters(params);
+            try {
+                Camera.Parameters params = mCamera.getParameters();
+                params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+                mCamera.setParameters(params);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
         }
     }
 

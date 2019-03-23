@@ -233,6 +233,15 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        if(mPublisher.getCamera() == null){
+            //if the camera was busy and available again
+            mPublisher.startCamera();
+        }
+    }                           
+                          
+    @Override
     protected void onResume() {
         super.onResume();
         final Button btn = (Button) findViewById(R.id.publish);

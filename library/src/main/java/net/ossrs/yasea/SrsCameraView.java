@@ -211,10 +211,33 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         setPreviewOrientation(mPreviewOrientation);
     }
 
+    private int getRotateDeg() {
+        try {
+            int rotate = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getRotation();
+            switch (rotate) {
+                case Surface.ROTATION_0:
+                    return 0;
+                case Surface.ROTATION_90:
+                    return 90;
+                case Surface.ROTATION_180:
+                    return 180;
+                case Surface.ROTATION_270:
+                    return 270;
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+    
     public void setPreviewOrientation(int orientation) {
         mPreviewOrientation = orientation;
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(mCamId, info);
+        
+        int rotateDeg = getRotateDeg();
+        
         if (orientation == Configuration.ORIENTATION_PORTRAIT) {
             if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                 mPreviewRotation = info.orientation % 360;
@@ -230,6 +253,11 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
                 mPreviewRotation = (info.orientation + 90) % 360;
             }
         }
+        
+        if(rotateDeg > 0){
+            mPreviewRotation = mPreviewRotation % rotateDeg;
+        }        
+        
     }
 
     public int getCameraId() {

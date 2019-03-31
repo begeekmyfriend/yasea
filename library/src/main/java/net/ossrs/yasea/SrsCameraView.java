@@ -211,7 +211,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         setPreviewOrientation(mPreviewOrientation);
     }
 
-    private int getRotateDeg() {
+    protected int getRotateDeg() {
         try {
             int rotate = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getRotation();
             switch (rotate) {

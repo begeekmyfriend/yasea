@@ -69,8 +69,9 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
         btnPause = (Button) findViewById(R.id.pause);
         btnPause.setEnabled(false);
-
-        mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
+        mCameraView = (SrsCameraView) findViewById(R.id.glsurfaceview_camera);
+      
+        mPublisher = new SrsPublisher(mCameraView);
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
@@ -78,6 +79,15 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         mPublisher.setOutputResolution(360, 640);
         mPublisher.setVideoHDMode();
         mPublisher.startCamera();
+      
+        mCameraView.setCameraCallbacksHandler(new SrsCameraView.CameraCallbacksHandler(){
+            @Override
+            public void onCameraParameters(Camera.Parameters params) {
+                //params.setFocusMode("custom-focus");                
+                //params.setWhiteBalance("custom-balance");
+                //etc...
+            }
+        });      
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override

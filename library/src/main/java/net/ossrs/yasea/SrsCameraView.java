@@ -54,6 +54,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     private final Object writeLock = new Object();
     private ConcurrentLinkedQueue<IntBuffer> mGLIntBufferCache = new ConcurrentLinkedQueue<>();
     private PreviewCallback mPrevCb;
+    private CameraCallbacksHandler cameraCallbacksHandler = new CameraCallbacksHandler();
 
     public SrsCameraView(Context context) {
         this(context, null);
@@ -349,6 +350,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             }
         }
 
+        cameraCallbacksHandler.onCameraParameters(params);
         mCamera.setParameters(params);
 
         mCamera.setDisplayOrientation(mPreviewRotation);
@@ -482,4 +484,20 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
         void onGetRgbaFrame(byte[] data, int width, int height);
     }
+    
+    static public class CameraCallbacksHandler implements CameraCallbacks{
+
+        @Override
+        public void onCameraParameters(Camera.Parameters params) {
+
+        }
+    }
+
+    public interface CameraCallbacks {
+        void onCameraParameters(Camera.Parameters params);
+    }
+
+    public void setCameraCallbacksHandler(CameraCallbacksHandler cameraCallbacksHandler) {
+        this.cameraCallbacksHandler = cameraCallbacksHandler;
+    }    
 }

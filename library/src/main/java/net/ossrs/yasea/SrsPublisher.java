@@ -218,6 +218,17 @@ public class SrsPublisher {
         }
     }
 
+    public boolean isAllFramesUploaded(){
+        return mFlvMuxer.getVideoFrameCacheNumber().get() == 0;
+    }
+
+    public int getVideoFrameCacheCount(){
+        if(mFlvMuxer != null) {
+            return mFlvMuxer.getVideoFrameCacheNumber().get();
+        }
+        return 0;
+    }
+
     public void switchToSoftEncoder() {
         mEncoder.switchToSoftEncoder();
     }

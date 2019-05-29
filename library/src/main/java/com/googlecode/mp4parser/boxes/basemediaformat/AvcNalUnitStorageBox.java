@@ -16,15 +16,11 @@
 
 package com.googlecode.mp4parser.boxes.basemediaformat;
 
-import com.googlecode.mp4parser.AbstractBox;
 import com.coremedia.iso.boxes.h264.AvcConfigurationBox;
+import com.googlecode.mp4parser.AbstractBox;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
-
-import static com.googlecode.mp4parser.util.CastUtils.l2i;
 
 /**
  * The AVC NAL Unit Storage Box SHALL contain an AVCDecoderConfigurationRecord,

@@ -20,11 +20,13 @@ import com.github.faucamp.simplertmp.RtmpHandler;
 
 import net.ossrs.yasea.SrsCameraView;
 import net.ossrs.yasea.SrsEncodeHandler;
-import net.ossrs.yasea.SrsPublisher;
+import net.ossrs.yasea.SrsMediaControler;
 import net.ossrs.yasea.SrsRecordHandler;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
@@ -38,10 +40,13 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
     Button btnSwitchEncoder = null;
 
     private SharedPreferences sp;
-    private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
-    private String recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
+    // default port is 1935
+    private String rtmpUrl = "rtmp://192.168.1.115/live/livestream";
+    private String recPath = "/sdcard/test.mp4";
 
-    private SrsPublisher mPublisher;
+    private SrsMediaControler mMediaControler;
+    private Map<String, SrsCameraView> mCameraViews = new HashMap<>();
+    private int count = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,14 +71,21 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
 
-        mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.preview));
-        mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
-        mPublisher.setRtmpHandler(new RtmpHandler(this));
-        mPublisher.setRecordHandler(new SrsRecordHandler(this));
-        mPublisher.setPreviewResolution(640, 360);
-        mPublisher.setOutputResolution(360, 640);
-        mPublisher.setVideoSmoothMode();
-        mPublisher.startCamera();
+        mCameraViews.put("dms", (SrsCameraView) findViewById(R.id.preview));
+        mMediaControler = new SrsMediaControler(mCameraViews);
+        mMediaControler.setPreviewCallback("dms", new DmsPreviewCallback());
+        mMediaControler.startDataCallback();
+
+        mMediaControler.setEncodeHandler(new SrsEncodeHandler(this));
+
+        mMediaControler.setRtmpHandler(new RtmpHandler(this));
+        mMediaControler.setRecordHandler(new SrsRecordHandler(this));
+        mMediaControler.setViewPreviewResolution("dms", 1920, 1080);
+        mMediaControler.setEncoderPreviewResolution(1920, 1080);
+        mMediaControler.setOutputResolution(640, 480);
+        mMediaControler.setVideoSmoothMode();
+        mMediaControler.startCamera();
+        mMediaControler.startEncode();
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -84,8 +96,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
                     editor.putString("rtmpUrl", rtmpUrl);
                     editor.apply();
 
-                    mPublisher.startPublish(rtmpUrl);
-                    mPublisher.startCamera();
+                    mMediaControler.startPublish(rtmpUrl);
 
                     if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
                         Toast.makeText(getApplicationContext(), "Use hard encoder", Toast.LENGTH_SHORT).show();
@@ -95,10 +106,8 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
                     btnPublish.setText("stop");
                     btnSwitchEncoder.setEnabled(false);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
-                    mPublisher.stopPublish();
-                    mPublisher.stopRecord();
+                    mMediaControler.stopPublish();
                     btnPublish.setText("publish");
-                    btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
                 }
             }
@@ -107,7 +116,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         btnSwitchCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % Camera.getNumberOfCameras());
+                //mMediaControler.switchCameraFace((mMediaControler.getCamraId() + 1) % Camera.getNumberOfCameras());
             }
         });
 
@@ -115,14 +124,15 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
             @Override
             public void onClick(View v) {
                 if (btnRecord.getText().toString().contentEquals("record")) {
-                    if (mPublisher.startRecord(recPath)) {
-                        btnRecord.setText("pause");
+                    if (mMediaControler.startRecord(recPath)) {
+                        btnRecord.setText("stop");
                     }
-                } else if (btnRecord.getText().toString().contentEquals("pause")) {
-                    mPublisher.pauseRecord();
-                    btnRecord.setText("resume");
+                } else if (btnRecord.getText().toString().contentEquals("stop")) {
+                    //mMediaControler.pauseRecord();
+                    mMediaControler.stopRecord();
+                    btnRecord.setText("record");
                 } else if (btnRecord.getText().toString().contentEquals("resume")) {
-                    mPublisher.resumeRecord();
+                    mMediaControler.resumeRecord();
                     btnRecord.setText("pause");
                 }
             }
@@ -132,14 +142,25 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
             @Override
             public void onClick(View v) {
                 if (btnSwitchEncoder.getText().toString().contentEquals("soft encoder")) {
-                    mPublisher.switchToSoftEncoder();
+                    mMediaControler.switchToSoftEncoder();
                     btnSwitchEncoder.setText("hard encoder");
                 } else if (btnSwitchEncoder.getText().toString().contentEquals("hard encoder")) {
-                    mPublisher.switchToHardEncoder();
+                    mMediaControler.switchToHardEncoder();
                     btnSwitchEncoder.setText("soft encoder");
                 }
             }
         });
+    }
+
+    private class DmsPreviewCallback implements SrsCameraView.PreviewCallback {
+        @Override
+        public void onGetYuvFrame(byte[] data) {
+            mMediaControler.calcSamplingFps();
+            if (!mMediaControler.isSendAudioOnly() && mMediaControler.isStartEncode()) {
+                //Log.d(TAG, "count = " + count++);
+                mMediaControler.getEncoder().onGetYuvFrame(data);
+            }
+        }
     }
 
     @Override
@@ -169,33 +190,35 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
         super.onResume();
         final Button btn = (Button) findViewById(R.id.publish);
         btn.setEnabled(true);
-        mPublisher.resumeRecord();
+        mMediaControler.resumeRecord();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mPublisher.pauseRecord();
+        mMediaControler.pauseRecord();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mPublisher.stopPublish();
-        mPublisher.stopRecord();
+        mMediaControler.stopEncode();
+        mMediaControler.stopPublish();
+        mMediaControler.stopRecord();
     }
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        mPublisher.stopEncode();
-        mPublisher.stopRecord();
-        btnRecord.setText("record");
-        mPublisher.setScreenOrientation(newConfig.orientation);
-        if (btnPublish.getText().toString().contentEquals("stop")) {
-            mPublisher.startEncode();
-        }
-        mPublisher.startCamera();
+        Log.e(TAG, "onConfigurationChanged");
+//        mMediaControler.stopEncode();
+//        mMediaControler.stopRecord();
+//        btnRecord.setText("record");
+//        mMediaControler.setScreenOrientation(newConfig.orientation);
+//        if (btnPublish.getText().toString().contentEquals("stop")) {
+//            mMediaControler.startEncode();
+//        }
+//        mMediaControler.startCamera();
     }
 
     private static String getRandomAlphaString(int length) {
@@ -223,8 +246,8 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
     private void handleException(Exception e) {
         try {
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-            mPublisher.stopPublish();
-            mPublisher.stopRecord();
+            mMediaControler.stopPublish();
+            mMediaControler.stopRecord();
             btnPublish.setText("publish");
             btnRecord.setText("record");
             btnSwitchEncoder.setEnabled(true);
@@ -344,7 +367,7 @@ public class MainActivity extends Activity implements RtmpHandler.RtmpListener,
 
     @Override
     public void onNetworkWeak() {
-        Toast.makeText(getApplicationContext(), "Network weak", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(getApplicationContext(), "Network weak", Toast.LENGTH_SHORT).show();
     }
 
     @Override

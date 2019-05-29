@@ -16,8 +16,6 @@
 
 package com.googlecode.mp4parser.boxes.mp4.samplegrouping;
 
-import com.coremedia.iso.IsoTypeReader;
-
 import java.nio.ByteBuffer;
 
 /**

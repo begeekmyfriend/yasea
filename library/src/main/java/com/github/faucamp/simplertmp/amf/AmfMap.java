@@ -1,11 +1,11 @@
 package com.github.faucamp.simplertmp.amf;
 
+import com.github.faucamp.simplertmp.Util;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
-
-import com.github.faucamp.simplertmp.Util;
 
 /**
  * AMF map; that is, an "object"-like structure of key/value pairs, but with 

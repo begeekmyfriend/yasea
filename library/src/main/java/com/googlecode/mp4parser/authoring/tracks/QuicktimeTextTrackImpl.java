@@ -15,21 +15,23 @@
  */
 package com.googlecode.mp4parser.authoring.tracks;
 
-import com.coremedia.iso.boxes.*;
-import com.coremedia.iso.boxes.sampleentry.TextSampleEntry;
+import com.coremedia.iso.boxes.Box;
+import com.coremedia.iso.boxes.CompositionTimeToSample;
+import com.coremedia.iso.boxes.SampleDependencyTypeBox;
+import com.coremedia.iso.boxes.SampleDescriptionBox;
+import com.coremedia.iso.boxes.SubSampleInformationBox;
+import com.coremedia.iso.boxes.TimeToSampleBox;
 import com.googlecode.mp4parser.authoring.AbstractTrack;
 import com.googlecode.mp4parser.authoring.TrackMetaData;
 import com.googlecode.mp4parser.boxes.apple.BaseMediaInfoAtom;
 import com.googlecode.mp4parser.boxes.apple.GenericMediaHeaderAtom;
 import com.googlecode.mp4parser.boxes.apple.GenericMediaHeaderTextAtom;
 import com.googlecode.mp4parser.boxes.apple.QuicktimeTextSampleEntry;
-import com.googlecode.mp4parser.boxes.threegpp26245.FontTableBox;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;

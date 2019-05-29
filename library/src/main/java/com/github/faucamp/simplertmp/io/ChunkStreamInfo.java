@@ -1,12 +1,12 @@
 package com.github.faucamp.simplertmp.io;
 
+import com.github.faucamp.simplertmp.Util;
+import com.github.faucamp.simplertmp.packets.RtmpHeader;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
-import com.github.faucamp.simplertmp.Util;
-import com.github.faucamp.simplertmp.packets.RtmpHeader;
 
 /**
  * Chunk stream channel information

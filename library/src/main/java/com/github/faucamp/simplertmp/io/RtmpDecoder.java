@@ -1,11 +1,9 @@
 package com.github.faucamp.simplertmp.io;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import android.util.Log;
 
 import com.github.faucamp.simplertmp.packets.Abort;
+import com.github.faucamp.simplertmp.packets.Acknowledgement;
 import com.github.faucamp.simplertmp.packets.Audio;
 import com.github.faucamp.simplertmp.packets.Command;
 import com.github.faucamp.simplertmp.packets.Data;
@@ -16,7 +14,9 @@ import com.github.faucamp.simplertmp.packets.SetPeerBandwidth;
 import com.github.faucamp.simplertmp.packets.UserControl;
 import com.github.faucamp.simplertmp.packets.Video;
 import com.github.faucamp.simplertmp.packets.WindowAckSize;
-import com.github.faucamp.simplertmp.packets.Acknowledgement;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * @author francois

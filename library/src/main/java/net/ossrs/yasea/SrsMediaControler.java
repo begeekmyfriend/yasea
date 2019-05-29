@@ -3,16 +3,23 @@ package net.ossrs.yasea;
 import android.media.AudioRecord;
 import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
+import android.util.Log;
 
 import com.github.faucamp.simplertmp.RtmpHandler;
 
 import java.io.File;
+import java.util.Map;
 
 /**
  * Created by Leo Ma on 2016/7/25.
+ * Modify by yicm on 2019/5/28.
+ * Note: 1. 双摄像头状态管理
+ *       2. 双摄像头数据回调
+ *       3. 推流切换
+ *       4. 录制切换
  */
-public class SrsPublisher {
-
+public class SrsMediaControler {
+    private final static String TAG = "SrsMediaControler";
     private static AudioRecord mic;
     private static AcousticEchoCanceler aec;
     private static AutomaticGainControl agc;
@@ -20,9 +27,11 @@ public class SrsPublisher {
     private Thread aworker;
 
     private SrsCameraView mCameraView;
+    private Map<String, SrsCameraView> mCameraViewList;
 
     private boolean sendVideoOnly = false;
     private boolean sendAudioOnly = false;
+    private boolean mIsStartEncode = false;
     private int videoFrameCount;
     private long lastTimeMillis;
     private double mSamplingFps;
@@ -30,21 +39,49 @@ public class SrsPublisher {
     private SrsFlvMuxer mFlvMuxer;
     private SrsMp4Muxer mMp4Muxer;
     private SrsEncoder mEncoder;
+    private static int count = 0;
 
-    public SrsPublisher(SrsCameraView view) {
-        mCameraView = view;
+    public SrsMediaControler(Map<String, SrsCameraView> views) {
+        mCameraViewList = views;
+    }
+
+    public void setPreviewCallback(String viewKey, SrsCameraView.PreviewCallback callback) {
+        if (!mCameraViewList.isEmpty()) {
+            SrsCameraView view = mCameraViewList.get(viewKey);
+            if (view != null) {
+                Log.d(TAG, "set preview callback success");
+                view.setPreviewCallback(callback);
+            } else {
+                Log.e(TAG, "not exist the key " + viewKey);
+            }
+        }
+        /*
         mCameraView.setPreviewCallback(new SrsCameraView.PreviewCallback() {
             @Override
             public void onGetYuvFrame(byte[] data) {
                 calcSamplingFps();
-                if (!sendAudioOnly) {
+                Log.d("Test", "count: " + count++);
+                if (!sendAudioOnly && mIsStartEncode) {
                     mEncoder.onGetYuvFrame(data);
                 }
             }
         });
+        */
     }
 
-    private void calcSamplingFps() {
+    public boolean isSendAudioOnly() {
+        return sendAudioOnly;
+    }
+
+    public boolean isStartEncode() {
+        return mIsStartEncode;
+    }
+
+    public SrsEncoder getEncoder() {
+        return mEncoder;
+    }
+
+    public void calcSamplingFps() {
         // Calculate sampling FPS
         if (videoFrameCount == 0) {
             lastTimeMillis = System.nanoTime() / 1000000;
@@ -59,11 +96,19 @@ public class SrsPublisher {
     }
 
     public void startCamera() {
-        mCameraView.startCamera();
+        if (mCameraViewList != null) {
+            for (SrsCameraView view : mCameraViewList.values()) {
+                view.startCamera();
+            }
+        }
     }
 
     public void stopCamera() {
-        mCameraView.stopCamera();
+        if (mCameraViewList != null) {
+            for (SrsCameraView view : mCameraViewList.values()) {
+                view.stopCamera();
+            }
+        }
     }
 
     public void startAudio() {
@@ -143,33 +188,48 @@ public class SrsPublisher {
         }
     }
 
+    public void startDataCallback() {
+        for (SrsCameraView view : mCameraViewList.values()) {
+            view.enableDataCallback();
+        }
+    }
+
+    public void stopDataCallback() {
+        for (SrsCameraView view : mCameraViewList.values()) {
+            view.disableDataCallback();
+        }
+    }
+
     public void startEncode() {
         if (!mEncoder.start()) {
             return;
         }
 
-        mCameraView.enableEncoding();
-
+        mIsStartEncode = true;
         startAudio();
     }
 
     public void stopEncode() {
         stopAudio();
-        stopCamera();
+        mIsStartEncode = false;
         mEncoder.stop();
     }
 
     public void startPublish(String rtmpUrl) {
         if (mFlvMuxer != null) {
             mFlvMuxer.start(rtmpUrl);
+            Log.d(TAG, "encoder w = " + mEncoder.getOutputWidth() + " , h = " + mEncoder.getOutputHeight());
             mFlvMuxer.setVideoResolution(mEncoder.getOutputWidth(), mEncoder.getOutputHeight());
-            startEncode();
+            if (!mIsStartEncode) {
+                startEncode();
+            }
+            mEncoder.enableFlvMuxer();
         }
     }
 
     public void stopPublish() {
         if (mFlvMuxer != null) {
-            stopEncode();
+            mEncoder.disableFlvMuxer();
             mFlvMuxer.stop();
         }
     }
@@ -220,13 +280,21 @@ public class SrsPublisher {
         return mSamplingFps;
     }
 
-    public int getCamraId() {
-        return mCameraView.getCameraId();
+    public void setViewPreviewResolution(String key, int width, int height) {
+        if (!mCameraViewList.isEmpty()) {
+            SrsCameraView view = mCameraViewList.get(key);
+            if (view != null) {
+                int resolution[] = view.setPreviewResolution(width, height);
+            } else {
+                Log.e(TAG, "not exist the key " + key);
+            }
+        }
     }
 
-    public void setPreviewResolution(int width, int height) {
-        int resolution[] = mCameraView.setPreviewResolution(width, height);
-        mEncoder.setPreviewResolution(resolution[0], resolution[1]);
+    public void setEncoderPreviewResolution(int width, int height) {
+        if (mEncoder != null) {
+            mEncoder.setPreviewResolution(width, height);
+        }
     }
 
     public void setOutputResolution(int width, int height) {
@@ -237,9 +305,21 @@ public class SrsPublisher {
         }
     }
 
-    public void setScreenOrientation(int orientation) {
-        mCameraView.setPreviewOrientation(orientation);
-        mEncoder.setScreenOrientation(orientation);
+    public void setScreenOrientation(String key, int orientation) {
+        if (!mCameraViewList.isEmpty()) {
+            SrsCameraView view = mCameraViewList.get(key);
+            if (view != null) {
+                view.setPreviewOrientation(orientation);
+            } else {
+                Log.e(TAG, "not exist the key " + key);
+            }
+        }
+    }
+
+    public void setEncoderFrameOrientation(int orientation) {
+        if (mEncoder != null) {
+            mEncoder.setScreenOrientation(orientation);
+        }
     }
 
     public void setVideoHDMode() {
@@ -266,19 +346,19 @@ public class SrsPublisher {
         sendAudioOnly = flag;
     }
 
-    public void switchCameraFace(int id) {
-        mCameraView.stopCamera();
-        mCameraView.setCameraId(id);
-        if (id == 0) {
-            mEncoder.setCameraBackFace();
-        } else {
-            mEncoder.setCameraFrontFace();
-        }
-        if (mEncoder != null && mEncoder.isEnabled()) {
-            mCameraView.enableEncoding();
-        }
-        mCameraView.startCamera();
-    }
+//    public void switchCameraFace(int id) {
+//        mCameraView.stopCamera();
+//        mCameraView.setCameraId(id);
+//        if (id == 0) {
+//            mEncoder.setCameraBackFace();
+//        } else {
+//            mEncoder.setCameraFrontFace();
+//        }
+//        if (mEncoder != null && mEncoder.isEnabled()) {
+//            mCameraView.enableDataCallback();
+//        }
+//        mCameraView.startCamera();
+//    }
 
     public void setRtmpHandler(RtmpHandler handler) {
         mFlvMuxer = new SrsFlvMuxer(handler);

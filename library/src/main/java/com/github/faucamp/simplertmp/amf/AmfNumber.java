@@ -1,10 +1,10 @@
 package com.github.faucamp.simplertmp.amf;
 
+import com.github.faucamp.simplertmp.Util;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import com.github.faucamp.simplertmp.Util;
 
 /**
  * AMF0 Number data type

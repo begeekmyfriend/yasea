@@ -1,12 +1,10 @@
 package com.github.faucamp.simplertmp.packets;
 
-import android.support.annotation.Nullable;
+import com.github.faucamp.simplertmp.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import com.github.faucamp.simplertmp.Util;
 
 /**
  * Content (audio/video) data packet base

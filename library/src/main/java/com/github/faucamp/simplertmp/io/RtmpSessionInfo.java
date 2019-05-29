@@ -1,10 +1,10 @@
 package com.github.faucamp.simplertmp.io;
 
+import com.github.faucamp.simplertmp.packets.RtmpPacket;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.github.faucamp.simplertmp.packets.RtmpPacket;
 
 /**
  *

@@ -16,8 +16,8 @@
 
 package com.coremedia.iso.boxes.fragment;
 
-import com.googlecode.mp4parser.AbstractContainerBox;
 import com.coremedia.iso.boxes.Box;
+import com.googlecode.mp4parser.AbstractContainerBox;
 
 /**
  * aligned(8) class TrackFragmentBox extends Box('traf'){

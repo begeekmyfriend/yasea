@@ -1,14 +1,10 @@
 package com.googlecode.mp4parser.boxes.cenc;
 
-import com.coremedia.iso.BoxParser;
-import com.coremedia.iso.IsoFile;
 import com.coremedia.iso.IsoTypeReader;
 import com.coremedia.iso.IsoTypeWriter;
-import com.coremedia.iso.boxes.Box;
 import com.googlecode.mp4parser.AbstractFullBox;
 import com.googlecode.mp4parser.util.UUIDConverter;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 

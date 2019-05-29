@@ -101,8 +101,8 @@ static bool nv21_to_i420(jbyte *nv21_frame, jint src_width, jint src_height,
                     i420_scaled_frame.width, i420_scaled_frame.height,
                     kFilterNone);
     if (ret < 0) {
-         LIBENC_LOGE("I420Scale failure");
-         return false;
+        LIBENC_LOGE("I420Scale failure");
+        return false;
     }
 
     return true;
@@ -326,16 +326,16 @@ static jboolean libenc_openSoftEncoder(JNIEnv* env, jobject thiz) {
 }
 
 static JNINativeMethod libenc_methods[] = {
-    { "setEncoderResolution", "(II)V", (void *)libenc_setEncoderResolution },
-    { "setEncoderFps", "(I)V", (void *)libenc_setEncoderFps },
-    { "setEncoderGop", "(I)V", (void *)libenc_setEncoderGop },
-    { "setEncoderBitrate", "(I)V", (void *)libenc_setEncoderBitrate },
-    { "setEncoderPreset", "(Ljava/lang/String;)V", (void *)libenc_setEncoderPreset },
-    { "NV21ToI420", "([BIIZI)[B", (void *)libenc_NV21ToI420 },
-    { "NV21ToNV12", "([BIIZI)[B", (void *)libenc_NV21ToNV12 },
-    { "openSoftEncoder", "()Z", (void *)libenc_openSoftEncoder },
-    { "closeSoftEncoder", "()V", (void *)libenc_closeSoftEncoder },
-    { "NV21SoftEncode", "([BIIZIJ)I", (void *)libenc_NV21SoftEncode },
+        { "setEncoderResolution", "(II)V", (void *)libenc_setEncoderResolution },
+        { "setEncoderFps", "(I)V", (void *)libenc_setEncoderFps },
+        { "setEncoderGop", "(I)V", (void *)libenc_setEncoderGop },
+        { "setEncoderBitrate", "(I)V", (void *)libenc_setEncoderBitrate },
+        { "setEncoderPreset", "(Ljava/lang/String;)V", (void *)libenc_setEncoderPreset },
+        { "NV21ToI420", "([BIIZI)[B", (void *)libenc_NV21ToI420 },
+        { "NV21ToNV12", "([BIIZI)[B", (void *)libenc_NV21ToNV12 },
+        { "openSoftEncoder", "()Z", (void *)libenc_openSoftEncoder },
+        { "closeSoftEncoder", "()V", (void *)libenc_closeSoftEncoder },
+        { "NV21SoftEncode", "([BIIZIJ)I", (void *)libenc_NV21SoftEncode },
 };
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {

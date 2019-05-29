@@ -3,9 +3,9 @@ package com.coremedia.iso.boxes.apple;
 import com.coremedia.iso.IsoTypeReader;
 import com.coremedia.iso.IsoTypeWriter;
 import com.coremedia.iso.Utf8;
-import com.googlecode.mp4parser.AbstractBox;
 import com.coremedia.iso.boxes.Box;
 import com.coremedia.iso.boxes.ContainerBox;
+import com.googlecode.mp4parser.AbstractBox;
 import com.googlecode.mp4parser.util.ByteBufferByteChannel;
 
 import java.io.IOException;

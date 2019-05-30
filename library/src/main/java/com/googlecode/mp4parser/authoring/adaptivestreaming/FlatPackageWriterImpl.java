@@ -22,7 +22,10 @@ import com.coremedia.iso.boxes.VideoMediaHeaderBox;
 import com.coremedia.iso.boxes.fragment.MovieFragmentBox;
 import com.googlecode.mp4parser.authoring.Movie;
 import com.googlecode.mp4parser.authoring.Track;
-import com.googlecode.mp4parser.authoring.builder.*;
+import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
+import com.googlecode.mp4parser.authoring.builder.FragmentIntersectionFinder;
+import com.googlecode.mp4parser.authoring.builder.FragmentedMp4Builder;
+import com.googlecode.mp4parser.authoring.builder.SyncSampleIntersectFinderImpl;
 import com.googlecode.mp4parser.authoring.tracks.ChangeTimeScaleTrack;
 
 import java.io.File;

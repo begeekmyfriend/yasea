@@ -16,12 +16,17 @@
 
 package com.coremedia.iso;
 
-import com.googlecode.mp4parser.AbstractContainerBox;
 import com.coremedia.iso.boxes.Box;
 import com.coremedia.iso.boxes.MovieBox;
+import com.googlecode.mp4parser.AbstractContainerBox;
 import com.googlecode.mp4parser.annotations.DoNotParseDetail;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;

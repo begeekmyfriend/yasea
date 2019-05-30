@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Leo Ma on 4/1/2016.
+ * Updated by yicm on 5/29/2019.
  */
 public class SrsEncoder {
     private static final String TAG = "SrsEncoder";
@@ -40,6 +41,9 @@ public class SrsEncoder {
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
+    ByteBuffer spsByteBuff;
+    ByteBuffer ppsByteBuff;
+    private boolean isFlvMuxerEnable = false;
     private SrsFlvMuxer flvMuxer;
     private SrsMp4Muxer mp4Muxer;
 
@@ -81,6 +85,7 @@ public class SrsEncoder {
     }
 
     public void setFlvMuxer(SrsFlvMuxer flvMuxer) {
+        Log.d(TAG, "setFlvMuxer");
         this.flvMuxer = flvMuxer;
     }
 
@@ -274,6 +279,14 @@ public class SrsEncoder {
         return vOutHeight;
     }
 
+    public void enableFlvMuxer() {
+        isFlvMuxerEnable = true;
+    }
+
+    public void disableFlvMuxer() {
+        isFlvMuxerEnable = false;
+    }
+
     public void setScreenOrientation(int orientation) {
         mOrientation = orientation;
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -311,12 +324,36 @@ public class SrsEncoder {
             int outBufferIndex = vencoder.dequeueOutputBuffer(vebi, 0);
             if (outBufferIndex >= 0) {
                 ByteBuffer bb = outBuffers[outBufferIndex];
+                if (this.flvMuxer != null) {
+                    if (!this.flvMuxer.getFlv().isH264SpsPpsSent()) {
+                        this.flvMuxer.getFlv().setSpsPps(spsByteBuff.duplicate(), ppsByteBuff.duplicate());
+                    }
+                }
                 onEncodedAnnexbFrame(bb, vebi);
                 vencoder.releaseOutputBuffer(outBufferIndex, false);
+            } else if (outBufferIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+                Log.v(TAG, "INFO_OUTPUT_BUFFERS_CHANGED");
+                // this shoud not come when encoding
+                outBuffers = vencoder.getOutputBuffers();
+            } else if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                Log.v(TAG, "INFO_OUTPUT_FORMAT_CHANGED");
+                final MediaFormat format = vencoder.getOutputFormat();
+                // get sps and pps by hand
+                spsByteBuff = format.getByteBuffer("csd-0");
+                ppsByteBuff = format.getByteBuffer("csd-1");
+                if (spsByteBuff == null || ppsByteBuff == null) {
+                    Log.w(TAG, "sps/pps buffer is null");
+                } else {
+                    // nothing to do
+                }
             } else {
                 break;
             }
         }
+    }
+
+    private void cacheSpsPps(ByteBuffer bb, MediaCodec.BufferInfo bi) {
+
     }
 
     private void onSoftEncodedData(byte[] es, long pts, boolean isKeyFrame) {
@@ -331,13 +368,17 @@ public class SrsEncoder {
     // when got encoded h264 es stream.
     private void onEncodedAnnexbFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         mp4Muxer.writeSampleData(videoMp4Track, es.duplicate(), bi);
-        flvMuxer.writeSampleData(videoFlvTrack, es, bi);
+        if (isFlvMuxerEnable) {
+            flvMuxer.writeSampleData(videoFlvTrack, es, bi);
+        }
     }
 
     // when got encoded aac raw stream.
     private void onEncodedAacFrame(ByteBuffer es, MediaCodec.BufferInfo bi) {
         mp4Muxer.writeSampleData(audioMp4Track, es.duplicate(), bi);
-        flvMuxer.writeSampleData(audioFlvTrack, es, bi);
+        if (isFlvMuxerEnable) {
+            flvMuxer.writeSampleData(audioFlvTrack, es, bi);
+        }
     }
 
     public void onGetPcmFrame(byte[] data, int size) {

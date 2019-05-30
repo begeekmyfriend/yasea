@@ -4,16 +4,16 @@
  */
 package com.github.faucamp.simplertmp.packets;
 
+import com.github.faucamp.simplertmp.Util;
+import com.github.faucamp.simplertmp.io.ChunkStreamInfo;
+import com.github.faucamp.simplertmp.io.RtmpSessionInfo;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.github.faucamp.simplertmp.Util;
-import com.github.faucamp.simplertmp.io.ChunkStreamInfo;
-import com.github.faucamp.simplertmp.io.RtmpSessionInfo;
 
 /**
  *

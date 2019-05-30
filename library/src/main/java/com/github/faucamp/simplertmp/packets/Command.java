@@ -1,12 +1,12 @@
 package com.github.faucamp.simplertmp.packets;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
 import com.github.faucamp.simplertmp.amf.AmfNumber;
 import com.github.faucamp.simplertmp.amf.AmfString;
 import com.github.faucamp.simplertmp.io.ChunkStreamInfo;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Encapsulates an command/"invoke" RTMP packet

@@ -3,14 +3,6 @@ package com.googlecode.mp4parser.boxes.piff;
 
 import com.coremedia.iso.Hex;
 
-import java.lang.Class;
-import java.lang.IllegalAccessException;
-import java.lang.InstantiationException;
-import java.lang.Object;
-import java.lang.Override;
-import java.lang.RuntimeException;
-import java.lang.String;
-import java.lang.StringBuilder;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;

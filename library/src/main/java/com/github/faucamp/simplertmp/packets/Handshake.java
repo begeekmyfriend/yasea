@@ -1,14 +1,14 @@
 package com.github.faucamp.simplertmp.packets;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Random;
-
 import android.util.Log;
 
 import com.github.faucamp.simplertmp.Crypto;
 import com.github.faucamp.simplertmp.Util;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Random;
 
 /**
  * Handles the RTMP handshake song 'n dance

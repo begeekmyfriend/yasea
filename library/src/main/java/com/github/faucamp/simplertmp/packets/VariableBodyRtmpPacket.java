@@ -1,17 +1,17 @@
 package com.github.faucamp.simplertmp.packets;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.github.faucamp.simplertmp.amf.AmfBoolean;
 import com.github.faucamp.simplertmp.amf.AmfData;
 import com.github.faucamp.simplertmp.amf.AmfDecoder;
 import com.github.faucamp.simplertmp.amf.AmfNull;
 import com.github.faucamp.simplertmp.amf.AmfNumber;
 import com.github.faucamp.simplertmp.amf.AmfString;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * RTMP packet with a "variable" body structure (i.e. the structure of the

@@ -17,7 +17,6 @@
 package com.coremedia.iso.boxes;
 
 import com.coremedia.iso.BoxParser;
-import com.coremedia.iso.boxes.ContainerBox;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

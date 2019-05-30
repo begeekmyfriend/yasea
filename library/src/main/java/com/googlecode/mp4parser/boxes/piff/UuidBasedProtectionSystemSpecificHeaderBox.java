@@ -1,15 +1,11 @@
 package com.googlecode.mp4parser.boxes.piff;
 
-import com.coremedia.iso.IsoFile;
 import com.coremedia.iso.IsoTypeReader;
 import com.coremedia.iso.IsoTypeWriter;
 import com.googlecode.mp4parser.AbstractFullBox;
-import com.googlecode.mp4parser.util.Path;
 import com.googlecode.mp4parser.util.UUIDConverter;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.lang.Override;import java.lang.String;import java.lang.StringBuilder;import java.nio.ByteBuffer;
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import static com.googlecode.mp4parser.util.CastUtils.l2i;

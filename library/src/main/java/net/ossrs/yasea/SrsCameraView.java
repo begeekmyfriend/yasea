@@ -4,13 +4,11 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.io.IOException;
-import java.nio.IntBuffer;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -27,7 +25,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     private byte[] mYuvPreviewFrame;
     private int mPreviewWidth;
     private int mPreviewHeight;
-    private boolean mIsEncoding;
+    private boolean mIsCallbacking;
     private boolean mIsTorchOn = false;
 
     private Thread worker;
@@ -97,7 +95,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
         return new int[] { mPreviewWidth, mPreviewHeight };
     }
 
-    public void enableEncoding() {
+    public void enableDataCallback() {
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -118,11 +116,11 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
             }
         });
         worker.start();
-        mIsEncoding = true;
+        mIsCallbacking = true;
     }
 
-    public void disableEncoding() {
-        mIsEncoding = false;
+    public void disableDataCallback() {
+        mIsCallbacking = false;
         mByteBufferCache.clear();
 
         if (worker != null) {
@@ -194,7 +192,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void stopCamera() {
-        disableEncoding();
+        disableDataCallback();
 
         if (mCamera != null) {
             mCamera.setPreviewCallback(null);
@@ -267,7 +265,7 @@ public class SrsCameraView extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
-        if (mIsEncoding) {
+        if (mIsCallbacking) {
             mByteBufferCache.add(data);
             synchronized (writeLock) {
                 writeLock.notifyAll();

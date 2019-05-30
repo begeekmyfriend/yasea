@@ -1,13 +1,11 @@
 package com.github.faucamp.simplertmp.packets;
 
-import android.content.res.Configuration;
+import com.github.faucamp.simplertmp.io.ChunkStreamInfo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import com.github.faucamp.simplertmp.io.ChunkStreamInfo;
 
 /**
  *

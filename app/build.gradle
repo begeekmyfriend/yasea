@@ -1,13 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion "26.0.2"
+    compileSdkVersion 25
 
     defaultConfig {
         applicationId "net.ossrs.yasea.demo"
         minSdkVersion 21
-        targetSdkVersion 22
+        targetSdkVersion 25
         versionCode 1
         versionName "1.9"
         ndk {
@@ -20,11 +19,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 dependencies {
-    compile fileTree(dir: 'libx264.libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:26.1.0'
-    compile project(path: ':library')
+    implementation fileTree(include: ['*.jar'], dir: 'libx264.libs')
+    implementation 'com.android.support:appcompat-v7:25.1.0'
+    testImplementation 'junit:junit:4.12'
+    implementation project(':library')
 }

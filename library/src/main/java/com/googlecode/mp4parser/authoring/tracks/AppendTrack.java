@@ -15,7 +15,12 @@
  */
 package com.googlecode.mp4parser.authoring.tracks;
 
-import com.coremedia.iso.boxes.*;
+import com.coremedia.iso.boxes.Box;
+import com.coremedia.iso.boxes.CompositionTimeToSample;
+import com.coremedia.iso.boxes.SampleDependencyTypeBox;
+import com.coremedia.iso.boxes.SampleDescriptionBox;
+import com.coremedia.iso.boxes.SubSampleInformationBox;
+import com.coremedia.iso.boxes.TimeToSampleBox;
 import com.coremedia.iso.boxes.sampleentry.AudioSampleEntry;
 import com.googlecode.mp4parser.authoring.AbstractTrack;
 import com.googlecode.mp4parser.authoring.Track;
@@ -28,7 +33,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Appends two or more <code>Tracks</code> of the same type. No only that the type must be equal

@@ -23,7 +23,6 @@ import com.coremedia.iso.IsoTypeWriter;
 import com.coremedia.iso.IsoTypeWriterVariable;
 import com.googlecode.mp4parser.AbstractFullBox;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;

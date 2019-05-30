@@ -15,8 +15,8 @@
  */
 package com.coremedia.iso;
 
-import com.googlecode.mp4parser.AbstractBox;
 import com.coremedia.iso.boxes.Box;
+import com.googlecode.mp4parser.AbstractBox;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;

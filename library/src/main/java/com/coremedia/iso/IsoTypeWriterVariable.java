@@ -15,7 +15,6 @@
  */
 package com.coremedia.iso;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class IsoTypeWriterVariable {

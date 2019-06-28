@@ -6,10 +6,19 @@ Yet Another Stream Encoder for Android
 **Yasea** is an Android streaming client. It encodes YUV and PCM data from
 camera and microphone to H.264/AAC, encapsulates in FLV and transmits over RTMP.
 
+Branch
+------
+
+[non-gpuimage](https://github.com/begeekmyfriend/yasea/tree/non-gpuimage) for Android without GL ES library like development board.
+
+[android-16](https://github.com/begeekmyfriend/yasea/tree/android-16) for Android API 16+.
+
+[aac-hev2](https://github.com/begeekmyfriend/yasea/tree/aac-hev2) for Youtube live broadcast that is not compatible with conventional flash media players.
+
 Feature
 -------
 
-- [x] Android mini API 16.
+- [x] Android mini API 21.
 - [x] H.264/AAC hard encoding.
 - [x] H.264 soft encoding.
 - [x] RTMP streaming with state callback handler.

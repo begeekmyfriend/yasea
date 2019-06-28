@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private Button btnSwitchCamera;
     private Button btnRecord;
     private Button btnSwitchEncoder;
+    private Button btnPause;
 
     private SharedPreferences sp;
     private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
@@ -66,8 +67,11 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnSwitchCamera = (Button) findViewById(R.id.swCam);
         btnRecord = (Button) findViewById(R.id.record);
         btnSwitchEncoder = (Button) findViewById(R.id.swEnc);
-
-        mPublisher = new SrsPublisher((SrsCameraView) findViewById(R.id.glsurfaceview_camera));
+        btnPause = (Button) findViewById(R.id.pause);
+        btnPause.setEnabled(false);
+        mCameraView = (SrsCameraView) findViewById(R.id.glsurfaceview_camera);
+      
+        mPublisher = new SrsPublisher(mCameraView);
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
@@ -75,6 +79,15 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         mPublisher.setOutputResolution(360, 640);
         mPublisher.setVideoHDMode();
         mPublisher.startCamera();
+      
+        mCameraView.setCameraCallbacksHandler(new SrsCameraView.CameraCallbacksHandler(){
+            @Override
+            public void onCameraParameters(Camera.Parameters params) {
+                //params.setFocusMode("custom-focus");                
+                //params.setWhiteBalance("custom-balance");
+                //etc...
+            }
+        });      
 
         btnPublish.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,12 +108,26 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
                     }
                     btnPublish.setText("stop");
                     btnSwitchEncoder.setEnabled(false);
+                    btnPause.setEnabled(true);
                 } else if (btnPublish.getText().toString().contentEquals("stop")) {
                     mPublisher.stopPublish();
                     mPublisher.stopRecord();
                     btnPublish.setText("publish");
                     btnRecord.setText("record");
                     btnSwitchEncoder.setEnabled(true);
+                    btnPause.setEnabled(false);
+                }
+            }
+        });
+        btnPause.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(btnPause.getText().toString().equals("Pause")){
+                    mPublisher.pausePublish();
+                    btnPause.setText("resume");
+                }else{
+                    mPublisher.resumePublish();
+                    btnPause.setText("Pause");
                 }
             }
         });
@@ -108,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnSwitchCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mPublisher.switchCameraFace((mPublisher.getCamraId() + 1) % Camera.getNumberOfCameras());
+                mPublisher.switchCameraFace((mPublisher.getCameraId() + 1) % Camera.getNumberOfCameras());
             }
         });
 
@@ -215,6 +242,15 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if(mPublisher.getCamera() == null){
+            //if the camera was busy and available again
+            mPublisher.startCamera();
+        }
+    }                           
+                          
     @Override
     protected void onResume() {
         super.onResume();

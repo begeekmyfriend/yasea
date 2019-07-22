@@ -1,5 +1,6 @@
 package net.ossrs.yasea;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
@@ -9,6 +10,7 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.util.AttributeSet;
+import android.view.Surface;
 
 import com.seu.magicfilter.base.gpuimage.GPUImageFilter;
 import com.seu.magicfilter.utils.MagicFilterFactory;
@@ -373,7 +375,7 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
     }
 
     protected Camera openCamera() {
-        Camera camera;
+        Camera camera = null;
         if (mCamId < 0) {
             Camera.CameraInfo info = new Camera.CameraInfo();
             int numCameras = Camera.getNumberOfCameras();

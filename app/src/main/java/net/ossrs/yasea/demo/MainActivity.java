@@ -40,10 +40,11 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private Button btnPause;
 
     private SharedPreferences sp;
-    private String rtmpUrl = "rtmp://ossrs.net/" + getRandomAlphaString(3) + '/' + getRandomAlphaDigitString(5);
+    private String rtmpUrl = "rtmp://asia-southeast1-u-01-gw.uizadev.io:1935/push2transcode/918badeb-0c81-46f1-9e91-9a1cc566dc3a?token=28cc0b78538b13a120d1e47fc0c7ce85&ulasId=57ee741f-3daf-11e9-89c5-02c1b5b83c1a";
     private String recPath = Environment.getExternalStorageDirectory().getPath() + "/test.mp4";
 
     private SrsPublisher mPublisher;
+    private SrsCameraView mCameraView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

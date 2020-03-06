@@ -46,6 +46,9 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
     private SrsPublisher mPublisher;
     private SrsCameraView mCameraView;
 
+    private int mWidth = 640;
+    private int mHeight = 480;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         setContentView(R.layout.activity_main);
 
         // response screen rotation event
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
+//        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
 
         // restore data.
         sp = getSharedPreferences("Yasea", MODE_PRIVATE);
@@ -71,13 +74,14 @@ public class MainActivity extends AppCompatActivity implements RtmpHandler.RtmpL
         btnPause = (Button) findViewById(R.id.pause);
         btnPause.setEnabled(false);
         mCameraView = (SrsCameraView) findViewById(R.id.glsurfaceview_camera);
+        mCameraView.setCameraId(Camera.CameraInfo.CAMERA_FACING_BACK); // 0是后置摄像头，1是前置摄像头
       
         mPublisher = new SrsPublisher(mCameraView);
         mPublisher.setEncodeHandler(new SrsEncodeHandler(this));
         mPublisher.setRtmpHandler(new RtmpHandler(this));
         mPublisher.setRecordHandler(new SrsRecordHandler(this));
-        mPublisher.setPreviewResolution(640, 360);
-        mPublisher.setOutputResolution(360, 640);
+        mPublisher.setPreviewResolution(mWidth, mHeight);
+        mPublisher.setOutputResolution(mHeight, mWidth); // 这里要和preview反过来
         mPublisher.setVideoHDMode();
         mPublisher.startCamera();
       

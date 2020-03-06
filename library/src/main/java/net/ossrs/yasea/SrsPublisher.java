@@ -269,8 +269,10 @@ public class SrsPublisher {
 
     public void setOutputResolution(int width, int height) {
         if (width <= height) {
+            // 竖屏
             mEncoder.setPortraitResolution(width, height);
         } else {
+            // 横屏
             mEncoder.setLandscapeResolution(width, height);
         }
     }

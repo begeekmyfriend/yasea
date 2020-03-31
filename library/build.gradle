@@ -11,7 +11,7 @@ android {
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk {
-            abiFilters "armeabi-v7a", "x86"
+            abiFilters "armeabi-v7a", "x86", "mips"
         }
     }
     buildTypes {
@@ -20,11 +20,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    externalNativeBuild {
-        ndkBuild {
-            path 'src/main/cpp/Android.mk'
-        }
-    }
+    // 反注释下面的代码，编译so
+//    externalNativeBuild {
+//        ndkBuild {
+//            path 'src/main/cpp/Android.mk'
+//        }
+//    }
 }
 
 dependencies {

@@ -10,7 +10,7 @@ android {
         versionCode 1
         versionName "2.6"
         ndk {
-            abiFilters "armeabi-v7a", "x86"
+            abiFilters "armeabi-v7a", "x86", "mips"
         }
     }
     buildTypes {

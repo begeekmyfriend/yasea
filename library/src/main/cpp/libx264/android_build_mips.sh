@@ -1,14 +1,14 @@
 #!/bin/sh
 
-ANDROID_NDK=$HOME/Android/Sdk/ndk-bundle
-SYSROOT=$ANDROID_NDK/platforms/android-21/arch-arm64
-CROSS_PREFIX=$ANDROID_NDK/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-
-EXTRA_CFLAGS="-march=armv8-a -D__ANDROID__"
+ANDROID_NDK=$HOME/Android/android-ndk-r14b
+SYSROOT=$ANDROID_NDK/platforms/android-19/arch-mips
+CROSS_PREFIX=$ANDROID_NDK/toolchains/mipsel-linux-android-4.9/prebuilt/darwin-x86_64/bin/mipsel-linux-android-
+EXTRA_CFLAGS="-D__ANDROID__ -D__mipsel__"
 EXTRA_LDFLAGS="-nostdlib"
-PREFIX=`pwd`/libs/arm64-v8a
+PREFIX=`pwd`/libs/mips
 
 ./configure --prefix=$PREFIX \
-        --host=aarch64-linux \
+        --host=mipsel-linux \
         --sysroot=$SYSROOT \
         --cross-prefix=$CROSS_PREFIX \
         --extra-cflags="$EXTRA_CFLAGS" \
@@ -23,7 +23,9 @@ PREFIX=`pwd`/libs/arm64-v8a
         --disable-lavf \
         --disable-ffms \
         --disable-gpac \
-        --disable-lsmash
+        --disable-lsmash \
+        --disable-opencl \
+        --disable-asm
 
 make clean
 make STRIP= -j8 install || exit 1

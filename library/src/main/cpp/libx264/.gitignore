@@ -1,5 +1,5 @@
 *~
-*.a
+#*.a
 *.diff
 *.orig
 *.rej

@@ -1,5 +1,6 @@
 package net.ossrs.yasea;
 
+import android.hardware.Camera;
 import android.media.AudioRecord;
 import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
@@ -159,12 +160,27 @@ public class SrsPublisher {
         stopCamera();
         mEncoder.stop();
     }
+    public void pauseEncode(){
+        stopAudio();
+        mCameraView.disableEncoding();
+        mCameraView.stopTorch();
+    }
+    private void resumeEncode() {
+        startAudio();
+        mCameraView.enableEncoding();
+    }
 
     public void startPublish(String rtmpUrl) {
         if (mFlvMuxer != null) {
             mFlvMuxer.start(rtmpUrl);
             mFlvMuxer.setVideoResolution(mEncoder.getOutputWidth(), mEncoder.getOutputHeight());
             startEncode();
+        }
+    }
+    public void resumePublish(){
+        if(mFlvMuxer != null) {
+            mEncoder.resume();
+            resumeEncode();
         }
     }
 
@@ -175,6 +191,12 @@ public class SrsPublisher {
         }
     }
 
+    public void pausePublish(){
+        if (mFlvMuxer != null) {
+            mEncoder.pause();
+            pauseEncode();
+        }
+    }
     public boolean startRecord(String recPath) {
         return mMp4Muxer != null && mMp4Muxer.record(new File(recPath));
     }
@@ -195,6 +217,17 @@ public class SrsPublisher {
         if (mMp4Muxer != null) {
             mMp4Muxer.resume();
         }
+    }
+
+    public boolean isAllFramesUploaded(){
+        return mFlvMuxer.getVideoFrameCacheNumber().get() == 0;
+    }
+
+    public int getVideoFrameCacheCount(){
+        if(mFlvMuxer != null) {
+            return mFlvMuxer.getVideoFrameCacheNumber().get();
+        }
+        return 0;
     }
 
     public void switchToSoftEncoder() {
@@ -221,9 +254,13 @@ public class SrsPublisher {
         return mSamplingFps;
     }
 
-    public int getCamraId() {
+    public int getCameraId() {
         return mCameraView.getCameraId();
     }
+    
+    public Camera getCamera() {
+        return mCameraView.getCamera();
+    }     
 
     public void setPreviewResolution(int width, int height) {
         int resolution[] = mCameraView.setPreviewResolution(width, height);
@@ -232,8 +269,10 @@ public class SrsPublisher {
 
     public void setOutputResolution(int width, int height) {
         if (width <= height) {
+            // 竖屏
             mEncoder.setPortraitResolution(width, height);
         } else {
+            // 横屏
             mEncoder.setLandscapeResolution(width, height);
         }
     }

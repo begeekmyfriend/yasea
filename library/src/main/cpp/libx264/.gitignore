@@ -1,5 +1,6 @@
+/libx264.a
 *~
-*.a
+#*.a
 *.diff
 *.orig
 *.rej

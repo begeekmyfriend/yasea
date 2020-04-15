@@ -5,12 +5,12 @@ android {
 
     defaultConfig {
         applicationId "net.ossrs.yasea.demo"
-        minSdkVersion 21
+        minSdkVersion 18
         targetSdkVersion 22
         versionCode 1
         versionName "2.6"
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86"
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "mips"
         }
     }
     buildTypes {

@@ -1,8 +1,8 @@
 #!/bin/sh
 
-ANDROID_NDK=$HOME/Android/Sdk/ndk-bundle
-SYSROOT=$ANDROID_NDK/platforms/android-21/arch-arm
-CROSS_PREFIX=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-
+ANDROID_NDK=$HOME/Android/android-ndk-r14b
+SYSROOT=$ANDROID_NDK/platforms/android-19/arch-arm
+CROSS_PREFIX=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-
 EXTRA_CFLAGS="-march=armv7-a -mfloat-abi=softfp -mfpu=neon -D__ANDROID__ -D__ARM_ARCH_7__ -D__ARM_ARCH_7A__"
 EXTRA_LDFLAGS="-nostdlib"
 PREFIX=`pwd`/libs/armeabi-v7a

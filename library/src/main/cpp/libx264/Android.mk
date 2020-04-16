@@ -15,4 +15,8 @@ ifeq ($(TARGET_ARCH_ABI),x86)
     LOCAL_SRC_FILES := libs/x86/libx264.a
 endif
 
+ifeq ($(TARGET_ARCH_ABI),mips)
+    LOCAL_SRC_FILES := libs/mips/libx264.a
+endif
+
 include $(PREBUILT_STATIC_LIBRARY)

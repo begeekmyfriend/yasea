@@ -20,11 +20,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    externalNativeBuild {
-        ndkBuild {
-            path 'src/main/cpp/Android.mk'
-        }
-    }
+    // uncomment these lines to compile so files
+//    externalNativeBuild {
+//        ndkBuild {
+//            path 'src/main/cpp/Android.mk'
+//        }
+//    }
 }
 
 dependencies {

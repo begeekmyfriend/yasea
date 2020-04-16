@@ -67,7 +67,7 @@ void CopyRow_MIPS(const uint8* src, uint8* dst, int count) {
     "pref      0, 64(%[src])                     \n"
     "pref      30, 32(%[dst])                    \n"
     // In case the a1 > t9 don't use "pref 30" at all
-    "sgtu      $v1, %[dst], $t9                  \n"
+    "sltu      $v1, %[dst], $t9                  \n"
     "bgtz      $v1, $loop16w                     \n"
     "nop                                         \n"
     // otherwise, start with using pref30
@@ -118,7 +118,7 @@ void CopyRow_MIPS(const uint8* src, uint8* dst, int count) {
     "sw        $t7, 60(%[dst])                   \n"
 
     "addiu     %[dst], %[dst], 64                \n"  // adding 64 to dest
-    "sgtu      $v1, %[dst], $t9                  \n"
+    "sltu      $v1, %[dst], $t9                  \n"
     "bne       %[dst], $a3, $loop16w             \n"
     " addiu    %[src], %[src], 64                \n"  // adding 64 to src
     "move      %[count], $t8                     \n"
@@ -220,7 +220,7 @@ void CopyRow_MIPS(const uint8* src, uint8* dst, int count) {
     "pref      30, 32(%[dst])                    \n"
     // safe, as we have at least 64 bytes ahead
     // In case the a1 > t9 don't use "pref 30" at all
-    "sgtu      $v1, %[dst], $t9                  \n"
+    "sltu      $v1, %[dst], $t9                  \n"
     "bgtz      $v1, $ua_loop16w                  \n"
     // skip "pref 30,64(a1)" for too short arrays
     " nop                                        \n"
@@ -291,7 +291,7 @@ void CopyRow_MIPS(const uint8* src, uint8* dst, int count) {
     "sw        $t7, 60(%[dst])                   \n"
 
     "addiu     %[dst],%[dst],64                  \n"  // adding 64 to dest
-    "sgtu      $v1,%[dst],$t9                    \n"
+    "sltu      $v1,%[dst],$t9                    \n"
     "bne       %[dst],$a3,$ua_loop16w            \n"
     " addiu    %[src],%[src],64                  \n"  // adding 64 to src
     "move      %[count],$t8                      \n"

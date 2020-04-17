@@ -58,9 +58,14 @@ endif
 
 ifeq ($(TARGET_ARCH_ABI),$(filter $(TARGET_ARCH_ABI), mips mips_64))
     LOCAL_SRC_FILES += \
-        source/rotate_mips.cc        \
-        source/row_mips.cc           \
-        source/scale_mips.cc
+    source/compare_msa.cc       \
+    source/rotate_msa.cc        \
+    source/row_msa.cc           \
+    source/scale_msa.cc
+
+#        source/rotate_mips.cc        \
+#        source/row_mips.cc           \
+#        source/scale_mips.cc
 endif
 
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include

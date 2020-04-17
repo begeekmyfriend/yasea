@@ -4,14 +4,14 @@ android {
     compileSdkVersion 26
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 22
+        minSdkVersion 18
+        targetSdkVersion 26
         versionCode 1
         versionName "2.6"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86"
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "mips"
         }
     }
     buildTypes {
@@ -20,11 +20,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    externalNativeBuild {
-        ndkBuild {
-            path 'src/main/cpp/Android.mk'
-        }
-    }
+    // uncomment these lines to compile so files
+//    externalNativeBuild {
+//        ndkBuild {
+//            path 'src/main/cpp/Android.mk'
+//        }
+//    }
 }
 
 dependencies {

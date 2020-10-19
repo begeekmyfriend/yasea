@@ -34,7 +34,7 @@ public class SrsEncoder {
     public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static int vBitrate = 1200 * 1024;  // 1200 kbps
     public static final int VFPS = 24;
-    public static final int VGOP = 48;
+    public static final int VGOP = 24;
     public static final int ASAMPLERATE = 44100;
     public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
     public static final int ABITRATE = 64 * 1024;  // 64 kbps

@@ -34,7 +34,7 @@ public class SrsEncoder {
     public static int vOutHeight = 640;  // Since Y component is quadruple size as U and V component, the stride must be set as 32x
     public static int vBitrate = 1200 * 1024;  // 1200 kbps
     public static final int VFPS = 24;
-    public static final int VGOP = 24;
+    public static final int VGOP = 48;
     public static final int ASAMPLERATE = 44100;
     public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
     public static final int ABITRATE = 64 * 1024;  // 64 kbps
@@ -360,7 +360,7 @@ public class SrsEncoder {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP / 2) {
             ByteBuffer[] inBuffers = aencoder.getInputBuffers();
             ByteBuffer[] outBuffers = aencoder.getOutputBuffers();
 
@@ -391,7 +391,7 @@ public class SrsEncoder {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP / 2) {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 swRgbaFrame(data, width, height, pts);
@@ -418,7 +418,7 @@ public class SrsEncoder {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP / 2) {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 throw new UnsupportedOperationException("Not implemented");
@@ -446,7 +446,7 @@ public class SrsEncoder {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP / 2) {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 throw new UnsupportedOperationException("Not implemented");
@@ -474,7 +474,7 @@ public class SrsEncoder {
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
-        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP) {
+        if (videoFrameCacheNumber != null && videoFrameCacheNumber.get() < VGOP / 2) {
             long pts = System.nanoTime() / 1000 - mPresentTimeUs;
             if (useSoftEncoder) {
                 throw new UnsupportedOperationException("Not implemented");

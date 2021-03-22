@@ -1,21 +1,5 @@
 package com.github.faucamp.simplertmp.io;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import android.util.Log;
 
 import com.github.faucamp.simplertmp.RtmpHandler;
@@ -26,15 +10,31 @@ import com.github.faucamp.simplertmp.amf.AmfNumber;
 import com.github.faucamp.simplertmp.amf.AmfObject;
 import com.github.faucamp.simplertmp.amf.AmfString;
 import com.github.faucamp.simplertmp.packets.Abort;
+import com.github.faucamp.simplertmp.packets.Audio;
+import com.github.faucamp.simplertmp.packets.Command;
 import com.github.faucamp.simplertmp.packets.Data;
 import com.github.faucamp.simplertmp.packets.Handshake;
-import com.github.faucamp.simplertmp.packets.Command;
-import com.github.faucamp.simplertmp.packets.Audio;
-import com.github.faucamp.simplertmp.packets.SetPeerBandwidth;
-import com.github.faucamp.simplertmp.packets.Video;
-import com.github.faucamp.simplertmp.packets.UserControl;
 import com.github.faucamp.simplertmp.packets.RtmpPacket;
+import com.github.faucamp.simplertmp.packets.SetPeerBandwidth;
+import com.github.faucamp.simplertmp.packets.UserControl;
+import com.github.faucamp.simplertmp.packets.Video;
 import com.github.faucamp.simplertmp.packets.WindowAckSize;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Main RTMP connection implementation class
@@ -116,7 +116,7 @@ public class RtmpConnection implements RtmpPublisher {
             return false;
         }
 
-        if (streamName == null || appName == null) {
+        if (appName == null || streamName == null) {
             mHandler.notifyRtmpIllegalArgumentException(new IllegalArgumentException(
                 "Invalid RTMP URL. Must be in format: rtmp://host[:port]/application/streamName"));
             return false;
@@ -491,7 +491,7 @@ public class RtmpConnection implements RtmpPublisher {
                 rtmpPacket.getHeader().setAbsoluteTimestamp((int) chunkStreamInfo.markAbsoluteTimestampTx());
             }
             rtmpPacket.writeTo(outputStream, rtmpSessionInfo.getTxChunkSize(), chunkStreamInfo);
-            Log.d(TAG, "wrote packet: " + rtmpPacket + ", size: " + rtmpPacket.getHeader().getPacketLength());
+            //Log.d(TAG, "wrote packet: " + rtmpPacket + ", size: " + rtmpPacket.getHeader().getPacketLength());
             if (rtmpPacket instanceof Command) {
                 rtmpSessionInfo.addInvokedCommand(((Command) rtmpPacket).getTransactionId(), ((Command) rtmpPacket).getCommandName());
             }
@@ -526,7 +526,9 @@ public class RtmpConnection implements RtmpPublisher {
                             UserControl user = (UserControl) rtmpPacket;
                             switch (user.getType()) {
                                 case STREAM_BEGIN:
-                                    Log.d(TAG, "handleRxPacketLoop(): Receive STREAM_BEGIN");
+                                    if (currentStreamId != user.getFirstEventData()) {
+                                        mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Current stream ID error!"));
+                                    }
                                     break;
                                 case PING_REQUEST:
                                     ChunkStreamInfo channelInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_PROTOCOL_CONTROL);

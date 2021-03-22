@@ -72,7 +72,7 @@ public class RtmpConnection implements RtmpPublisher {
     private int transactionIdCounter = 0;
     private AmfString serverIpAddr;
     private AmfNumber serverPid;
-    private AmfNumber serverId;
+    private AmfString serverId;
     private int videoWidth;
     private int videoHeight;
     private int videoFrameCount;
@@ -94,6 +94,7 @@ public class RtmpConnection implements RtmpPublisher {
         handshake.readS0(in);
         handshake.readS1(in);
         handshake.writeC2(out);
+        out.flush();
         handshake.readS2(in);
     }
 
@@ -525,9 +526,7 @@ public class RtmpConnection implements RtmpPublisher {
                             UserControl user = (UserControl) rtmpPacket;
                             switch (user.getType()) {
                                 case STREAM_BEGIN:
-                                    if (currentStreamId != user.getFirstEventData()) {
-                                        mHandler.notifyRtmpIllegalStateException(new IllegalStateException("Current stream ID error!"));
-                                    }
+                                    Log.d(TAG, "handleRxPacketLoop(): Receive STREAM_BEGIN");
                                     break;
                                 case PING_REQUEST:
                                     ChunkStreamInfo channelInfo = rtmpSessionInfo.getChunkStreamInfo(ChunkStreamInfo.RTMP_CID_PROTOCOL_CONTROL);
@@ -636,12 +635,12 @@ public class RtmpConnection implements RtmpPublisher {
             objData = ((AmfObject) objData.getProperty("data"));
             serverIpAddr = (AmfString) objData.getProperty("srs_server_ip");
             serverPid = (AmfNumber) objData.getProperty("srs_pid");
-            serverId = (AmfNumber) objData.getProperty("srs_id");
+            serverId = (AmfString) objData.getProperty("srs_id");
         }
         String info = "";
         info += serverIpAddr == null ? "" : " ip: " + serverIpAddr.getValue();
         info += serverPid == null ? "" : " pid: " + (int) serverPid.getValue();
-        info += serverId == null ? "" : " id: " + (int) serverId.getValue();
+        info += serverId == null ? "" : " id: " + serverId.getValue();
         return info;
     }
 
@@ -662,7 +661,7 @@ public class RtmpConnection implements RtmpPublisher {
 
     @Override
     public final int getServerId() {
-        return serverId == null ? 0 : (int) serverId.getValue();
+        return serverId == null ? 0 : Integer.parseInt(serverId.getValue());
     }
 
     @Override

@@ -77,7 +77,7 @@ public class SrsPublisher {
         if (AcousticEchoCanceler.isAvailable()) {
             aec = AcousticEchoCanceler.create(mic.getAudioSessionId());
             if (aec != null) {
-                aec.setEnabled(true);
+                //aec.setEnabled(true); //android 11 issue low volume
             }
         }
 

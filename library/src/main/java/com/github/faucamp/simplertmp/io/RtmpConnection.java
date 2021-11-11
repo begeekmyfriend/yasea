@@ -631,12 +631,24 @@ public class RtmpConnection implements RtmpPublisher {
     private String onSrsServerInfo(Command invoke) {
         // SRS server special information
         AmfObject objData = (AmfObject) invoke.getData().get(1);
-        if ((objData).getProperty("data") instanceof AmfObject) {
-            objData = ((AmfObject) objData.getProperty("data"));
-            serverIpAddr = (AmfString) objData.getProperty("srs_server_ip");
-            serverPid = (AmfNumber) objData.getProperty("srs_pid");
-            serverId = (AmfNumber) objData.getProperty("srs_id");
-        }
+
+        try {
+            if ((objData).getProperty("data") instanceof AmfObject) {
+                objData = ((AmfObject) objData.getProperty("data"));
+                serverIpAddr = (AmfString) objData.getProperty("srs_server_ip");
+                serverPid = (AmfNumber) objData.getProperty("srs_pid");
+
+                try {
+                    serverId = (AmfNumber) objData.getProperty("srs_id"); //AmfString SRS >= 4
+                }catch (ClassCastException e){
+                    Log.i(TAG, "SRS >= 4 ver, serverId unavaiable");
+                }
+            }
+        }catch (Exception e){
+            Log.e(TAG, "onSrsServerInfo failed");
+            e.printStackTrace();
+        }        
+        
         String info = "";
         info += serverIpAddr == null ? "" : " ip: " + serverIpAddr.getValue();
         info += serverPid == null ? "" : " pid: " + (int) serverPid.getValue();

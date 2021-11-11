@@ -882,7 +882,6 @@ public class SrsFlvMuxer {
                     frame.data.get(sps);
                     h264_sps_changed = true;
                     h264_sps = ByteBuffer.wrap(sps);
-//                    writeH264SpsPps(dts, pts);
                 }
 
                 SrsFlvFrameBytes frame_sei = avc.demuxAnnexb(bb, bi, false);
@@ -896,8 +895,12 @@ public class SrsFlvMuxer {
                     frame_pps.data.get(pps);
                     h264_pps_changed = true;
                     h264_pps = ByteBuffer.wrap(pps);
-                    writeH264SpsPps(dts, pts);
                 }
+                
+                if(h264_sps_changed || h264_pps_changed){
+                    writeH264SpsPps(dts, pts);
+                }                
+                
                 return;
             } else if (nal_unit_type != SrsAvcNaluType.NonIDR) {
                 return;

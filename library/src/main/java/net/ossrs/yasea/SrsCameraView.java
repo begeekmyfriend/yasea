@@ -117,6 +117,17 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        
+        
+        if(mSurfaceWidth != mPreviewWidth || mSurfaceHeight != mPreviewHeight){           
+            //May be a buffer overflow in enableEncoding()
+            //mPreviewWidth changed but onSurfaceCreated fired after enable encoding (mIsEncoding == true)
+            //could be calling magicFilter.onInputSizeChanged(width, height) in setPreviewResolution() after changing mGLPreviewBuffer?
+            //or start the encoder only after onSurfaceCreated ...            
+            Log.e(TAG, String.format("Surface dimensions differ from Preview. May be a buffer overflow. Surface: %dx%d, Preview: %dx%d ", mSurfaceWidth, mSurfaceHeight, mPreviewWidth, mPreviewHeight));
+            return;
+        }        
+        
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
@@ -127,8 +138,8 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         magicFilter.setTextureTransformMatrix(mTransformMatrix);
         magicFilter.onDrawFrame(mOESTextureId);
 
-        if (mIsEncoding) {
-            mGLIntBufferCache.add(magicFilter.getGLFboBuffer());
+        if (mIsEncoding) {           
+            mGLIntBufferCache.add(magicFilter.getGLFboBuffer());                       
             synchronized (writeLock) {
                 writeLock.notifyAll();
             }

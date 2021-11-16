@@ -62,6 +62,9 @@ public class SrsEncoder {
     private int videoMp4Track;
     private int audioFlvTrack;
     private int audioMp4Track;
+    
+    private boolean reconfiguringVideo = false;
+    private int requestReconfigure = 0;
 
     // Y, U (Cb) and V (Cr)
     // yuv420                     yuv yuv yuv yuv
@@ -142,25 +145,13 @@ public class SrsEncoder {
         audioFlvTrack = flvMuxer.addTrack(audioFormat);
         audioMp4Track = mp4Muxer.addTrack(audioFormat);
 
-        // vencoder yuv to 264 es stream.
-        // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
-        try {
-            vencoder = MediaCodec.createByCodecName(vmci.getName());
-        } catch (IOException e) {
-            Log.e(TAG, "create vencoder failed.");
-            e.printStackTrace();
+        MediaFormat videoFormat = videoCodecConfigure();
+
+        if(videoFormat == null){
             return false;
         }
-
-        // setup the vencoder.
-        // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
-        MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vOutWidth, vOutHeight);
-        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
-        videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
-        videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
-        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
-        vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        
+        
         // add the video tracker to muxer.
         videoFlvTrack = flvMuxer.addTrack(videoFormat);
         videoMp4Track = mp4Muxer.addTrack(videoFormat);
@@ -170,6 +161,64 @@ public class SrsEncoder {
         aencoder.start();
         return true;
     }
+    
+    private MediaFormat videoCodecConfigure(){
+        // vencoder yuv to 264 es stream.
+        // requires sdk level 16+, Android 4.1, 4.1.1, the JELLY_BEAN
+        Log.d(TAG, "VideoCodec configure");
+
+        setEncoderResolution(vOutWidth, vOutHeight);
+
+
+        if(!reconfiguringVideo || vencoder == null) {
+            try {
+                vencoder = MediaCodec.createByCodecName(vmci.getName());
+            } catch (IOException e) {
+                Log.e(TAG, "create vencoder failed.");
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        // setup the vencoder.
+        // Note: landscape to portrait, 90 degree rotation, so we need to switch width and height in configuration
+
+        MediaFormat videoFormat = MediaFormat.createVideoFormat(VCODEC, vOutWidth, vOutHeight);
+        videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mVideoColorFormat);
+        videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, vBitrate);
+        videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, VFPS);
+        videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, VGOP / VFPS);
+        vencoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+        flvMuxer.addTrack(videoFormat);
+
+        return videoFormat;
+    }    
+    
+    
+    public void videoCodecReConfigure(){
+
+
+        if(requestReconfigure == 0){
+            Log.e(TAG, "Request reconfigure");
+            requestReconfigure = 1;
+            return;
+        }
+
+        if(requestReconfigure == 1){
+            throw new IllegalStateException("reconfiguring");
+        }
+
+        Log.d(TAG, "VideoCodec reconfigure: " + vOutWidth +"x"+ vOutHeight);
+        reconfiguringVideo = true;
+        
+        vencoder.reset();
+        videoCodecConfigure();
+        vencoder.start();
+        requestReconfigure = 0;
+
+    }    
 
     public void pause(){
         mPausetime = System.nanoTime() / 1000;
@@ -328,6 +377,16 @@ public class SrsEncoder {
                 ByteBuffer bb = outBuffers[outBufferIndex];
                 onEncodedAnnexbFrame(bb, vebi);
                 vencoder.releaseOutputBuffer(outBufferIndex, false);
+                
+                if(vebi.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME){
+                    if(requestReconfigure == 1){
+                        //reconfigure when all P (predicred) frames have been sent
+                        requestReconfigure = 2;
+                        videoCodecReConfigure();
+                    }
+
+                }                
+                
             } else {
                 break;
             }

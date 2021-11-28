@@ -546,6 +546,7 @@ public class SrsEncoder {
         RGBASoftEncode(data, width, height, true, 180, pts);
     }
 
+    @SuppressLint("MissingPermission")
     public AudioRecord chooseAudioRecord() {
         AudioRecord mic = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, SrsEncoder.ASAMPLERATE,
             AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, getPcmBufferSize() * 4);

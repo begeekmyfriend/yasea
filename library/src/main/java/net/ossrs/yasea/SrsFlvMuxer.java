@@ -711,6 +711,7 @@ public class SrsFlvMuxer {
         private ByteBuffer h264_pps;
         private boolean h264_pps_changed;
         private boolean h264_sps_pps_sent;
+        private boolean h264_sps_pps_changed;
         private boolean aac_specific_config_got;
 
         public SrsFlv() {
@@ -721,6 +722,7 @@ public class SrsFlvMuxer {
             h264_sps_changed = false;
             h264_pps_changed = false;
             h264_sps_pps_sent = false;
+            h264_sps_pps_changed = false;
             aac_specific_config_got = false;
             if (null != h264_sps){
                 Arrays.fill(h264_sps.array(),(byte) 0x00);
@@ -896,12 +898,32 @@ public class SrsFlvMuxer {
                     frame_pps.data.get(pps);
                     h264_pps_changed = true;
                     h264_pps = ByteBuffer.wrap(pps);
-                    writeH264SpsPps(dts, pts);
+                    //writeH264SpsPps(dts, pts);
                 }
+                
+                
+                if(h264_sps_changed || h264_pps_changed){
+                    writeH264SpsPps(dts, pts);
+                    h264_sps_pps_changed = true;
+                }
+                
                 return;
             } else if (nal_unit_type != SrsAvcNaluType.NonIDR) {
                 return;
             }
+            
+            if(type == SrsCodecVideoAVCFrame.KeyFrame && h264_sps_pps_changed ){
+                //prepend SPS\PPS to IDR
+                SrsFlvFrameBytes sps_frame = new SrsFlvFrameBytes(h264_sps);
+                SrsFlvFrameBytes pps_frame = new SrsFlvFrameBytes(h264_pps);
+
+                ipbs.add(avc.muxNaluHeader(sps_frame));
+                ipbs.add(sps_frame);
+                ipbs.add(avc.muxNaluHeader(pps_frame));
+                ipbs.add(pps_frame);
+                h264_sps_pps_changed = false;
+                Log.i(TAG, String.format("prepend key frame SPS/PPS. DTS: %d, SPS/PPS size: %d/%d, IDR size: %d", dts, sps_frame.size, pps_frame.size, frame.size));
+            }            
 
             ipbs.add(avc.muxNaluHeader(frame));
             ipbs.add(frame);

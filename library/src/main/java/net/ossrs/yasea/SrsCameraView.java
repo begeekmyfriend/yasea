@@ -279,9 +279,17 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
             public void run() {
                 while (!Thread.interrupted()) {
                     while (!mGLIntBufferCache.isEmpty()) {
-                        IntBuffer picture = mGLIntBufferCache.poll();
-                        mGLPreviewBuffer.asIntBuffer().put(picture.array());
-                        mPrevCb.onGetRgbaFrame(mGLPreviewBuffer.array(), mPreviewWidth, mPreviewHeight);
+                        try {
+                            IntBuffer picture = mGLIntBufferCache.poll();
+                            mGLPreviewBuffer.asIntBuffer().put(picture.array());
+                            mPrevCb.onGetRgbaFrame(mGLPreviewBuffer.array(), mPreviewWidth, mPreviewHeight);
+                        }catch (Exception e){
+                            cameraCallbacksHandler.onError(e);
+                            e.printStackTrace();
+                            worker.interrupt();
+                            break;
+                        }
+
                     }
                     // Waiting for next frame
                     synchronized (writeLock) {
@@ -499,10 +507,17 @@ public class SrsCameraView extends GLSurfaceView implements GLSurfaceView.Render
         public void onCameraParameters(Camera.Parameters params) {
 
         }
+        
+        @Override
+        public void onError(Exception e) {
+            //stop publish
+        }        
+        
     }
 
     public interface CameraCallbacks {
         void onCameraParameters(Camera.Parameters params);
+        void onError(Exception e);
     }
 
     public void setCameraCallbacksHandler(CameraCallbacksHandler cameraCallbacksHandler) {

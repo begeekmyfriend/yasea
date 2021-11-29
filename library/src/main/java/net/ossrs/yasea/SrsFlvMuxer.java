@@ -409,6 +409,20 @@ public class SrsFlvMuxer {
     private class SrsFlvFrameBytes {
         public ByteBuffer data;
         public int size;
+        
+        
+        SrsFlvFrameBytes(){
+
+        }
+
+        SrsFlvFrameBytes(ByteBuffer buff){
+            int size = buff.capacity();
+            byte[] bytes = new byte[size];
+            buff.get(bytes);
+            this.data = ByteBuffer.wrap(bytes);
+            this.size = size;
+        }        
+        
     }
 
     /**

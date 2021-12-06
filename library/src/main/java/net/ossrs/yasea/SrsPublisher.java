@@ -309,6 +309,11 @@ public class SrsPublisher {
     }
 
     public void switchCameraFace(int id) {
+        
+        if (mEncoder != null && mEncoder.isEnabled()) {
+            mEncoder.pause();
+        }        
+        
         mCameraView.stopCamera();
         mCameraView.setCameraId(id);
         if (id == 0) {
@@ -320,6 +325,11 @@ public class SrsPublisher {
             mCameraView.enableEncoding();
         }
         mCameraView.startCamera();
+        
+        if (mEncoder != null && mEncoder.isEnabled()) {
+            mEncoder.resume();
+        }        
+        
     }
 
     public void setRtmpHandler(RtmpHandler handler) {

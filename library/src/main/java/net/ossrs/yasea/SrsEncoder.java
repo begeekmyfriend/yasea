@@ -357,6 +357,11 @@ public class SrsEncoder {
     }
 
     public void onGetPcmFrame(byte[] data, int size) {
+        
+        if(mPausetime > 0){
+            return;
+        }        
+        
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
@@ -388,6 +393,11 @@ public class SrsEncoder {
     }
 
     public void onGetRgbaFrame(byte[] data, int width, int height) {
+        
+        if(mPausetime > 0){
+            return;
+        }                
+        
         // Check video frame cache number to judge the networking situation.
         // Just cache GOP / FPS seconds data according to latency.
         AtomicInteger videoFrameCacheNumber = flvMuxer.getVideoFrameCacheNumber();
@@ -546,6 +556,7 @@ public class SrsEncoder {
         RGBASoftEncode(data, width, height, true, 180, pts);
     }
 
+    @SuppressLint("MissingPermission")
     public AudioRecord chooseAudioRecord() {
         AudioRecord mic = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, SrsEncoder.ASAMPLERATE,
             AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, getPcmBufferSize() * 4);

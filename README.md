@@ -53,8 +53,3 @@ Acknowledgements
 - [MagicCamera](https://github.com/wuhaoyu1990/MagicCamera)
 - [x264](http://www.videolan.org/developers/x264.html)
 - [mp4parser](https://android.googlesource.com/platform/external/mp4parser)
-
-Sponsor
--------
-
-- [dotEngine](https://dot.cc) -- A brilliant realtime multimedia communication service vendor with open cross-platform SDK ([github](https://github.com/dotEngine)).
